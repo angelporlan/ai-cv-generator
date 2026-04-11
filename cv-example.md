@@ -3,7 +3,7 @@
 **Location:** Barcelona, Spain  
 **Email:** daniel.ruiz.dev@example.com  
 **LinkedIn:** linkedin.com/in/danielruiznavarro  
-**Portfolio:** danielruiz.dev  
+**Portfolio:** danielruiznav.dev  
 **GitHub:** github.com/danielruiz  
 
 ---
