@@ -10,6 +10,17 @@ const downloadMdButton = document.getElementById('download-md-button');
 const downloadPdfButton = document.getElementById('download-pdf-button');
 const fileInput = document.getElementById('file-input');
 const templateSelector = document.getElementById('template-selector');
+const libraryModal = document.getElementById('library-modal');
+const openLibraryBtn = document.getElementById('open-library-button');
+const closeLibraryBtn = document.getElementById('close-library-button');
+const saveToLibraryBtn = document.getElementById('save-to-library-button');
+const libraryItemsContainer = document.getElementById('library-items');
+const libraryCountTag = document.getElementById('library-count');
+const newCvNameInput = document.getElementById('new-cv-name');
+const newCvSpaceSelect = document.getElementById('new-cv-space');
+
+const LIBRARY_STORAGE_KEY = 'cv-studio-library';
+let libraryData = [];
 
 let saveTimer = null;
 let lastSavedValue = '';
@@ -266,6 +277,118 @@ async function updatePdfPreview() {
   }
 }
 
+/* ── Library Management ────────────────────────────────────────── */
+function loadLibraryData() {
+  const saved = localStorage.getItem(LIBRARY_STORAGE_KEY);
+  try {
+    libraryData = saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    libraryData = [];
+  }
+  renderLibrary();
+}
+
+function saveLibraryData() {
+  localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(libraryData));
+  renderLibrary();
+}
+
+function renderLibrary() {
+  if (!libraryCountTag || !libraryItemsContainer) return;
+  
+  libraryCountTag.textContent = `${libraryData.length} CV${libraryData.length !== 1 ? 's' : ''}`;
+  
+  if (libraryData.length === 0) {
+    libraryItemsContainer.innerHTML = `
+      <div class="empty-library">
+        <p>Aún no tienes CVs guardados. ¡Guarda el actual para empezar!</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Ordenar por espacio y luego por nombre
+  const sorted = [...libraryData].sort((a, b) => a.space.localeCompare(b.space) || a.name.localeCompare(b.name));
+
+  libraryItemsContainer.innerHTML = sorted.map(cv => `
+    <div class="cv-card">
+      <div class="cv-card-header">
+        <div>
+          <div class="cv-card-name">${escapeHtml(cv.name)}</div>
+          <div class="cv-card-space">${cv.space}</div>
+        </div>
+      </div>
+      <div class="cv-card-actions">
+        <button class="button-ghost-sm load-cv" data-id="${cv.id}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Abrir
+        </button>
+        <button class="button-ghost-sm button-danger-ghost delete-cv" data-id="${cv.id}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Eliminar
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  // Listeners para los botones generados
+  libraryItemsContainer.querySelectorAll('.load-cv').forEach(btn => {
+    btn.addEventListener('click', () => loadCvFromLibrary(btn.dataset.id));
+  });
+  libraryItemsContainer.querySelectorAll('.delete-cv').forEach(btn => {
+    btn.addEventListener('click', () => deleteFromLibrary(btn.dataset.id));
+  });
+}
+
+function saveToLibrary() {
+  const name = newCvNameInput.value.trim();
+  const space = newCvSpaceSelect.value;
+  const content = editor.value;
+
+  if (!name) {
+    alert('Introduce un nombre para el CV');
+    return;
+  }
+
+  const newCv = {
+    id: Date.now().toString(),
+    name,
+    space,
+    content,
+    date: new Date().toISOString()
+  };
+
+  libraryData.push(newCv);
+  saveLibraryData();
+  newCvNameInput.value = '';
+  setStatus('CV guardado en la biblioteca');
+}
+
+function loadCvFromLibrary(id) {
+  const cv = libraryData.find(c => c.id === id);
+  if (cv && confirm(`¿Quieres cargar "${cv.name}"? Se perderán los cambios actuales no guardados.`)) {
+    updateEditor(cv.content, `"${cv.name}" cargado`);
+    closeLibrary();
+  }
+}
+
+function deleteFromLibrary(id) {
+  const cv = libraryData.find(c => c.id === id);
+  if (cv && confirm(`¿Estás seguro de que quieres eliminar "${cv.name}"?`)) {
+    libraryData = libraryData.filter(c => c.id !== id);
+    saveLibraryData();
+  }
+}
+
+function openLibrary() {
+  loadLibraryData();
+  libraryModal.classList.add('active');
+}
+
+function closeLibrary() {
+  libraryModal.classList.remove('active');
+}
+
 function schedulePreviewUpdate() {
   clearTimeout(previewTimer);
   previewTimer = setTimeout(updatePdfPreview, PREVIEW_DEBOUNCE_MS);
@@ -358,6 +481,13 @@ downloadMdButton.addEventListener('click', () => {
   saveToLocalStorage(true);
   downloadBlob(new Blob([editor.value], { type: 'text/markdown;charset=utf-8' }), 'cv.md');
   setStatus('Markdown descargado');
+});
+
+openLibraryBtn.addEventListener('click', openLibrary);
+closeLibraryBtn.addEventListener('click', closeLibrary);
+saveToLibraryBtn.addEventListener('click', saveToLibrary);
+libraryModal.addEventListener('click', (e) => {
+  if (e.target === libraryModal) closeLibrary();
 });
 
 downloadPdfButton.addEventListener('click', downloadPdf);
