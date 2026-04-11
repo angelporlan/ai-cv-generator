@@ -209,6 +209,12 @@ body {
   --status-dot: #ef9f27;
 }
 
+#app.dark .status-pill.unsaved {
+  --status-bg: rgba(245, 159, 0, 0.1);
+  --status-text: #fab005;
+  --status-dot: #fab005;
+}
+
 .status-dot {
   width: 6px;
   height: 6px;

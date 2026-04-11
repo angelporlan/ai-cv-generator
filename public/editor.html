@@ -7,7 +7,9 @@
   <title>CV Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -18,18 +20,20 @@
       <div class="topbar-left">
         <div class="logo-mark" aria-hidden="true">
           <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="5" height="5" rx="1" fill="white" opacity="0.9"/>
-            <rect x="9" y="2" width="5" height="5" rx="1" fill="white" opacity="0.6"/>
-            <rect x="2" y="9" width="5" height="5" rx="1" fill="white" opacity="0.6"/>
-            <path d="M10 11.5L12 9.5L14 11.5" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 9.5V14" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+            <rect x="2" y="2" width="5" height="5" rx="1" fill="white" opacity="0.9" />
+            <rect x="9" y="2" width="5" height="5" rx="1" fill="white" opacity="0.6" />
+            <rect x="2" y="9" width="5" height="5" rx="1" fill="white" opacity="0.6" />
+            <path d="M10 11.5L12 9.5L14 11.5" stroke="white" stroke-width="1.3" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <path d="M12 9.5V14" stroke="white" stroke-width="1.3" stroke-linecap="round" />
           </svg>
         </div>
         <span class="logo-text">CV Studio</span>
       </div>
       <div class="topbar-right">
         <button id="open-library-button" class="button-ghost" title="Mis CVs" type="button">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
           <span>Mis CVs</span>
@@ -40,17 +44,21 @@
         </span>
 
         <!-- Dark mode toggle -->
-        <button class="dark-toggle" id="dark-toggle" role="switch" aria-checked="false" aria-label="Activar modo oscuro" title="Modo oscuro">
+        <button class="dark-toggle" id="dark-toggle" role="switch" aria-checked="false" aria-label="Activar modo oscuro"
+          title="Modo oscuro">
           <span class="toggle-track">
             <span class="toggle-knob">
               <!-- Sun icon -->
               <svg class="icon-sun" viewBox="0 0 12 12" fill="none">
-                <circle cx="6" cy="6" r="2.5" fill="white"/>
-                <path d="M6 1.5V2.5M6 9.5V10.5M1.5 6H2.5M9.5 6H10.5M3.05 3.05L3.76 3.76M8.24 8.24L8.95 8.95M8.95 3.05L8.24 3.76M3.76 8.24L3.05 8.95" stroke="white" stroke-width="1" stroke-linecap="round"/>
+                <circle cx="6" cy="6" r="2.5" fill="white" />
+                <path
+                  d="M6 1.5V2.5M6 9.5V10.5M1.5 6H2.5M9.5 6H10.5M3.05 3.05L3.76 3.76M8.24 8.24L8.95 8.95M8.95 3.05L8.24 3.76M3.76 8.24L3.05 8.95"
+                  stroke="white" stroke-width="1" stroke-linecap="round" />
               </svg>
               <!-- Moon icon -->
               <svg class="icon-moon" viewBox="0 0 12 12" fill="none">
-                <path d="M9 6.5A4 4 0 015.5 3c0-.6.1-1.2.3-1.7A4.5 4.5 0 106 11a4.5 4.5 0 003.2-1.3A4 4 0 019 6.5z" fill="white"/>
+                <path d="M9 6.5A4 4 0 015.5 3c0-.6.1-1.2.3-1.7A4.5 4.5 0 106 11a4.5 4.5 0 003.2-1.3A4 4 0 019 6.5z"
+                  fill="white" />
               </svg>
             </span>
           </span>
@@ -80,19 +88,31 @@
           </div>
           <div class="actions">
             <button id="import-button" class="button button-secondary" type="button">
-              <svg viewBox="0 0 12 12" fill="none"><path d="M6 1v7M2 6l4 4 4-4M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M6 1v7M2 6l4 4 4-4M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
               Importar .md
             </button>
             <button id="example-button" class="button button-secondary" type="button">
-              <svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="M6 5.5v3M6 4h.01" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <svg viewBox="0 0 12 12" fill="none">
+                <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3" />
+                <path d="M6 5.5v3M6 4h.01" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+              </svg>
               Ejemplo
             </button>
             <button id="download-md-button" class="button button-secondary" type="button">
-              <svg viewBox="0 0 12 12" fill="none"><path d="M6 8V1M2 8l4 3 4-3M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M6 8V1M2 8l4 3 4-3M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
               .md
             </button>
             <button id="download-pdf-button" class="button button-primary" type="button">
-              <svg viewBox="0 0 12 12" fill="none"><path d="M6 8V1M2 8l4 3 4-3M1 10h10" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M6 8V1M2 8l4 3 4-3M1 10h10" stroke="white" stroke-width="1.3" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
               PDF
             </button>
           </div>
@@ -119,11 +139,15 @@
           </div>
           <div class="actions">
             <button class="button button-secondary zoom-btn" type="button" id="zoom-out" aria-label="Reducir zoom">
-              <svg viewBox="0 0 12 12" fill="none"><path d="M2 6h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M2 6h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+              </svg>
             </button>
             <span class="zoom-label" id="zoom-label">100%</span>
             <button class="button button-secondary zoom-btn" type="button" id="zoom-in" aria-label="Aumentar zoom">
-              <svg viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+              </svg>
             </button>
           </div>
         </div>
@@ -136,65 +160,72 @@
       </section>
     </main>
 
-  </div>
 
-  <!-- Modal: Biblioteca de CVs -->
-  <div id="library-modal" class="modal-overlay">
-    <div class="modal">
-      <div class="modal-header">
-        <div class="modal-header-info">
-          <h2 class="modal-title">Mis CVs Guardados</h2>
-          <p class="modal-subtitle">Gestiona y organiza tus versiones de CV localmente</p>
+    <!-- Modal: Biblioteca de CVs -->
+    <div id="library-modal" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <h2 class="modal-title">Mis CVs Guardados</h2>
+            <p class="modal-subtitle">Gestiona y organiza tus versiones de CV localmente</p>
+          </div>
+          <button id="close-library-button" class="modal-close" aria-label="Cerrar">&times;</button>
         </div>
-        <button id="close-library-button" class="modal-close" aria-label="Cerrar">&times;</button>
-      </div>
-      
-      <div class="modal-content">
-        <!-- Save Section -->
-        <section class="library-save-section">
-          <div class="section-badge">NUEVO</div>
-          <h3>Guardar versión actual</h3>
-          <div class="save-form">
-            <div class="input-group">
-              <input type="text" id="new-cv-name" placeholder="Nombre del CV (ej: Desarrollador Backend)" class="modal-input">
-            </div>
-            <div class="input-group">
-              <select id="new-cv-space" class="modal-select">
-                <option value="Trabajo">🏢 Trabajo</option>
-                <option value="Educación">🎓 Educación</option>
-                <option value="Personal">🏠 Personal</option>
-                <option value="Otros">📦 Otros</option>
-              </select>
-            </div>
-            <button id="save-to-library-button" class="button button-primary">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-              <span>Guardar</span>
-            </button>
-          </div>
-        </section>
 
-        <div class="modal-divider"></div>
-
-        <!-- List Section -->
-        <section class="library-list-section">
-          <div class="section-header">
-            <h3>Mis Espacios</h3>
-            <span id="library-count" class="count-tag">0 CVs</span>
-          </div>
-          <div id="library-items" class="library-grid">
-            <!-- Items injected by JS -->
-            <div class="empty-library">
-              <p>Aún no tienes CVs guardados. ¡Guarda el actual para empezar!</p>
+        <div class="modal-content">
+          <!-- Save Section -->
+          <section class="library-save-section">
+            <div class="section-badge">NUEVO</div>
+            <h3>Guardar versión actual</h3>
+            <div class="save-form">
+              <div class="input-group">
+                <input type="text" id="new-cv-name" placeholder="Nombre del CV (ej: Desarrollador Backend)"
+                  class="modal-input">
+              </div>
+              <div class="input-group">
+                <select id="new-cv-space" class="modal-select">
+                  <option value="Trabajo">Trabajo</option>
+                  <option value="Educación">Educación</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Otros">Otros</option>
+                </select>
+              </div>
+              <button id="save-to-library-button" class="button button-primary">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Guardar</span>
+              </button>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <div class="modal-divider"></div>
+
+          <!-- List Section -->
+          <section class="library-list-section">
+            <div class="section-header">
+              <h3>Mis Espacios</h3>
+              <span id="library-count" class="count-tag">0 CVs</span>
+            </div>
+            <div id="library-items" class="library-grid">
+              <!-- Items injected by JS -->
+              <div class="empty-library">
+                <p>Aún no tienes CVs guardados. ¡Guarda el actual para empezar!</p>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   </div>
 
+
   <script src="app.js"></script>
   <script>
-    (function() {
+    (function () {
       // Dark mode toggle
       const toggle = document.getElementById('dark-toggle');
       const app = document.getElementById('app');
