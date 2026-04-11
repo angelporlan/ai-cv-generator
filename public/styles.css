@@ -368,6 +368,76 @@ body {
   transition: color var(--t-mid) var(--ease);
 }
 
+
+/* ── Template Selector ──────────────────────────────────────── */
+.template-selector-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.template-select {
+  appearance: none;
+  background: transparent;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 5px 28px 5px 11px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+  transition: all var(--t-fast) var(--ease);
+  width: auto;
+  min-width: 160px;
+}
+
+#app.dark .template-select {
+  background: transparent;
+}
+
+.template-select option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.template-select:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border);
+  transform: translateY(-0.5px);
+}
+
+.template-select:active {
+  transform: scale(0.98);
+  transition-duration: 0.08s;
+}
+
+.template-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--border-focus);
+}
+
+.template-selector-wrapper::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6860' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+#app.dark .template-selector-wrapper::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239c9a94' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
 /* ── Actions / buttons ──────────────────────────────────────── */
 .actions {
   display: flex;
@@ -401,6 +471,18 @@ body {
   flex-shrink: 0;
   opacity: 0.7;
   transition: opacity var(--t-fast) var(--ease);
+}
+
+.template-select:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border);
+  transform: translateY(-0.5px);
+}
+
+.template-select:active {
+  transform: scale(0.98);
+  transition-duration: 0.08s;
 }
 
 .button:hover {
@@ -609,59 +691,4 @@ body {
     display: none;
   }
 
-  /* ── Template Selector ──────────────────────────────────────── */
-  .template-selector-wrapper {
-    position: relative;
-    margin-top: 2px;
-  }
-
-  .template-select {
-    appearance: none;
-    background: var(--bg-primary);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 4px 28px 4px 10px;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    cursor: pointer;
-    outline: none;
-    transition: all var(--t-fast) var(--ease);
-    width: auto;
-    min-width: 180px;
-  }
-
-  #app.dark .template-select {
-    background: var(--bg-secondary);
-  }
-
-  .template-select:hover {
-    background: var(--bg-hover);
-    border-color: var(--accent-muted);
-  }
-
-  .template-select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--border-focus);
-  }
-
-  .template-selector-wrapper::after {
-    content: "";
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 10px;
-    height: 10px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6860' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-size: contain;
-    background-repeat: no-repeat;
-    pointer-events: none;
-    opacity: 0.6;
-  }
-
-  #app.dark .template-selector-wrapper::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239c9a94' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  }
 }
