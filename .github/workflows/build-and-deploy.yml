@@ -50,9 +50,11 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Trigger VPS webhook
+        env:
+          VPS_WEBHOOK_URL: ${{ secrets.VPS_WEBHOOK_URL }}
         run: |
-          curl -X POST ${{ secrets.VPS_WEBHOOK_URL }} \
+          curl -X POST "$VPS_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d "{\"image\": \"ghcr.io/${{ github.repository }}:${{ github.ref_name }}\", \"sha\": \"${{ github.sha }}\"}" \
             -w "\n"
-        if: ${{ secrets.VPS_WEBHOOK_URL != '' }}
+        if: ${{ env.VPS_WEBHOOK_URL != '' }}
