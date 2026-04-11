@@ -158,6 +158,16 @@ const server = http.createServer(async (request, response) => {
     return sendFile(response, path.join(PUBLIC_DIR, 'styles.css'), 'text/css; charset=utf-8');
   }
 
+  if (request.method === 'GET' && requestUrl.pathname === '/favicon.ico') {
+    response.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+    response.end();
+    return;
+  }
+
   if (request.method === 'GET' && requestUrl.pathname === '/api/cv') {
     const sourcePath = getAllowedSourcePath(requestUrl.searchParams.get('file'));
     if (!sourcePath || !fs.existsSync(sourcePath)) {
