@@ -122,67 +122,70 @@
 
   <script src="app.js"></script>
   <script>
-    // Dark mode toggle
-    const toggle = document.getElementById('dark-toggle');
-    const app = document.getElementById('app');
-    let isDark = false;
+    (function() {
+      // Dark mode toggle
+      const toggle = document.getElementById('dark-toggle');
+      const app = document.getElementById('app');
+      let isDark = false;
 
-    // Check saved preference
-    if (localStorage.getItem('cv-studio-dark') === 'true') {
-      isDark = true;
-      app.classList.add('dark');
-      toggle.setAttribute('aria-checked', 'true');
-    }
+      // Check saved preference
+      if (localStorage.getItem('cv-studio-dark') === 'true') {
+        isDark = true;
+        app.classList.add('dark');
+        toggle.setAttribute('aria-checked', 'true');
+      }
 
-    toggle.addEventListener('click', () => {
-      isDark = !isDark;
-      app.classList.toggle('dark', isDark);
-      toggle.setAttribute('aria-checked', isDark.toString());
-      localStorage.setItem('cv-studio-dark', isDark);
-    });
-
-    // Char & line counter
-    const editor = document.getElementById('editor');
-    const charCount = document.getElementById('char-count');
-    const lineCount = document.getElementById('line-count');
-    const saveStatus = document.getElementById('save-status');
-    const statusLabel = saveStatus.querySelector('.status-label');
-
-    function updateStats() {
-      const val = editor.value;
-      charCount.textContent = val.length.toLocaleString('es') + ' caracteres';
-      lineCount.textContent = val.split('\n').length.toLocaleString('es') + ' líneas';
-    }
-
-    let saveTimer;
-    if (editor) {
-      editor.addEventListener('input', () => {
-        statusLabel.textContent = 'Editando…';
-        saveStatus.classList.add('unsaved');
-        updateStats();
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => {
-          statusLabel.textContent = 'Guardado';
-          saveStatus.classList.remove('unsaved');
-        }, 1200);
+      toggle.addEventListener('click', () => {
+        isDark = !isDark;
+        app.classList.toggle('dark', isDark);
+        toggle.setAttribute('aria-checked', isDark.toString());
+        localStorage.setItem('cv-studio-dark', isDark);
       });
-      updateStats();
-    }
 
-    // Zoom control
-    const zoomIn = document.getElementById('zoom-in');
-    const zoomOut = document.getElementById('zoom-out');
-    const zoomLabel = document.getElementById('zoom-label');
-    const scaler = document.getElementById('preview-scaler');
-    let zoom = 1;
+      // Char & line counter
+      const editor = document.getElementById('editor');
+      const charCount = document.getElementById('char-count');
+      const lineCount = document.getElementById('line-count');
+      const saveStatus = document.getElementById('save-status');
+      const statusLabel = saveStatus.querySelector('.status-label');
 
-    function applyZoom() {
-      if (scaler) scaler.style.transform = `scale(${zoom})`;
-      zoomLabel.textContent = Math.round(zoom * 100) + '%';
-    }
+      function updateStats() {
+        if (!editor || !charCount || !lineCount) return;
+        const val = editor.value;
+        charCount.textContent = val.length.toLocaleString('es') + ' caracteres';
+        lineCount.textContent = val.split('\n').length.toLocaleString('es') + ' líneas';
+      }
 
-    if (zoomIn) zoomIn.addEventListener('click', () => { zoom = Math.min(2, zoom + 0.1); applyZoom(); });
-    if (zoomOut) zoomOut.addEventListener('click', () => { zoom = Math.max(0.4, zoom - 0.1); applyZoom(); });
+      let saveTimer;
+      if (editor) {
+        editor.addEventListener('input', () => {
+          if (statusLabel) statusLabel.textContent = 'Editando…';
+          saveStatus.classList.add('unsaved');
+          updateStats();
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => {
+            if (statusLabel) statusLabel.textContent = 'Guardado';
+            saveStatus.classList.remove('unsaved');
+          }, 1200);
+        });
+        updateStats();
+      }
+
+      // Zoom control
+      const zoomIn = document.getElementById('zoom-in');
+      const zoomOut = document.getElementById('zoom-out');
+      const zoomLabel = document.getElementById('zoom-label');
+      const scaler = document.getElementById('preview-scaler');
+      let zoom = 1;
+
+      function applyZoom() {
+        if (scaler) scaler.style.transform = `scale(${zoom})`;
+        if (zoomLabel) zoomLabel.textContent = Math.round(zoom * 100) + '%';
+      }
+
+      if (zoomIn) zoomIn.addEventListener('click', () => { zoom = Math.min(2, zoom + 0.1); applyZoom(); });
+      if (zoomOut) zoomOut.addEventListener('click', () => { zoom = Math.max(0.4, zoom - 0.1); applyZoom(); });
+    })();
   </script>
 </body>
 
