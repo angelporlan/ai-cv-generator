@@ -10,6 +10,7 @@ const downloadMdButton = document.getElementById('download-md-button');
 const downloadPdfButton = document.getElementById('download-pdf-button');
 const fileInput = document.getElementById('file-input');
 const templateSelector = document.getElementById('template-selector');
+const visualTemplateSelector = document.getElementById('visual-template-selector');
 const libraryModal = document.getElementById('library-modal');
 const openLibraryBtn = document.getElementById('open-library-button');
 const closeLibraryBtn = document.getElementById('close-library-button');
@@ -258,7 +259,11 @@ async function updatePdfPreview() {
     const response = await fetch('/api/preview.pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown, download: false })
+      body: JSON.stringify({ 
+        markdown, 
+        download: false,
+        template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard'
+      })
     });
 
     if (!response.ok) throw new Error('Preview failed');
@@ -424,7 +429,11 @@ async function downloadPdf() {
   const response = await fetch('/api/preview.pdf', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ markdown: editor.value })
+    body: JSON.stringify({ 
+      markdown: editor.value,
+      download: true,
+      template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard'
+    })
   });
 
   if (!response.ok) {
@@ -441,6 +450,12 @@ editor.addEventListener('input', () => {
   schedulePreviewUpdate();
   scheduleSave();
 });
+
+if (visualTemplateSelector) {
+  visualTemplateSelector.addEventListener('change', () => {
+    updatePdfPreview();
+  });
+}
 
 templateSelector.addEventListener('change', async () => {
   const selectedFile = templateSelector.value;

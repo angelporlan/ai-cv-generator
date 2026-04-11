@@ -31,6 +31,17 @@ const LAYOUT = {
   entryGap: 0.4
 };
 
+const MODERN_CONFIG = {
+  sidebarWidth: 175,
+  sidebarColor: '#1a5f7a', // Petroleum Blue
+  accentColor: '#1a5f7a',
+  sidebarPadding: 22,
+  mainPadding: 25,
+  sidebarTextColor: '#ffffff',
+  sidebarMutedColor: '#d1d5db',
+  lineColor: '#e5e7eb'
+};
+
 function normalizeLine(line) {
   return line.replace(/\r/g, '').trimEnd();
 }
@@ -363,6 +374,7 @@ function drawSkillsSection(doc, section) {
 }
 
 function renderCvPdf(doc, cv) {
+  // Existing Harvard rendering remains here...
   doc.info.Title = `CV - ${cv.name}`;
   doc.info.Author = cv.name;
   doc.info.Subject = 'Curriculum Vitae';
@@ -411,6 +423,161 @@ function renderCvPdf(doc, cv) {
   }
 }
 
+function renderModernCvPdf(doc, cv) {
+  const { sidebarWidth, sidebarColor, sidebarPadding, mainPadding, sidebarTextColor, sidebarMutedColor, accentColor, lineColor } = MODERN_CONFIG;
+  const pageHeight = doc.page.height;
+  const pageWidth = doc.page.width;
+
+  // 1. Draw Sidebar Background
+  doc.rect(0, 0, sidebarWidth, pageHeight).fill(sidebarColor);
+
+  // 2. Split Content
+  const sidebarSections = [];
+  const mainSections = [];
+
+  const sidebarTitles = ['skills', 'habilidades', 'idiomas', 'languages', 'aptitudes', 'contact', 'contacto', 'competencias'];
+
+  for (const section of cv.sections) {
+    if (sidebarTitles.includes(section.title.toLowerCase())) {
+      sidebarSections.push(section);
+    } else {
+      mainSections.push(section);
+    }
+  }
+
+  // 3. Draw Sidebar Content
+  let currentY = 40;
+
+  // Category Title Helper for Sidebar
+  const drawSidebarHeading = (title) => {
+    doc.font('Helvetica-Bold')
+      .fontSize(11)
+      .fillColor(sidebarTextColor)
+      .text(title.toUpperCase(), sidebarPadding, currentY, { characterSpacing: 1 });
+    currentY += 15;
+    doc.moveTo(sidebarPadding, currentY)
+      .lineTo(sidebarWidth - sidebarPadding, currentY)
+      .strokeColor(sidebarMutedColor)
+      .lineWidth(0.5)
+      .stroke();
+    currentY += 10;
+  };
+
+  // Draw Contact in Sidebar first if available
+  if (cv.contact && cv.contact.length > 0) {
+    drawSidebarHeading('Contacto');
+    doc.font('Helvetica').fontSize(8.5).fillColor(sidebarTextColor);
+    for (const info of cv.contact) {
+      const contactText = typeof info === 'string' ? info : `${info.label}: ${info.value}`;
+      doc.text(contactText, sidebarPadding, currentY, { width: sidebarWidth - sidebarPadding * 2, lineGap: 2 });
+      currentY = doc.y + 4;
+    }
+    currentY += 15;
+  }
+
+  // Draw Sidebar Sections
+  for (const section of sidebarSections) {
+    drawSidebarHeading(section.title);
+    doc.font('Helvetica').fontSize(9).fillColor(sidebarTextColor);
+    
+    const items = [...(section.paragraphs || []), ...(section.bullets || [])];
+    for (const item of items) {
+      doc.text('• ' + item, sidebarPadding + 2, currentY, { 
+        width: sidebarWidth - sidebarPadding * 2 - 2,
+        lineGap: 2.5
+      });
+      currentY = doc.y + 3;
+    }
+    currentY += 15;
+  }
+
+  // 4. Draw Main Content
+  const mainX = sidebarWidth + mainPadding;
+  const mainWidth = pageWidth - sidebarWidth - mainPadding * 2;
+  currentY = 40;
+
+  // Draw Name Header
+  doc.font('Helvetica-Bold')
+    .fontSize(28)
+    .fillColor('#333333')
+    .text(cv.name, mainX, currentY);
+  
+  currentY = doc.y + 20;
+
+  // Main Category Title Helper
+  const drawMainHeading = (title) => {
+    doc.font('Helvetica-Bold')
+      .fontSize(12)
+      .fillColor(accentColor)
+      .text(title.toUpperCase(), mainX, currentY, { characterSpacing: 0.5 });
+    
+    currentY = doc.y + 3;
+    doc.moveTo(mainX, currentY)
+      .lineTo(mainX + mainWidth, currentY)
+      .strokeColor(lineColor)
+      .lineWidth(1)
+      .stroke();
+    currentY += 10;
+  };
+
+  for (const section of mainSections) {
+    drawMainHeading(section.title);
+
+    // Draft Paragraphs
+    for (const p of section.paragraphs || []) {
+      doc.font('Helvetica').fontSize(9.5).fillColor('#444444').text(p, mainX, currentY, {
+        width: mainWidth,
+        lineGap: 2,
+        align: 'justify'
+      });
+      currentY = doc.y + 8;
+    }
+
+    // Entries
+    for (const entry of section.entries || []) {
+      const entryY = currentY;
+      
+      // Heading (Left)
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#333333').text(entry.heading, mainX, entryY, { width: mainWidth - 80 });
+      
+      // Date (Right)
+      if (entry.date) {
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#666666').text(entry.date, mainX, entryY, { align: 'right', width: mainWidth });
+      }
+      
+      currentY = doc.y + 2;
+
+      // Subheading
+      if (entry.subheading) {
+        doc.font('Helvetica-BoldOblique').fontSize(9).fillColor('#555555').text(entry.subheading, mainX, currentY);
+        currentY = doc.y + 4;
+      }
+
+      // Entry Paragraphs
+      for (const p of entry.paragraphs || []) {
+        doc.font('Helvetica').fontSize(9).fillColor('#444444').text(p, mainX, currentY, { width: mainWidth, lineGap: 1.5 });
+        currentY = doc.y + 4;
+      }
+
+      // Entry Bullets
+      for (const b of entry.bullets || []) {
+        doc.font('Helvetica').fontSize(9).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 1.5 });
+        currentY = doc.y + 2;
+      }
+      
+      currentY += 8;
+    }
+
+    // General Bullets
+    for (const b of section.bullets || []) {
+      doc.font('Helvetica').fontSize(9.5).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 2 });
+      currentY = doc.y + 4;
+    }
+
+    currentY += 15;
+  }
+}
+
 function getEmbeddedCvContent(fileName) {
   const safeFileName = fileName || 'cv.md';
   return CV_MAPPING[safeFileName] || null;
@@ -433,15 +600,16 @@ function getAllowedCvPath(fileName) {
 
 function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
   const cv = parseCvMarkdown(markdown);
-  const pdfName = options.fileName || `${slugifyFile(cv.name) || 'cv'}-harvard.pdf`;
+  const templateType = options.template || 'harvard';
+  const pdfName = options.fileName || `${slugifyFile(cv.name) || 'cv'}-${templateType}.pdf`;
   const contentDisposition = options.download ? 'attachment' : 'inline';
   const doc = new PDFDocument({
     size: 'A4',
     margins: {
-      top: PAGE_MARGIN,
-      bottom: PAGE_MARGIN,
-      left: PAGE_MARGIN,
-      right: PAGE_MARGIN
+      top: 0, // Control manual en Modern, márgines en Harvard
+      bottom: 0,
+      left: 0,
+      right: 0
     },
     bufferPages: true
   });
@@ -455,7 +623,12 @@ function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
   });
 
   doc.pipe(response);
-  renderCvPdf(doc, cv);
+  
+  if (templateType === 'modern') {
+    renderModernCvPdf(doc, cv);
+  } else {
+    renderCvPdf(doc, cv);
+  }
   doc.end();
 }
 

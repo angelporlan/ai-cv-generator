@@ -71,19 +71,33 @@
       <section class="panel editor-panel">
         <div class="panel-header">
           <div class="panel-header-info">
-            <p class="panel-kicker">Plantilla</p>
-            <div class="template-selector-wrapper">
-              <select id="template-selector" class="template-select">
-                <option value="cv.md">Genérico</option>
-                <option value="cv-developer.md">Ingeniería y Tecnología</option>
-                <option value="cv-sales.md">Ventas y Negocio</option>
-                <option value="cv-project-manager.md">Gestión de Proyectos</option>
-                <option value="cv-hr.md">Recursos Humanos</option>
-                <option value="cv-marketing.md">Marketing Digital</option>
-                <option value="cv-administration.md">Administración</option>
-                <option value="cv-education.md">Educación y Formación</option>
-                <option value="cv-finance.md">Finanzas y Contabilidad</option>
-              </select>
+            <div class="template-header-selectors">
+              <div class="selector-group">
+                <span class="selector-label">Contenido</span>
+                <div class="template-selector-wrapper">
+                  <select id="template-selector" class="template-select" title="Contenido de ejemplo">
+                    <option value="cv.md">Genérico</option>
+                    <option value="cv-developer.md">Ingeniería y Tecnología</option>
+                    <option value="cv-sales.md">Ventas y Negocio</option>
+                    <option value="cv-project-manager.md">Gestión de Proyectos</option>
+                    <option value="cv-hr.md">Recursos Humanos</option>
+                    <option value="cv-marketing.md">Marketing Digital</option>
+                    <option value="cv-administration.md">Administración</option>
+                    <option value="cv-education.md">Educación y Formación</option>
+                    <option value="cv-finance.md">Finanzas y Contabilidad</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="selector-group">
+                <span class="selector-label">Diseño</span>
+                <div class="template-selector-wrapper">
+                  <select id="visual-template-selector" class="template-select" title="Plantilla visual">
+                    <option value="harvard">🏛️ Clásico (Harvard)</option>
+                    <option value="modern">📱 Moderno (Columnas)</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
           <div class="actions">

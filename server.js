@@ -124,11 +124,12 @@ async function handlePreviewPdf(request, response) {
     return sendJson(response, 400, { ok: false, error: 'Missing markdown' });
   }
 
-  // Permitir que el cliente pida visualizar (inline) en lugar de descargar
+  // Permitir elegir plantilla
+  const template = body.template || 'harvard';
   const download = body.download !== false;
 
   try {
-    createPdfDocumentFromMarkdown(markdown, response, { download });
+    createPdfDocumentFromMarkdown(markdown, response, { download, template });
   } catch (err) {
     console.error('[preview-pdf] EXCEPTION:', err);
     sendJson(response, 500, { ok: false, error: err.message });
