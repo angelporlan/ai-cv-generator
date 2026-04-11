@@ -1,0 +1,12 @@
+services:
+  ia-microservice:
+    image: ghcr.io/angelporlan/ai-cv-generator:main
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - NODE_ENV=production
+    env_file:
+      - .env
+    restart: always
+    pull_policy: always
