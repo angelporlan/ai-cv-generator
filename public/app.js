@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'cv-studio-markdown';
 const SAVE_INTERVAL_MS = 2500;
+const VISUAL_TEMPLATE_STORAGE_KEY = 'cv-studio-visual-template';
 
 const editor = document.getElementById('editor');
 const preview = document.getElementById('preview');
@@ -360,6 +361,7 @@ function saveToLibrary() {
     name,
     space,
     content,
+    visualTemplate: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
     date: new Date().toISOString()
   };
 
@@ -372,6 +374,10 @@ function saveToLibrary() {
 function loadCvFromLibrary(id) {
   const cv = libraryData.find(c => c.id === id);
   if (cv && confirm(`¿Quieres cargar "${cv.name}"? Se perderán los cambios actuales no guardados.`)) {
+    if (cv.visualTemplate && visualTemplateSelector) {
+      visualTemplateSelector.value = cv.visualTemplate;
+      localStorage.setItem(VISUAL_TEMPLATE_STORAGE_KEY, cv.visualTemplate);
+    }
     updateEditor(cv.content, `"${cv.name}" cargado`);
     closeLibrary();
   }
@@ -453,6 +459,7 @@ editor.addEventListener('input', () => {
 
 if (visualTemplateSelector) {
   visualTemplateSelector.addEventListener('change', () => {
+    localStorage.setItem(VISUAL_TEMPLATE_STORAGE_KEY, visualTemplateSelector.value);
     updatePdfPreview();
   });
 }
@@ -511,6 +518,12 @@ window.addEventListener('beforeunload', () => saveToLocalStorage(true));
 
 async function init() {
   try {
+    // Restaurar plantilla visual
+    const savedTemplate = localStorage.getItem(VISUAL_TEMPLATE_STORAGE_KEY);
+    if (savedTemplate && visualTemplateSelector) {
+      visualTemplateSelector.value = savedTemplate;
+    }
+
     const localDraft = localStorage.getItem(STORAGE_KEY);
     if (localDraft && localDraft.trim()) {
       editor.value = localDraft;
