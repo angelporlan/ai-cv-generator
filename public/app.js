@@ -9,6 +9,7 @@ const exampleButton = document.getElementById('example-button');
 const downloadMdButton = document.getElementById('download-md-button');
 const downloadPdfButton = document.getElementById('download-pdf-button');
 const fileInput = document.getElementById('file-input');
+const templateSelector = document.getElementById('template-selector');
 
 let saveTimer = null;
 let lastSavedValue = '';
@@ -318,6 +319,18 @@ editor.addEventListener('input', () => {
   scheduleSave();
 });
 
+templateSelector.addEventListener('change', async () => {
+  const selectedFile = templateSelector.value;
+  if (confirm(`¿Quieres cargar la plantilla "${templateSelector.options[templateSelector.selectedIndex].text}"? Se perderán los cambios no guardados en el editor.`)) {
+    try {
+      const content = await loadSource(selectedFile);
+      updateEditor(content, 'Plantilla cargada');
+    } catch (error) {
+      setStatus('Error al cargar la plantilla');
+    }
+  }
+});
+
 importButton.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', async (event) => {
   const [file] = event.target.files || [];
@@ -332,7 +345,9 @@ fileInput.addEventListener('change', async (event) => {
 
 exampleButton.addEventListener('click', async () => {
   try {
-    const example = await loadSource('cv-example.md');
+    const selectedFile = templateSelector.value;
+    const exampleFile = selectedFile.replace('.md', '-example.md');
+    const example = await loadSource(exampleFile);
     updateEditor(example, 'Ejemplo cargado');
   } catch (error) {
     setStatus('No se pudo cargar el ejemplo');

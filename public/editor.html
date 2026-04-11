@@ -57,8 +57,20 @@
       <section class="panel editor-panel">
         <div class="panel-header">
           <div class="panel-header-info">
-            <p class="panel-kicker">Markdown</p>
-            <h2 class="panel-title">Editor</h2>
+            <p class="panel-kicker">Plantilla</p>
+            <div class="template-selector-wrapper">
+              <select id="template-selector" class="template-select">
+                <option value="cv.md">Genérico</option>
+                <option value="cv-developer.md">Ingeniería y Tecnología</option>
+                <option value="cv-sales.md">Ventas y Negocio</option>
+                <option value="cv-project-manager.md">Gestión de Proyectos</option>
+                <option value="cv-hr.md">Recursos Humanos</option>
+                <option value="cv-marketing.md">Marketing Digital</option>
+                <option value="cv-administration.md">Administración</option>
+                <option value="cv-education.md">Educación y Formación</option>
+                <option value="cv-finance.md">Finanzas y Contabilidad</option>
+              </select>
+            </div>
           </div>
           <div class="actions">
             <button id="import-button" class="button button-secondary" type="button">
