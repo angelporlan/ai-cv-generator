@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const { CV_MAPPING } = require('./cv-content');
 
 // Márgenes ligeramente ampliados para que el texto "respire" mejor
 const PAGE_MARGIN = 36;
@@ -410,10 +411,15 @@ function renderCvPdf(doc, cv) {
   }
 }
 
+function getEmbeddedCvContent(fileName) {
+  const safeFileName = fileName || 'cv.md';
+  return CV_MAPPING[safeFileName] || null;
+}
+
 function getAllowedCvPath(fileName) {
   const safeFileName = fileName || 'cv.md';
 
-  // Allow files from /cvs directory
+  // Allow files from /cvs directory if they exist
   if (safeFileName.startsWith('cvs/')) {
     const cvPath = path.join(__dirname, safeFileName);
     if (!cvPath.startsWith(path.join(__dirname, 'cvs'))) {
@@ -422,12 +428,7 @@ function getAllowedCvPath(fileName) {
     return cvPath;
   }
 
-  const allowedFiles = new Set(['cv.md', 'cv-example.md']);
-  if (!allowedFiles.has(safeFileName)) {
-    return null;
-  }
-
-  return path.join(__dirname, safeFileName);
+  return null;
 }
 
 function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
@@ -459,21 +460,23 @@ function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
 }
 
 function createCvPdfResponse(response, fileName) {
-  const sourcePath = getAllowedCvPath(fileName);
-
-  if (!sourcePath || !fs.existsSync(sourcePath)) {
-    return {
-      ok: false,
-      statusCode: 404,
-      error: 'CV source file not found'
-    };
+  const embeddedMarkdown = getEmbeddedCvContent(fileName);
+  if (embeddedMarkdown) {
+    createPdfDocumentFromMarkdown(embeddedMarkdown, response);
+    return { ok: true };
   }
 
-  const markdown = fs.readFileSync(sourcePath, 'utf8');
-  createPdfDocumentFromMarkdown(markdown, response);
+  const sourcePath = getAllowedCvPath(fileName);
+  if (sourcePath && fs.existsSync(sourcePath)) {
+    const markdown = fs.readFileSync(sourcePath, 'utf8');
+    createPdfDocumentFromMarkdown(markdown, response);
+    return { ok: true };
+  }
 
   return {
-    ok: true
+    ok: false,
+    statusCode: 404,
+    error: 'CV source content not found'
   };
 }
 

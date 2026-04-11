@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 const { createCvPdfResponse, createPdfDocumentFromMarkdown } = require('./cv-pdf');
+const { CV_MAPPING } = require('./cv-content');
 
 const PORT = Number(process.env.PORT || 3002);
 if (fs.existsSync('.env')) {
@@ -103,15 +104,9 @@ function readRequestBody(request) {
   });
 }
 
-function getAllowedSourcePath(fileName) {
-  const allowedFiles = new Set(['cv.md', 'cv-example.md']);
+function getEmbeddedCvContent(fileName) {
   const safeFileName = fileName || 'cv.md';
-
-  if (!allowedFiles.has(safeFileName)) {
-    return null;
-  }
-
-  return path.join(__dirname, safeFileName);
+  return CV_MAPPING[safeFileName] || null;
 }
 
 
@@ -169,12 +164,12 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && requestUrl.pathname === '/api/cv') {
-    const sourcePath = getAllowedSourcePath(requestUrl.searchParams.get('file'));
-    if (!sourcePath || !fs.existsSync(sourcePath)) {
-      return sendJson(response, 404, { ok: false, error: 'CV source file not found' });
+    const content = getEmbeddedCvContent(requestUrl.searchParams.get('file'));
+    if (!content) {
+      return sendJson(response, 404, { ok: false, error: 'CV content not found' });
     }
 
-    return sendText(response, 200, fs.readFileSync(sourcePath, 'utf8'), 'text/markdown; charset=utf-8');
+    return sendText(response, 200, content, 'text/markdown; charset=utf-8');
   }
 
   if (request.method === 'GET' && requestUrl.pathname === '/ask') {
