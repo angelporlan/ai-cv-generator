@@ -1,0 +1,373 @@
+const STORAGE_KEY = 'cv-studio-markdown';
+const SAVE_INTERVAL_MS = 2500;
+
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const saveStatus = document.getElementById('save-status');
+const importButton = document.getElementById('import-button');
+const exampleButton = document.getElementById('example-button');
+const downloadMdButton = document.getElementById('download-md-button');
+const downloadPdfButton = document.getElementById('download-pdf-button');
+const fileInput = document.getElementById('file-input');
+
+let saveTimer = null;
+let lastSavedValue = '';
+
+function setStatus(message) {
+  saveStatus.textContent = message;
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderInlineMarkdown(text, strip = false) {
+  if (strip) {
+    return escapeHtml(text)
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1');
+  }
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+}
+
+function parseMarkdown(markdown) {
+  const lines = markdown.replace(/\r/g, '').split('\n');
+  const data = {
+    title: 'Curriculum Vitae',
+    contacts: [],
+    sections: []
+  };
+
+  let currentSection = null;
+  let currentEntry = null;
+
+  function ensureSection(title) {
+    currentSection = { title, items: [] };
+    data.sections.push(currentSection);
+    currentEntry = null;
+  }
+
+  function addParagraph(text) {
+    if (!currentSection) {
+      return;
+    }
+    if (currentEntry) {
+      currentEntry.content.push({ type: 'paragraph', text });
+      return;
+    }
+    currentSection.items.push({ type: 'paragraph', text });
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line || line === '---') {
+      continue;
+    }
+
+    if (line.startsWith('# ')) {
+      data.title = line.slice(2).replace(/^CV\s*--\s*/i, '').trim() || data.title;
+      continue;
+    }
+
+    const contactMatch = line.match(/^\*\*([^*]+):\*\*\s*(.+)$/);
+    if (contactMatch && !currentSection) {
+      data.contacts.push({
+        label: contactMatch[1].trim(),
+        value: contactMatch[2].trim()
+      });
+      continue;
+    }
+
+    if (line.startsWith('## ')) {
+      ensureSection(line.slice(3).trim());
+      continue;
+    }
+
+    if (line.startsWith('### ')) {
+      if (!currentSection) {
+        continue;
+      }
+
+      currentEntry = {
+        type: 'entry',
+        title: line.slice(4).trim(),
+        role: '',
+        date: '',
+        content: []
+      };
+      currentSection.items.push(currentEntry);
+      continue;
+    }
+
+    if (line.startsWith('- ')) {
+      const target = currentEntry || currentSection;
+      if (!target) {
+        continue;
+      }
+
+      const list = currentEntry
+        ? currentEntry.content
+        : currentSection.items;
+
+      const previous = list[list.length - 1];
+      if (!previous || previous.type !== 'list') {
+        list.push({ type: 'list', items: [line.slice(2).trim()] });
+      } else {
+        previous.items.push(line.slice(2).trim());
+      }
+      continue;
+    }
+
+    if (currentEntry && line.startsWith('**') && line.endsWith('**') && !currentEntry.role) {
+      currentEntry.role = line.replace(/\*\*/g, '').trim();
+      continue;
+    }
+
+    if (currentEntry && !currentEntry.date) {
+      currentEntry.date = line;
+      continue;
+    }
+
+    addParagraph(line);
+  }
+
+  return data;
+}
+
+function renderPreview(markdown) {
+  const data = parseMarkdown(markdown);
+
+  const sectionsHtml = data.sections.map((section) => {
+    const isSkills = section.title.toLowerCase() === 'skills' || section.title.toLowerCase() === 'habilidades';
+    
+    let itemsHtml;
+    
+    if (isSkills) {
+      const items = section.items.flatMap(item => {
+        if (item.type === 'list') return item.items;
+        if (item.type === 'paragraph') return [item.text];
+        return [];
+      });
+
+      itemsHtml = items.map(item => {
+        const colonIndex = item.indexOf(':');
+        if (colonIndex !== -1) {
+          const label = item.substring(0, colonIndex).trim();
+          const value = item.substring(colonIndex + 1).trim();
+          return `<div class="skill-row"><span class="skill-label">${renderInlineMarkdown(label, true)}:</span> ${renderInlineMarkdown(value, true)}</div>`;
+        }
+        return `<div class="skill-row">${renderInlineMarkdown(item, true)}</div>`;
+      }).join('');
+    } else {
+      itemsHtml = section.items.map((item) => {
+        if (item.type === 'paragraph') {
+          return `<p>${renderInlineMarkdown(item.text)}</p>`;
+        }
+
+        if (item.type === 'list') {
+          return `<ul>${item.items.map((entry) => `<li>${renderInlineMarkdown(entry)}</li>`).join('')}</ul>`;
+        }
+
+        const contentHtml = item.content.map((content) => {
+          if (content.type === 'paragraph') {
+            return `<p>${renderInlineMarkdown(content.text)}</p>`;
+          }
+          return `<ul>${content.items.map((entry) => `<li>${renderInlineMarkdown(entry)}</li>`).join('')}</ul>`;
+        }).join('');
+
+        return `
+          <article class="entry">
+            <div class="entry-header">
+              <h3>${renderInlineMarkdown(item.title)}</h3>
+              ${item.date ? `<span class="entry-meta">${renderInlineMarkdown(item.date)}</span>` : ''}
+            </div>
+            ${item.role ? `<p class="entry-role">${renderInlineMarkdown(item.role)}</p>` : ''}
+            ${contentHtml}
+          </article>
+        `;
+      }).join('');
+    }
+
+    return `
+      <section>
+        <h2>${renderInlineMarkdown(section.title)}</h2>
+        <div class="section-rule"></div>
+        ${itemsHtml}
+      </section>
+    `;
+  }).join('');
+
+  preview.innerHTML = `
+    <header>
+      <h1>${renderInlineMarkdown(data.title)}</h1>
+      <div class="preview-contact">
+        ${data.contacts.map((contact) => `<span>${renderInlineMarkdown(contact.label)}: ${renderInlineMarkdown(contact.value)}</span>`).join('')}
+      </div>
+    </header>
+    ${sectionsHtml || '<p class="empty-state">Empieza a escribir tu CV en markdown para verlo aquí.</p>'}
+  `;
+}
+
+function saveToLocalStorage(force = false) {
+  const value = editor.value;
+  if (!force && value === lastSavedValue) {
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEY, value);
+  lastSavedValue = value;
+  setStatus(`Guardado local · ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`);
+}
+
+function scheduleSave() {
+  setStatus('Escribiendo...');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveToLocalStorage(), SAVE_INTERVAL_MS);
+}
+
+const PREVIEW_DEBOUNCE_MS = 600;
+const pdfPreview = document.getElementById('pdf-preview');
+let previewTimer = null;
+let currentPreviewUrl = null;
+
+async function updatePdfPreview() {
+  const markdown = editor.value;
+  if (!markdown.trim()) return;
+
+  try {
+    const response = await fetch('/api/preview.pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown, download: false })
+    });
+
+    if (!response.ok) throw new Error('Preview failed');
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    
+    // Cleanup previous URL to avoid memory leaks
+    if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
+    
+    // Ocultar barras de herramientas y ajustar al ancho (FitH)
+    currentPreviewUrl = url;
+    pdfPreview.src = `${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
+  } catch (error) {
+    console.error('[preview] Error updating PDF:', error);
+  }
+}
+
+function schedulePreviewUpdate() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(updatePdfPreview, PREVIEW_DEBOUNCE_MS);
+}
+
+function updateEditor(markdown, statusMessage = 'Listo') {
+  editor.value = markdown;
+  schedulePreviewUpdate();
+  scheduleSave();
+  setStatus(statusMessage);
+}
+
+async function loadSource(fileName) {
+  const response = await fetch(`/api/cv?file=${encodeURIComponent(fileName)}`);
+  if (!response.ok) {
+    throw new Error('No se pudo cargar el archivo');
+  }
+
+  return response.text();
+}
+
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadPdf() {
+  setStatus('Generando PDF...');
+  const response = await fetch('/api/preview.pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ markdown: editor.value })
+  });
+
+  if (!response.ok) {
+    setStatus('Error al generar PDF');
+    return;
+  }
+
+  const blob = await response.blob();
+  downloadBlob(blob, 'cv-preview.pdf');
+  setStatus('PDF descargado');
+}
+
+editor.addEventListener('input', () => {
+  schedulePreviewUpdate();
+  scheduleSave();
+});
+
+importButton.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', async (event) => {
+  const [file] = event.target.files || [];
+  if (!file) {
+    return;
+  }
+
+  const text = await file.text();
+  updateEditor(text, 'Archivo importado');
+  fileInput.value = '';
+});
+
+exampleButton.addEventListener('click', async () => {
+  try {
+    const example = await loadSource('cv-example.md');
+    updateEditor(example, 'Ejemplo cargado');
+  } catch (error) {
+    setStatus('No se pudo cargar el ejemplo');
+  }
+});
+
+downloadMdButton.addEventListener('click', () => {
+  saveToLocalStorage(true);
+  downloadBlob(new Blob([editor.value], { type: 'text/markdown;charset=utf-8' }), 'cv.md');
+  setStatus('Markdown descargado');
+});
+
+downloadPdfButton.addEventListener('click', downloadPdf);
+
+window.addEventListener('beforeunload', () => saveToLocalStorage(true));
+
+async function init() {
+  try {
+    const localDraft = localStorage.getItem(STORAGE_KEY);
+    if (localDraft && localDraft.trim()) {
+      editor.value = localDraft;
+      lastSavedValue = localDraft;
+      schedulePreviewUpdate();
+      setStatus('Borrador local cargado');
+      return;
+    }
+
+    const initialMarkdown = await loadSource('cv.md');
+    editor.value = initialMarkdown;
+    lastSavedValue = initialMarkdown;
+    schedulePreviewUpdate();
+    setStatus('cv.md cargado');
+  } catch (error) {
+    setStatus('Error cargando el CV');
+  }
+}
+
+init();

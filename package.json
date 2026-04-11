@@ -1,0 +1,16 @@
+{
+  "name": "ia-microservice",
+  "version": "1.0.0",
+  "description": "Simple Node.js microservice that proxies GET requests to OpenRouter.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pdfkit": "^0.18.0"
+  }
+}

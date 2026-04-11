@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">CV Studio</p>
+        <h1>Editor markdown con vista previa viva</h1>
+      </div>
+      <div class="topbar-meta">
+        <span id="save-status" class="status-pill">Cargando...</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel editor-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Markdown</p>
+            <h2>Tu `cv.md`</h2>
+          </div>
+          <div class="actions">
+            <button id="import-button" class="button button-secondary" type="button">Importar .md</button>
+            <button id="example-button" class="button button-secondary" type="button">Ver ejemplo</button>
+            <button id="download-md-button" class="button button-secondary" type="button">Descargar .md</button>
+            <button id="download-pdf-button" class="button button-primary" type="button">Descargar PDF</button>
+          </div>
+        </div>
+
+        <textarea id="editor" spellcheck="false" aria-label="Editor markdown del CV"></textarea>
+        <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden>
+      </section>
+
+      <section class="panel preview-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Vista previa</p>
+            <h2>CV en vivo</h2>
+          </div>
+        </div>
+
+        <div class="preview-surface">
+          <iframe id="pdf-preview" class="pdf-viewer-frame" title="Vista previa real del PDF"></iframe>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
