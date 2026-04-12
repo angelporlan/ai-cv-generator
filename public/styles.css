@@ -686,6 +686,10 @@ body {
   width: 58%;
 }
 
+.editor-body.has-reference .visual-editor {
+  width: 58%;
+}
+
 #editor::placeholder {
   color: var(--text-tertiary);
 }
@@ -740,6 +744,16 @@ body {
   align-items: center;
 }
 
+.reference-mode-switch {
+  display: inline-flex;
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+  width: fit-content;
+}
+
 #reference-cv-select {
   flex: 1;
   min-width: 0;
@@ -759,8 +773,93 @@ body {
   line-height: 1.72;
 }
 
-.editor-body.is-visual .reference-pane {
-  display: none;
+.reference-visual {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 12px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.reference-visual-inner {
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.reference-header h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.reference-contact {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.reference-section {
+  margin-top: 12px;
+}
+
+.reference-section h3 {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.reference-section p,
+.reference-section li {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.reference-section ul {
+  padding-left: 17px;
+}
+
+.reference-entry {
+  margin-top: 8px;
+}
+
+.reference-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.reference-entry-head h4 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.reference-entry-head span {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.reference-entry-role {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+  margin: 2px 0 4px;
+}
+
+.reference-empty {
+  color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 .visual-shell {

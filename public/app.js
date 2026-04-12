@@ -46,8 +46,13 @@ const toggleReferenceButton = document.getElementById('toggle-reference-button')
 const referencePane = document.getElementById('reference-pane');
 const referenceCvSelect = document.getElementById('reference-cv-select');
 const referenceEditor = document.getElementById('reference-editor');
+const referenceVisual = document.getElementById('reference-visual');
+const referenceModeSwitch = document.getElementById('reference-mode-switch');
 const closeReferencePaneButton = document.getElementById('close-reference-pane');
 const REFERENCE_CV_STORAGE_KEY = 'cv-studio-reference-cv-id';
+const REFERENCE_MODE_STORAGE_KEY = 'cv-studio-reference-mode';
+
+let currentReferenceMode = localStorage.getItem(REFERENCE_MODE_STORAGE_KEY) === 'visual' ? 'visual' : 'markdown';
 
 function setReferenceToggleButton(isOpen) {
   if (!toggleReferenceButton) return;
@@ -666,6 +671,83 @@ function getStoredLibraryEntries() {
   }
 }
 
+function renderReferenceVisual(markdown) {
+  if (!referenceVisual) return;
+
+  const safeMarkdown = typeof markdown === 'string' ? markdown : '';
+  const data = parseMarkdown(safeMarkdown);
+
+  const sectionsHtml = data.sections.map((section) => {
+    const itemsHtml = section.items.map((item) => {
+      if (item.type === 'paragraph') {
+        return `<p>${renderInlineMarkdown(item.text)}</p>`;
+      }
+
+      if (item.type === 'list') {
+        return `<ul>${item.items.map((entry) => `<li>${renderInlineMarkdown(entry)}</li>`).join('')}</ul>`;
+      }
+
+      const contentHtml = item.content.map((content) => {
+        if (content.type === 'paragraph') {
+          return `<p>${renderInlineMarkdown(content.text)}</p>`;
+        }
+        return `<ul>${content.items.map((entry) => `<li>${renderInlineMarkdown(entry)}</li>`).join('')}</ul>`;
+      }).join('');
+
+      return `
+        <article class="reference-entry">
+          <div class="reference-entry-head">
+            <h4>${renderInlineMarkdown(item.title)}</h4>
+            ${item.date ? `<span>${renderInlineMarkdown(item.date)}</span>` : ''}
+          </div>
+          ${item.role ? `<p class="reference-entry-role">${renderInlineMarkdown(item.role)}</p>` : ''}
+          ${contentHtml}
+        </article>
+      `;
+    }).join('');
+
+    return `
+      <section class="reference-section">
+        <h3>${renderInlineMarkdown(section.title)}</h3>
+        ${itemsHtml}
+      </section>
+    `;
+  }).join('');
+
+  referenceVisual.innerHTML = `
+    <div class="reference-visual-inner">
+      <header class="reference-header">
+        <h2>${renderInlineMarkdown(data.title)}</h2>
+        <div class="reference-contact">
+          ${data.contacts.map((contact) => `<span>${renderInlineMarkdown(contact.label)}: ${renderInlineMarkdown(contact.value)}</span>`).join('')}
+        </div>
+      </header>
+      ${sectionsHtml || '<p class="reference-empty">Sin contenido para mostrar.</p>'}
+    </div>
+  `;
+}
+
+function applyReferenceMode(mode) {
+  currentReferenceMode = mode === 'visual' ? 'visual' : 'markdown';
+  localStorage.setItem(REFERENCE_MODE_STORAGE_KEY, currentReferenceMode);
+
+  if (referenceEditor) {
+    referenceEditor.hidden = currentReferenceMode !== 'markdown';
+  }
+
+  if (referenceVisual) {
+    referenceVisual.hidden = currentReferenceMode !== 'visual';
+  }
+
+  if (referenceModeSwitch) {
+    referenceModeSwitch.querySelectorAll('[data-reference-mode]').forEach((tab) => {
+      const isActive = tab.getAttribute('data-reference-mode') === currentReferenceMode;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', String(isActive));
+    });
+  }
+}
+
 function renderReferenceOptions(preferredId = '') {
   if (!referenceCvSelect) return [];
 
@@ -694,6 +776,7 @@ function updateReferenceContentById(id) {
   if (!selected || !referenceEditor) return;
 
   referenceEditor.value = selected.content || '';
+  renderReferenceVisual(selected.content || '');
   localStorage.setItem(REFERENCE_CV_STORAGE_KEY, selected.id);
 }
 
@@ -710,6 +793,7 @@ async function openReferencePane() {
   }
 
   updateReferenceContentById(referenceCvSelect.value);
+  applyReferenceMode(currentReferenceMode);
   referencePane.hidden = false;
   editorBody.classList.add('has-reference');
   setReferenceToggleButton(true);
@@ -1341,6 +1425,14 @@ if (referenceCvSelect) {
   });
 }
 
+if (referenceModeSwitch) {
+  referenceModeSwitch.addEventListener('click', (event) => {
+    const tab = event.target.closest('[data-reference-mode]');
+    if (!tab) return;
+    applyReferenceMode(tab.getAttribute('data-reference-mode'));
+  });
+}
+
 if (editorBody) {
   editorBody.addEventListener('click', (event) => {
     const closeTrigger = event.target.closest('#close-reference-pane');
@@ -1367,6 +1459,7 @@ window.addEventListener('cv-editor-font-size-changed', () => {
 async function init() {
   try {
     closeReferencePane();
+    applyReferenceMode(currentReferenceMode);
 
     // Restaurar plantilla visual
     const savedTemplate = localStorage.getItem(VISUAL_TEMPLATE_STORAGE_KEY);

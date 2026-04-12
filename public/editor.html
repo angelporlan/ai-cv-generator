@@ -157,12 +157,17 @@
           <aside id="reference-pane" class="reference-pane" hidden>
             <div class="reference-pane-head">
               <label class="reference-label" for="reference-cv-select">CV de referencia</label>
+              <div class="reference-mode-switch" id="reference-mode-switch" role="tablist" aria-label="Modo de referencia">
+                <button type="button" class="mode-tab active" data-reference-mode="markdown" aria-selected="true">Markdown</button>
+                <button type="button" class="mode-tab" data-reference-mode="visual" aria-selected="false">Visual</button>
+              </div>
               <div class="reference-controls">
                 <select id="reference-cv-select" class="template-select" title="Selecciona un CV guardado"></select>
                 <button id="close-reference-pane" class="button button-secondary" type="button" aria-label="Cerrar comparación">Cerrar</button>
               </div>
             </div>
             <textarea id="reference-editor" spellcheck="false" readonly aria-label="CV de referencia"></textarea>
+            <div id="reference-visual" class="reference-visual" hidden></div>
           </aside>
         </div>
 
