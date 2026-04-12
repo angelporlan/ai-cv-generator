@@ -329,6 +329,43 @@ body {
   overflow: hidden;
 }
 
+.workspace.is-resizing {
+  user-select: none;
+  cursor: col-resize;
+}
+
+.workspace-resizer {
+  width: 10px;
+  flex: 0 0 10px;
+  position: relative;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 5;
+}
+
+.workspace-resizer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--border);
+  transition: background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+
+.workspace-resizer:hover::before,
+.workspace.is-resizing .workspace-resizer::before {
+  background: var(--accent-muted);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-muted) 35%, transparent);
+}
+
+.editor-panel,
+.preview-panel {
+  min-width: 280px;
+}
+
 /* ── Panels ─────────────────────────────────────────────────── */
 .panel {
   display: flex;
@@ -1478,6 +1515,10 @@ body {
 @media (max-width: 900px) {
   .workspace {
     flex-direction: column;
+  }
+
+  .workspace-resizer {
+    display: none;
   }
 
   .panel+.panel {

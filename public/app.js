@@ -16,6 +16,10 @@ const visualTemplateSelector = document.getElementById('visual-template-selector
 const editorModeSwitch = document.getElementById('editor-mode-switch');
 const editorBody = document.querySelector('.editor-body');
 const visualEditor = document.getElementById('visual-editor');
+const workspace = document.querySelector('.workspace');
+const editorPanel = document.querySelector('.editor-panel');
+const previewPanel = document.querySelector('.preview-panel');
+const workspaceResizer = document.getElementById('workspace-resizer');
 const libraryModal = document.getElementById('library-modal');
 const openLibraryBtn = document.getElementById('open-library-button');
 const closeLibraryBtn = document.getElementById('close-library-button');
@@ -51,6 +55,7 @@ const referenceModeSwitch = document.getElementById('reference-mode-switch');
 const closeReferencePaneButton = document.getElementById('close-reference-pane');
 const REFERENCE_CV_STORAGE_KEY = 'cv-studio-reference-cv-id';
 const REFERENCE_MODE_STORAGE_KEY = 'cv-studio-reference-mode';
+const WORKSPACE_SPLIT_STORAGE_KEY = 'cv-studio-workspace-split';
 
 let currentReferenceMode = localStorage.getItem(REFERENCE_MODE_STORAGE_KEY) === 'visual' ? 'visual' : 'markdown';
 
@@ -806,6 +811,74 @@ function closeReferencePane() {
   setReferenceToggleButton(false);
 }
 
+function applyWorkspaceSplit(editorPercent) {
+  if (!workspace || !editorPanel || !previewPanel) return;
+  if (window.matchMedia('(max-width: 900px)').matches) {
+    editorPanel.style.flex = '';
+    previewPanel.style.flex = '';
+    return;
+  }
+
+  const safeEditor = Math.max(28, Math.min(72, editorPercent));
+  const safePreview = 100 - safeEditor;
+  editorPanel.style.flex = `0 0 ${safeEditor}%`;
+  previewPanel.style.flex = `0 0 ${safePreview}%`;
+}
+
+function initWorkspaceResizer() {
+  if (!workspace || !workspaceResizer || !editorPanel || !previewPanel) return;
+
+  const saved = Number(localStorage.getItem(WORKSPACE_SPLIT_STORAGE_KEY) || '50');
+  applyWorkspaceSplit(Number.isFinite(saved) ? saved : 50);
+
+  let isDragging = false;
+
+  const onPointerMove = (event) => {
+    if (!isDragging) return;
+    const rect = workspace.getBoundingClientRect();
+    if (!rect.width) return;
+
+    const offsetX = event.clientX - rect.left;
+    const percent = (offsetX / rect.width) * 100;
+    const clamped = Math.max(28, Math.min(72, percent));
+    applyWorkspaceSplit(clamped);
+    localStorage.setItem(WORKSPACE_SPLIT_STORAGE_KEY, clamped.toFixed(2));
+  };
+
+  const stopDragging = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    workspace.classList.remove('is-resizing');
+    document.body.style.cursor = '';
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', stopDragging);
+  };
+
+  workspaceResizer.addEventListener('pointerdown', (event) => {
+    if (window.matchMedia('(max-width: 900px)').matches) {
+      return;
+    }
+
+    event.preventDefault();
+    isDragging = true;
+    workspace.classList.add('is-resizing');
+    document.body.style.cursor = 'col-resize';
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', stopDragging);
+  });
+
+  workspaceResizer.addEventListener('dblclick', () => {
+    const defaultSplit = 50;
+    applyWorkspaceSplit(defaultSplit);
+    localStorage.setItem(WORKSPACE_SPLIT_STORAGE_KEY, String(defaultSplit));
+  });
+
+  window.addEventListener('resize', () => {
+    const stored = Number(localStorage.getItem(WORKSPACE_SPLIT_STORAGE_KEY) || '50');
+    applyWorkspaceSplit(Number.isFinite(stored) ? stored : 50);
+  });
+}
+
 function openAdaptModal() {
   if (!adaptCvModal) return;
   const storedToken = localStorage.getItem(ADAPT_TOKEN_STORAGE_KEY);
@@ -1458,6 +1531,7 @@ window.addEventListener('cv-editor-font-size-changed', () => {
 
 async function init() {
   try {
+    initWorkspaceResizer();
     closeReferencePane();
     applyReferenceMode(currentReferenceMode);
 
