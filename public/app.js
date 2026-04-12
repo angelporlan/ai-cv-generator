@@ -712,6 +712,9 @@ function buildVisualEditorHtml() {
           <button type="button" class="button-mini" data-action="add-section">+ Sección</button>
         </div>
         ${sectionsHtml || '<div class="visual-empty">Crea una sección para empezar a construir tu CV.</div>'}
+        <div class="visual-actions" style="margin-top: 12px;">
+          <button type="button" class="button-mini" data-action="add-section">+ Añadir sección</button>
+        </div>
       </div>
     </div>
   `;
