@@ -376,6 +376,12 @@ body {
   transition: color var(--t-mid) var(--ease);
 }
 
+.panel-inline-action {
+  margin-top: 7px;
+  padding: 4px 9px;
+  font-size: 11px;
+}
+
 
 .template-header-selectors {
   display: flex;
@@ -611,6 +617,23 @@ body {
   background: var(--accent-hover);
   color: white;
   border-color: transparent;
+}
+
+.button-accent {
+  background: var(--accent-light);
+  color: var(--accent-text);
+  border-color: transparent;
+}
+
+.button-accent:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.button:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .zoom-btn {
@@ -991,6 +1014,10 @@ body {
   max-width: 400px;
 }
 
+.modal-adapt {
+  max-width: 760px;
+}
+
 .modal-header {
   padding: 20px 24px;
   border-bottom: 0.5px solid var(--border-soft);
@@ -1118,6 +1145,45 @@ body {
 
 .modal-input:focus, .modal-select:focus {
   border-color: var(--accent);
+}
+
+.modal-textarea {
+  width: 100%;
+  min-height: 170px;
+  resize: vertical;
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+
+.modal-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--border-focus);
+}
+
+.adapt-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.adapt-field {
+  display: grid;
+  gap: 7px;
+}
+
+.adapt-field > span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 .modal-divider {
@@ -1303,6 +1369,11 @@ body {
 
   .template-select {
     min-width: 120px;
+  }
+
+  .panel-inline-action {
+    width: 100%;
+    justify-content: center;
   }
 
 }

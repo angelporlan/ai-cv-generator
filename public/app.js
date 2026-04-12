@@ -32,6 +32,14 @@ const confirmCancelBtn = document.getElementById('confirm-cancel');
 
 const LIBRARY_STORAGE_KEY = 'cv-studio-library';
 const EDITOR_MODE_STORAGE_KEY = 'cv-studio-editor-mode';
+const ADAPT_TOKEN_STORAGE_KEY = 'cv-studio-openrouter-token';
+const openAdaptModalButton = document.getElementById('open-adapt-modal-button');
+const adaptCvModal = document.getElementById('adapt-cv-modal');
+const closeAdaptModalButton = document.getElementById('close-adapt-modal-button');
+const adaptJobDescription = document.getElementById('adapt-job-description');
+const adaptOpenRouterToken = document.getElementById('adapt-openrouter-token');
+const adaptSubmitButton = document.getElementById('adapt-submit-button');
+const adaptCancelButton = document.getElementById('adapt-cancel-button');
 let libraryData = [];
 let currentEditorMode = 'visual';
 let visualNeedsRefreshFromMarkdown = true;
@@ -628,6 +636,84 @@ function closeLibrary() {
   libraryModal.classList.remove('active');
 }
 
+function openAdaptModal() {
+  if (!adaptCvModal) return;
+  const storedToken = localStorage.getItem(ADAPT_TOKEN_STORAGE_KEY);
+  if (storedToken && adaptOpenRouterToken && !adaptOpenRouterToken.value.trim()) {
+    adaptOpenRouterToken.value = storedToken;
+  }
+
+  adaptCvModal.classList.add('active');
+  if (adaptJobDescription) {
+    adaptJobDescription.focus();
+  }
+}
+
+function closeAdaptModal() {
+  if (!adaptCvModal) return;
+  adaptCvModal.classList.remove('active');
+}
+
+async function adaptCvWithAi() {
+  const markdown = editor.value;
+  const jobDescription = adaptJobDescription ? adaptJobDescription.value.trim() : '';
+  const token = adaptOpenRouterToken ? adaptOpenRouterToken.value.trim() : '';
+
+  if (!markdown.trim()) {
+    await showAlert('Primero escribe o carga un CV para poder adaptarlo.', 'CV vacío');
+    return;
+  }
+
+  if (!jobDescription) {
+    await showAlert('Pega la descripción de la oferta para generar el CV adaptado.', 'Falta la oferta');
+    return;
+  }
+
+  if (!token) {
+    await showAlert('Añade tu token de OpenRouter para usar la IA.', 'Falta token');
+    return;
+  }
+
+  localStorage.setItem(ADAPT_TOKEN_STORAGE_KEY, token);
+
+  if (adaptSubmitButton) {
+    adaptSubmitButton.disabled = true;
+    adaptSubmitButton.textContent = 'Generando...';
+  }
+
+  setStatus('Adaptando CV con IA...');
+
+  try {
+    const response = await fetch('/api/adapt-cv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown, jobDescription, token })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.error || 'No se pudo adaptar el CV con IA');
+    }
+
+    if (!payload?.markdown || !payload.markdown.trim()) {
+      throw new Error('La IA no devolvió contenido de CV válido');
+    }
+
+    updateEditor(payload.markdown, 'CV adaptado y optimizado para ATS');
+    closeAdaptModal();
+  } catch (error) {
+    console.error('[adapt-cv] Error:', error);
+    setStatus('Error adaptando CV con IA');
+    await showAlert(error.message || 'No se pudo adaptar el CV', 'Error de IA');
+  } finally {
+    if (adaptSubmitButton) {
+      adaptSubmitButton.disabled = false;
+      adaptSubmitButton.textContent = 'Generar CV ATS';
+    }
+  }
+}
+
 function schedulePreviewUpdate() {
   clearTimeout(previewTimer);
   previewTimer = setTimeout(updatePdfPreview, PREVIEW_DEBOUNCE_MS);
@@ -1099,6 +1185,38 @@ saveToLibraryBtn.addEventListener('click', saveToLibrary);
 libraryModal.addEventListener('click', (e) => {
   if (e.target === libraryModal) closeLibrary();
 });
+
+if (openAdaptModalButton) {
+  openAdaptModalButton.addEventListener('click', openAdaptModal);
+}
+
+if (closeAdaptModalButton) {
+  closeAdaptModalButton.addEventListener('click', closeAdaptModal);
+}
+
+if (adaptCancelButton) {
+  adaptCancelButton.addEventListener('click', closeAdaptModal);
+}
+
+if (adaptCvModal) {
+  adaptCvModal.addEventListener('click', (event) => {
+    if (event.target === adaptCvModal) {
+      closeAdaptModal();
+    }
+  });
+}
+
+if (adaptSubmitButton) {
+  adaptSubmitButton.addEventListener('click', adaptCvWithAi);
+}
+
+if (adaptJobDescription) {
+  adaptJobDescription.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      adaptCvWithAi();
+    }
+  });
+}
 
 downloadPdfButton.addEventListener('click', downloadPdf);
 

@@ -164,6 +164,12 @@
           <div class="panel-header-info">
             <p class="panel-kicker">Vista previa</p>
             <h2 class="panel-title">CV en vivo</h2>
+            <button id="open-adapt-modal-button" class="button button-accent panel-inline-action" type="button">
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M6 1.5l1.3 2.7L10 5.1 8 7.1l.5 2.9L6 8.6 3.5 10l.5-2.9-2-2 2.7-.9L6 1.5z" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Adaptar CV con IA
+            </button>
           </div>
           <div class="actions">
             <button class="button button-secondary zoom-btn" type="button" id="font-size-decrease" aria-label="Reducir tamaño de fuente">
@@ -273,6 +279,38 @@
         <div class="modal-footer">
           <button id="confirm-cancel" class="button button-secondary">Cancelar</button>
           <button id="confirm-ok" class="button button-primary">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Adaptar CV con IA -->
+    <div id="adapt-cv-modal" class="modal-overlay">
+      <div class="modal modal-adapt">
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <h2 class="modal-title">Adaptar CV a oferta con IA</h2>
+            <p class="modal-subtitle">Pega la vacante y optimiza tu CV para filtros ATS.</p>
+          </div>
+          <button id="close-adapt-modal-button" class="modal-close" aria-label="Cerrar">&times;</button>
+        </div>
+
+        <div class="modal-content">
+          <div class="adapt-grid">
+            <label class="adapt-field" for="adapt-job-description">
+              <span>Descripción de la oferta</span>
+              <textarea id="adapt-job-description" class="modal-textarea" rows="10" placeholder="Pega aquí la oferta de trabajo completa..."></textarea>
+            </label>
+
+            <label class="adapt-field" for="adapt-openrouter-token">
+              <span>Token de OpenRouter</span>
+              <input id="adapt-openrouter-token" class="modal-input" type="password" placeholder="sk-or-v1-..." autocomplete="off">
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="adapt-cancel-button" class="button button-secondary" type="button">Cancelar</button>
+          <button id="adapt-submit-button" class="button button-primary" type="button">Generar CV ATS</button>
         </div>
       </div>
     </div>

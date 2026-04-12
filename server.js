@@ -13,11 +13,17 @@ if (fs.existsSync('.env')) {
   });
 }
 
-const DEFAULT_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
+const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
 const DEFAULT_PROMPT = 'Hola, soy tu asistente de CV.';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const REQUEST_TIMEOUT_MS = 60000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const MODEL_FALLBACKS = [
+  DEFAULT_MODEL,
+  'openai/gpt-4o-mini',
+  'google/gemini-2.0-flash-001',
+  'anthropic/claude-3.5-haiku'
+];
 
 
 function sendJson(response, statusCode, payload) {
@@ -56,6 +62,77 @@ function sendFile(response, filePath, contentType) {
 
 function getTextFromOpenRouter(data) {
   return data?.choices?.[0]?.message?.content ?? '';
+}
+
+function stripMarkdownFences(text) {
+  if (typeof text !== 'string') {
+    return '';
+  }
+
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:markdown|md)?\s*([\s\S]*?)\s*```$/i);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+function buildAtsAdaptationMessages(cvMarkdown, jobDescription) {
+  return [
+    {
+      role: 'system',
+      content: [
+        'Eres un experto en reclutamiento técnico y optimización ATS.',
+        'Adapta el CV del candidato a la oferta sin inventar experiencia no respaldada.',
+        'Mantén formato markdown limpio para este editor de CV.',
+        'Devuelve solo markdown del CV, sin explicaciones, sin bloques de código.'
+      ].join(' ')
+    },
+    {
+      role: 'user',
+      content: [
+        'Adapta y optimiza este CV para la oferta laboral.',
+        'Objetivos:',
+        '- Reforzar palabras clave ATS relevantes de la oferta.',
+        '- Priorizar logros e impacto cuantificable.',
+        '- Mantener redacción clara y profesional en español.',
+        '- Conservar estructura markdown compatible con CV Studio.',
+        '- No agregar datos falsos.',
+        '',
+        'Oferta laboral:',
+        '---',
+        jobDescription,
+        '---',
+        '',
+        'CV original:',
+        '---',
+        cvMarkdown,
+        '---'
+      ].join('\n')
+    }
+  ];
+}
+
+function shouldRetryWithFallback(errorMessage) {
+  const normalized = String(errorMessage || '').toLowerCase();
+  return normalized.includes('no endpoints found') || normalized.includes('model not found');
+}
+
+async function callOpenRouterWithFallback(token, preferredModel, messages) {
+  const modelCandidates = [...new Set([preferredModel, ...MODEL_FALLBACKS].filter(Boolean))];
+  let lastError = null;
+
+  for (const candidateModel of modelCandidates) {
+    try {
+      const responseText = await callOpenRouter(token, candidateModel, messages);
+      return { responseText, usedModel: candidateModel };
+    } catch (err) {
+      lastError = err;
+      if (!shouldRetryWithFallback(err?.message)) {
+        throw err;
+      }
+      console.warn(`[OpenRouter] Model unavailable, trying fallback: ${candidateModel}`);
+    }
+  }
+
+  throw lastError || new Error('No available model found in fallback list');
 }
 
 async function callOpenRouter(token, model, messages) {
@@ -138,6 +215,53 @@ async function handlePreviewPdf(request, response) {
   }
 }
 
+async function handleAdaptCv(request, response) {
+  let body;
+  try {
+    body = await readRequestBody(request);
+  } catch {
+    return sendJson(response, 400, { ok: false, error: 'Invalid JSON' });
+  }
+
+  const markdown = typeof body?.markdown === 'string' ? body.markdown.trim() : '';
+  const jobDescription = typeof body?.jobDescription === 'string' ? body.jobDescription.trim() : '';
+  const token = typeof body?.token === 'string' ? body.token.trim() : '';
+  const model = typeof body?.model === 'string' && body.model.trim() ? body.model.trim() : DEFAULT_MODEL;
+
+  if (!markdown) {
+    return sendJson(response, 400, { ok: false, error: 'Missing markdown' });
+  }
+
+  if (!jobDescription) {
+    return sendJson(response, 400, { ok: false, error: 'Missing jobDescription' });
+  }
+
+  if (!token) {
+    return sendJson(response, 400, { ok: false, error: 'Missing token' });
+  }
+
+  try {
+    const { responseText, usedModel } = await callOpenRouterWithFallback(
+      token,
+      model,
+      buildAtsAdaptationMessages(markdown, jobDescription)
+    );
+    const adaptedMarkdown = stripMarkdownFences(responseText);
+
+    if (!adaptedMarkdown) {
+      return sendJson(response, 502, { ok: false, error: 'Empty response from AI model' });
+    }
+
+    return sendJson(response, 200, {
+      ok: true,
+      markdown: adaptedMarkdown,
+      model: usedModel
+    });
+  } catch (err) {
+    return sendJson(response, 500, { ok: false, error: err.message || 'Failed to adapt CV' });
+  }
+}
+
 
 const server = http.createServer(async (request, response) => {
   const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
@@ -182,6 +306,10 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'POST' && requestUrl.pathname === '/api/preview.pdf') {
     return await handlePreviewPdf(request, response);
+  }
+
+  if (request.method === 'POST' && requestUrl.pathname === '/api/adapt-cv') {
+    return await handleAdaptCv(request, response);
   }
 
   if (request.method === 'GET' && requestUrl.pathname === '/cv.pdf') {
