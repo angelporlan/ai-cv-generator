@@ -15,8 +15,8 @@ const COLORS = {
   rule: '#000000'
 };
 
-// Tamaños de fuente optimizados para mejor legibilidad en 1 página
-const LAYOUT = {
+// Tamaños de fuente base optimizados para mejor legibilidad en 1 página
+const BASE_LAYOUT = {
   nameSize: 20,
   contactSize: 8.5,
   sectionSize: 11,
@@ -30,6 +30,28 @@ const LAYOUT = {
   bulletGap: 0.15,
   entryGap: 0.4
 };
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getFontScale(fontSize) {
+  const numeric = Number(fontSize);
+  if (!Number.isFinite(numeric)) {
+    return 1;
+  }
+
+  // 12.5px is the default UI value.
+  return clamp(numeric / 12.5, 0.75, 1.8);
+}
+
+function buildLayout(scale) {
+  const layout = {};
+  for (const [key, value] of Object.entries(BASE_LAYOUT)) {
+    layout[key] = value * scale;
+  }
+  return layout;
+}
 
 const MODERN_CONFIG = {
   sidebarWidth: 175,
@@ -182,12 +204,12 @@ function ensurePageSpace(doc, heightNeeded) {
   return;
 }
 
-function drawSectionHeading(doc, title) {
+function drawSectionHeading(doc, title, layout) {
   ensurePageSpace(doc, 22);
-  doc.moveDown(LAYOUT.sectionGap);
+  doc.moveDown(layout.sectionGap);
 
   doc.font('Helvetica-Bold')
-    .fontSize(LAYOUT.sectionSize)
+    .fontSize(layout.sectionSize)
     .fillColor(COLORS.accent)
     .text(title.toUpperCase(), PAGE_MARGIN, doc.y, {
       width: CONTENT_WIDTH,
@@ -205,11 +227,11 @@ function drawSectionHeading(doc, title) {
   doc.y = ruleY + 4.5;
 }
 
-function drawParagraph(doc, text, options = {}) {
+function drawParagraph(doc, text, layout, options = {}) {
   const font = options.font || 'Helvetica';
-  const size = options.size || LAYOUT.bodySize;
+  const size = options.size || layout.bodySize;
   const color = options.color || COLORS.text;
-  const gap = options.gap ?? LAYOUT.paragraphGap;
+  const gap = options.gap ?? layout.paragraphGap;
   const align = options.align || 'left';
 
   ensurePageSpace(doc, size * 3);
@@ -219,13 +241,13 @@ function drawParagraph(doc, text, options = {}) {
     .text(text, PAGE_MARGIN, doc.y, {
       width: CONTENT_WIDTH,
       align,
-      lineGap: LAYOUT.lineGap
+      lineGap: layout.lineGap
     });
 
   doc.moveDown(gap);
 }
 
-function drawBullet(doc, text) {
+function drawBullet(doc, text, layout) {
   ensurePageSpace(doc, 16);
   // Posiciones ajustadas para el sangrado de las viñetas
   const bulletX = PAGE_MARGIN + 8;
@@ -234,29 +256,29 @@ function drawBullet(doc, text) {
 
   // Tamaño de viñeta corregido
   doc.font('Helvetica')
-    .fontSize(LAYOUT.bulletSize)
+    .fontSize(layout.bulletSize)
     .fillColor(COLORS.text)
     .text('\u2022', bulletX, startY);
 
   doc.font('Helvetica')
-    .fontSize(LAYOUT.bodySize)
+    .fontSize(layout.bodySize)
     .fillColor(COLORS.text)
     .text(text, textX, startY, {
       width: CONTENT_WIDTH - 18,
       align: 'left',
-      lineGap: LAYOUT.lineGap
+      lineGap: layout.lineGap
     });
 
-  doc.moveDown(LAYOUT.bulletGap);
+  doc.moveDown(layout.bulletGap);
 }
 
-function drawEntry(doc, entry) {
+function drawEntry(doc, entry, layout) {
   ensurePageSpace(doc, 28);
   const startY = doc.y;
 
   // Título alineado a la izquierda
   doc.font('Helvetica-Bold')
-    .fontSize(LAYOUT.headingSize)
+    .fontSize(layout.headingSize)
     .fillColor(COLORS.text)
     .text(entry.heading, PAGE_MARGIN, startY, {
       width: CONTENT_WIDTH * 0.7,
@@ -266,7 +288,7 @@ function drawEntry(doc, entry) {
   // Fecha perfectamente alineada a la derecha en la misma línea
   if (entry.date) {
     doc.font('Helvetica')
-      .fontSize(LAYOUT.metaSize)
+      .fontSize(layout.metaSize)
       .fillColor(COLORS.muted)
       .text(entry.date, PAGE_MARGIN, startY, {
         width: CONTENT_WIDTH,
@@ -278,7 +300,7 @@ function drawEntry(doc, entry) {
   if (entry.subheading) {
     doc.y += 1;
     doc.font('Helvetica-Oblique')
-      .fontSize(LAYOUT.metaSize)
+      .fontSize(layout.metaSize)
       .fillColor(COLORS.text)
       .text(entry.subheading, PAGE_MARGIN, doc.y, {
         width: CONTENT_WIDTH
@@ -288,17 +310,17 @@ function drawEntry(doc, entry) {
   doc.moveDown(0.15);
 
   for (const paragraph of entry.paragraphs || []) {
-    drawParagraph(doc, paragraph, { gap: LAYOUT.paragraphGap });
+    drawParagraph(doc, paragraph, layout, { gap: layout.paragraphGap });
   }
 
   for (const bullet of entry.bullets || []) {
-    drawBullet(doc, bullet);
+    drawBullet(doc, bullet, layout);
   }
 
-  doc.moveDown(LAYOUT.entryGap);
+  doc.moveDown(layout.entryGap);
 }
 
-function drawContactLines(doc, contact) {
+function drawContactLines(doc, contact, layout) {
   if (!contact.length) {
     return;
   }
@@ -309,7 +331,7 @@ function drawContactLines(doc, contact) {
   const secondLine = contact.slice(3).map((item) => `${item.label}: ${item.value}`).join(sep);
 
   doc.font('Helvetica')
-    .fontSize(LAYOUT.contactSize)
+    .fontSize(layout.contactSize)
     .fillColor(COLORS.muted)
     .text(firstLine, PAGE_MARGIN, doc.y, {
       width: CONTENT_WIDTH,
@@ -326,8 +348,8 @@ function drawContactLines(doc, contact) {
   }
 }
 
-function drawSkillsSection(doc, section) {
-  drawSectionHeading(doc, section.title);
+function drawSkillsSection(doc, section, layout) {
+  drawSectionHeading(doc, section.title, layout);
 
   const items = [...(section.paragraphs || []), ...(section.bullets || [])];
   if (!items.length) {
@@ -344,7 +366,7 @@ function drawSkillsSection(doc, section) {
       const startY = doc.y;
 
       doc.font('Helvetica-Bold')
-        .fontSize(LAYOUT.bodySize)
+        .fontSize(layout.bodySize)
         .fillColor(COLORS.accent)
         .text(label + ': ', PAGE_MARGIN + 6, startY, {
           continued: true,
@@ -352,28 +374,28 @@ function drawSkillsSection(doc, section) {
         });
 
       doc.font('Helvetica')
-        .fontSize(LAYOUT.bodySize)
+        .fontSize(layout.bodySize)
         .fillColor(COLORS.text)
         .text(value, {
           width: CONTENT_WIDTH - 6,
-          lineGap: LAYOUT.lineGap
+          lineGap: layout.lineGap
         });
 
       doc.moveDown(0.08);
     } else {
       doc.font('Helvetica')
-        .fontSize(LAYOUT.bodySize)
+        .fontSize(layout.bodySize)
         .fillColor(COLORS.text)
         .text(item, PAGE_MARGIN + 6, doc.y, {
           width: CONTENT_WIDTH - 6,
-          lineGap: LAYOUT.lineGap
+          lineGap: layout.lineGap
         });
       doc.moveDown(0.08);
     }
   }
 }
 
-function renderCvPdf(doc, cv) {
+function renderCvPdf(doc, cv, layout) {
   // Existing Harvard rendering remains here...
   doc.info.Title = `CV - ${cv.name}`;
   doc.info.Author = cv.name;
@@ -381,7 +403,7 @@ function renderCvPdf(doc, cv) {
 
   // Nombre con más presencia visual
   doc.font('Helvetica-Bold')
-    .fontSize(LAYOUT.nameSize)
+    .fontSize(layout.nameSize)
     .fillColor(COLORS.text)
     .text(cv.name.toUpperCase(), PAGE_MARGIN, PAGE_MARGIN, {
       width: CONTENT_WIDTH,
@@ -390,7 +412,7 @@ function renderCvPdf(doc, cv) {
     });
 
   doc.moveDown(0.2);
-  drawContactLines(doc, cv.contact);
+  drawContactLines(doc, cv.contact, layout);
 
   const headerRuleY = doc.y + 6;
   doc.moveTo(PAGE_MARGIN, headerRuleY)
@@ -403,27 +425,27 @@ function renderCvPdf(doc, cv) {
 
   for (const section of cv.sections) {
     if (section.title.toLowerCase() === 'skills' || section.title.toLowerCase() === 'habilidades') {
-      drawSkillsSection(doc, section);
+      drawSkillsSection(doc, section, layout);
     } else {
-      drawSectionHeading(doc, section.title);
+      drawSectionHeading(doc, section.title, layout);
 
       for (const paragraph of section.paragraphs || []) {
-        drawParagraph(doc, paragraph);
+        drawParagraph(doc, paragraph, layout);
       }
 
       for (const entry of section.entries || []) {
-        drawEntry(doc, entry);
+        drawEntry(doc, entry, layout);
       }
 
       for (const bullet of section.bullets || []) {
-        drawBullet(doc, bullet);
+        drawBullet(doc, bullet, layout);
       }
     }
-    doc.moveDown(LAYOUT.sectionGap);
+    doc.moveDown(layout.sectionGap);
   }
 }
 
-function renderModernCvPdf(doc, cv) {
+function renderModernCvPdf(doc, cv, scale = 1) {
   const { sidebarWidth, sidebarColor, sidebarPadding, mainPadding, sidebarTextColor, sidebarMutedColor, accentColor, lineColor } = MODERN_CONFIG;
   const pageHeight = doc.page.height;
   const pageWidth = doc.page.width;
@@ -451,7 +473,7 @@ function renderModernCvPdf(doc, cv) {
   // Category Title Helper for Sidebar
   const drawSidebarHeading = (title) => {
     doc.font('Helvetica-Bold')
-      .fontSize(11)
+      .fontSize(11 * scale)
       .fillColor(sidebarTextColor)
       .text(title.toUpperCase(), sidebarPadding, currentY, { characterSpacing: 1 });
     currentY += 15;
@@ -466,7 +488,7 @@ function renderModernCvPdf(doc, cv) {
   // Draw Contact in Sidebar first if available
   if (cv.contact && cv.contact.length > 0) {
     drawSidebarHeading('Contacto');
-    doc.font('Helvetica').fontSize(8.5).fillColor(sidebarTextColor);
+    doc.font('Helvetica').fontSize(8.5 * scale).fillColor(sidebarTextColor);
     for (const info of cv.contact) {
       const contactText = typeof info === 'string' ? info : `${info.label}: ${info.value}`;
       doc.text(contactText, sidebarPadding, currentY, { width: sidebarWidth - sidebarPadding * 2, lineGap: 2 });
@@ -478,7 +500,7 @@ function renderModernCvPdf(doc, cv) {
   // Draw Sidebar Sections
   for (const section of sidebarSections) {
     drawSidebarHeading(section.title);
-    doc.font('Helvetica').fontSize(9).fillColor(sidebarTextColor);
+    doc.font('Helvetica').fontSize(9 * scale).fillColor(sidebarTextColor);
     
     const items = [...(section.paragraphs || []), ...(section.bullets || [])];
     for (const item of items) {
@@ -495,10 +517,11 @@ function renderModernCvPdf(doc, cv) {
   const mainX = sidebarWidth + mainPadding;
   const mainWidth = pageWidth - sidebarWidth - mainPadding * 2;
   currentY = 40;
+  const fs = (size) => size * scale;
 
   // Draw Name Header
   doc.font('Helvetica-Bold')
-    .fontSize(28)
+    .fontSize(fs(28))
     .fillColor('#333333')
     .text(cv.name, mainX, currentY);
   
@@ -507,7 +530,7 @@ function renderModernCvPdf(doc, cv) {
   // Main Category Title Helper
   const drawMainHeading = (title) => {
     doc.font('Helvetica-Bold')
-      .fontSize(12)
+      .fontSize(fs(12))
       .fillColor(accentColor)
       .text(title.toUpperCase(), mainX, currentY, { characterSpacing: 0.5 });
     
@@ -525,7 +548,7 @@ function renderModernCvPdf(doc, cv) {
 
     // Draft Paragraphs
     for (const p of section.paragraphs || []) {
-      doc.font('Helvetica').fontSize(9.5).fillColor('#444444').text(p, mainX, currentY, {
+      doc.font('Helvetica').fontSize(fs(9.5)).fillColor('#444444').text(p, mainX, currentY, {
         width: mainWidth,
         lineGap: 2,
         align: 'justify'
@@ -538,30 +561,30 @@ function renderModernCvPdf(doc, cv) {
       const entryY = currentY;
       
       // Heading (Left)
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#333333').text(entry.heading, mainX, entryY, { width: mainWidth - 80 });
+      doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor('#333333').text(entry.heading, mainX, entryY, { width: mainWidth - 80 });
       
       // Date (Right)
       if (entry.date) {
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#666666').text(entry.date, mainX, entryY, { align: 'right', width: mainWidth });
+        doc.font('Helvetica-Bold').fontSize(fs(9)).fillColor('#666666').text(entry.date, mainX, entryY, { align: 'right', width: mainWidth });
       }
       
       currentY = doc.y + 2;
 
       // Subheading
       if (entry.subheading) {
-        doc.font('Helvetica-BoldOblique').fontSize(9).fillColor('#555555').text(entry.subheading, mainX, currentY);
+        doc.font('Helvetica-BoldOblique').fontSize(fs(9)).fillColor('#555555').text(entry.subheading, mainX, currentY);
         currentY = doc.y + 4;
       }
 
       // Entry Paragraphs
       for (const p of entry.paragraphs || []) {
-        doc.font('Helvetica').fontSize(9).fillColor('#444444').text(p, mainX, currentY, { width: mainWidth, lineGap: 1.5 });
+        doc.font('Helvetica').fontSize(fs(9)).fillColor('#444444').text(p, mainX, currentY, { width: mainWidth, lineGap: 1.5 });
         currentY = doc.y + 4;
       }
 
       // Entry Bullets
       for (const b of entry.bullets || []) {
-        doc.font('Helvetica').fontSize(9).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 1.5 });
+        doc.font('Helvetica').fontSize(fs(9)).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 1.5 });
         currentY = doc.y + 2;
       }
       
@@ -570,7 +593,7 @@ function renderModernCvPdf(doc, cv) {
 
     // General Bullets
     for (const b of section.bullets || []) {
-      doc.font('Helvetica').fontSize(9.5).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 2 });
+      doc.font('Helvetica').fontSize(fs(9.5)).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 2 });
       currentY = doc.y + 4;
     }
 
@@ -601,6 +624,8 @@ function getAllowedCvPath(fileName) {
 function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
   const cv = parseCvMarkdown(markdown);
   const templateType = options.template || 'harvard';
+  const fontScale = getFontScale(options.fontSize);
+  const layout = buildLayout(fontScale);
   const pdfName = options.fileName || `${slugifyFile(cv.name) || 'cv'}-${templateType}.pdf`;
   const contentDisposition = options.download ? 'attachment' : 'inline';
   const doc = new PDFDocument({
@@ -625,9 +650,9 @@ function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
   doc.pipe(response);
   
   if (templateType === 'modern') {
-    renderModernCvPdf(doc, cv);
+    renderModernCvPdf(doc, cv, fontScale);
   } else {
-    renderCvPdf(doc, cv);
+    renderCvPdf(doc, cv, layout);
   }
   doc.end();
 }

@@ -127,9 +127,11 @@ async function handlePreviewPdf(request, response) {
   // Permitir elegir plantilla
   const template = body.template || 'harvard';
   const download = body.download !== false;
+  const requestedFontSize = Number(body.fontSize);
+  const fontSize = Number.isFinite(requestedFontSize) ? requestedFontSize : undefined;
 
   try {
-    createPdfDocumentFromMarkdown(markdown, response, { download, template });
+    createPdfDocumentFromMarkdown(markdown, response, { download, template, fontSize });
   } catch (err) {
     console.error('[preview-pdf] EXCEPTION:', err);
     sendJson(response, 500, { ok: false, error: err.message });

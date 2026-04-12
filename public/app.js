@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'cv-studio-markdown';
 const SAVE_INTERVAL_MS = 2500;
 const VISUAL_TEMPLATE_STORAGE_KEY = 'cv-studio-visual-template';
+const EDITOR_FONT_SIZE_STORAGE_KEY = 'cv-studio-editor-font-size';
 
 const editor = document.getElementById('editor');
 const preview = document.getElementById('preview');
@@ -462,6 +463,7 @@ let currentPreviewUrl = null;
 async function updatePdfPreview() {
   const markdown = editor.value;
   if (!markdown.trim()) return;
+  const fontSize = Number(localStorage.getItem(EDITOR_FONT_SIZE_STORAGE_KEY) || '12.5');
 
   try {
     const response = await fetch('/api/preview.pdf', {
@@ -470,7 +472,8 @@ async function updatePdfPreview() {
       body: JSON.stringify({ 
         markdown, 
         download: false,
-        template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard'
+        template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
+        fontSize
       })
     });
 
@@ -884,13 +887,15 @@ function downloadBlob(blob, fileName) {
 
 async function downloadPdf() {
   setStatus('Generando PDF...');
+  const fontSize = Number(localStorage.getItem(EDITOR_FONT_SIZE_STORAGE_KEY) || '12.5');
   const response = await fetch('/api/preview.pdf', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
       markdown: editor.value,
       download: true,
-      template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard'
+      template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
+      fontSize
     })
   });
 
@@ -1074,6 +1079,10 @@ libraryModal.addEventListener('click', (e) => {
 downloadPdfButton.addEventListener('click', downloadPdf);
 
 window.addEventListener('beforeunload', () => saveToLocalStorage(true));
+
+window.addEventListener('cv-editor-font-size-changed', () => {
+  schedulePreviewUpdate();
+});
 
 async function init() {
   try {

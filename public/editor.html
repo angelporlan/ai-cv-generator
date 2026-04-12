@@ -166,6 +166,18 @@
             <h2 class="panel-title">CV en vivo</h2>
           </div>
           <div class="actions">
+            <button class="button button-secondary zoom-btn" type="button" id="font-size-decrease" aria-label="Reducir tamaño de fuente">
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M2 8h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                <path d="M6 3v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+              </svg>
+            </button>
+            <span class="zoom-label" id="font-size-label">12.5px</span>
+            <button class="button button-secondary zoom-btn" type="button" id="font-size-increase" aria-label="Aumentar tamaño de fuente">
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+              </svg>
+            </button>
             <button class="button button-secondary zoom-btn" type="button" id="zoom-out" aria-label="Reducir zoom">
               <svg viewBox="0 0 12 12" fill="none">
                 <path d="M2 6h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
@@ -322,15 +334,80 @@
       const zoomOut = document.getElementById('zoom-out');
       const zoomLabel = document.getElementById('zoom-label');
       const scaler = document.getElementById('preview-scaler');
+      const pdfPreview = document.getElementById('pdf-preview');
       let zoom = 1;
+      let basePreviewWidth = 595;
+      let basePreviewHeight = 842;
+
+      // Editor font size control
+      const FONT_SIZE_KEY = 'cv-studio-editor-font-size';
+      const fontSizeDecrease = document.getElementById('font-size-decrease');
+      const fontSizeIncrease = document.getElementById('font-size-increase');
+      const fontSizeLabel = document.getElementById('font-size-label');
+      let editorFontSize = Number(localStorage.getItem(FONT_SIZE_KEY) || '12.5');
+
+      function applyEditorFontSize() {
+        editorFontSize = Math.min(18, Math.max(10, editorFontSize));
+        if (editor) editor.style.fontSize = editorFontSize.toFixed(1).replace('.0', '') + 'px';
+        if (fontSizeLabel) fontSizeLabel.textContent = editorFontSize.toFixed(1).replace('.0', '') + 'px';
+        localStorage.setItem(FONT_SIZE_KEY, editorFontSize.toString());
+        window.dispatchEvent(new CustomEvent('cv-editor-font-size-changed', {
+          detail: { fontSize: editorFontSize }
+        }));
+      }
+
+      if (fontSizeIncrease) {
+        fontSizeIncrease.addEventListener('click', () => {
+          editorFontSize += 0.5;
+          applyEditorFontSize();
+        });
+      }
+
+      if (fontSizeDecrease) {
+        fontSizeDecrease.addEventListener('click', () => {
+          editorFontSize -= 0.5;
+          applyEditorFontSize();
+        });
+      }
+
+      applyEditorFontSize();
+
+      function refreshBasePreviewSize() {
+        if (!pdfPreview) return;
+        const rect = pdfPreview.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        // Recover the non-zoomed size from current dimensions.
+        basePreviewWidth = rect.width / zoom;
+        basePreviewHeight = rect.height / zoom;
+      }
 
       function applyZoom() {
-        if (scaler) scaler.style.transform = `scale(${zoom})`;
+        if (scaler) scaler.style.transform = 'none';
+        if (pdfPreview) {
+          pdfPreview.style.width = `${basePreviewWidth * zoom}px`;
+          pdfPreview.style.height = `${basePreviewHeight * zoom}px`;
+        }
         if (zoomLabel) zoomLabel.textContent = Math.round(zoom * 100) + '%';
       }
 
       if (zoomIn) zoomIn.addEventListener('click', () => { zoom = Math.min(2, zoom + 0.1); applyZoom(); });
       if (zoomOut) zoomOut.addEventListener('click', () => { zoom = Math.max(0.4, zoom - 0.1); applyZoom(); });
+
+      if (pdfPreview) {
+        pdfPreview.addEventListener('load', () => {
+          refreshBasePreviewSize();
+          applyZoom();
+        });
+      }
+
+      window.addEventListener('resize', () => {
+        refreshBasePreviewSize();
+        applyZoom();
+      });
+
+      refreshBasePreviewSize();
+      applyZoom();
     })();
   </script>
   </div>
