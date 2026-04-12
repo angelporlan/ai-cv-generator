@@ -33,9 +33,11 @@ const confirmCancelBtn = document.getElementById('confirm-cancel');
 const LIBRARY_STORAGE_KEY = 'cv-studio-library';
 const EDITOR_MODE_STORAGE_KEY = 'cv-studio-editor-mode';
 const ADAPT_TOKEN_STORAGE_KEY = 'cv-studio-openrouter-token';
+const ADAPT_MODEL_STORAGE_KEY = 'cv-studio-openrouter-model';
 const openAdaptModalButton = document.getElementById('open-adapt-modal-button');
 const adaptCvModal = document.getElementById('adapt-cv-modal');
 const closeAdaptModalButton = document.getElementById('close-adapt-modal-button');
+const adaptModelSelect = document.getElementById('adapt-model-select');
 const adaptJobDescription = document.getElementById('adapt-job-description');
 const adaptOpenRouterToken = document.getElementById('adapt-openrouter-token');
 const adaptSubmitButton = document.getElementById('adapt-submit-button');
@@ -643,6 +645,11 @@ function openAdaptModal() {
     adaptOpenRouterToken.value = storedToken;
   }
 
+  const storedModel = localStorage.getItem(ADAPT_MODEL_STORAGE_KEY);
+  if (storedModel && adaptModelSelect) {
+    adaptModelSelect.value = storedModel;
+  }
+
   adaptCvModal.classList.add('active');
   if (adaptJobDescription) {
     adaptJobDescription.focus();
@@ -656,6 +663,7 @@ function closeAdaptModal() {
 
 async function adaptCvWithAi() {
   const markdown = editor.value;
+  const model = adaptModelSelect ? adaptModelSelect.value : '';
   const jobDescription = adaptJobDescription ? adaptJobDescription.value.trim() : '';
   const token = adaptOpenRouterToken ? adaptOpenRouterToken.value.trim() : '';
 
@@ -675,6 +683,9 @@ async function adaptCvWithAi() {
   }
 
   localStorage.setItem(ADAPT_TOKEN_STORAGE_KEY, token);
+  if (model) {
+    localStorage.setItem(ADAPT_MODEL_STORAGE_KEY, model);
+  }
 
   if (adaptSubmitButton) {
     adaptSubmitButton.disabled = true;
@@ -687,13 +698,17 @@ async function adaptCvWithAi() {
     const response = await fetch('/api/adapt-cv', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown, jobDescription, token })
+      body: JSON.stringify({ markdown, jobDescription, token, model })
     });
 
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok || !payload?.ok) {
-      throw new Error(payload?.error || 'No se pudo adaptar el CV con IA');
+      const apiError = new Error(payload?.error || 'No se pudo adaptar el CV con IA');
+      if (payload?.metadata) {
+        apiError.metadata = payload.metadata;
+      }
+      throw apiError;
     }
 
     if (!payload?.markdown || !payload.markdown.trim()) {
@@ -705,7 +720,10 @@ async function adaptCvWithAi() {
   } catch (error) {
     console.error('[adapt-cv] Error:', error);
     setStatus('Error adaptando CV con IA');
-    await showAlert(error.message || 'No se pudo adaptar el CV', 'Error de IA');
+    closeAdaptModal();
+    const selectedModel = model ? ` (${model})` : '';
+    const rawDetails = error?.metadata?.raw ? `\n\nDetalle técnico:\n${error.metadata.raw}` : '';
+    await showAlert(`${error.message || 'No se pudo adaptar el CV'}${selectedModel}${rawDetails}`, 'Error de IA');
   } finally {
     if (adaptSubmitButton) {
       adaptSubmitButton.disabled = false;

@@ -21,7 +21,12 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const MODEL_FALLBACKS = [
   DEFAULT_MODEL,
   'openai/gpt-4o-mini',
+  'openai/gpt-oss-120b:free',
+  'google/gemma-4-31b-it:free',
+  'cohere/rerank-4-pro',
   'google/gemini-2.0-flash-001',
+  'nvidia/nemotron-nano-9b-v2:free',
+  'qwen/qwen3-coder:free',
   'anthropic/claude-3.5-haiku'
 ];
 
@@ -62,6 +67,19 @@ function sendFile(response, filePath, contentType) {
 
 function getTextFromOpenRouter(data) {
   return data?.choices?.[0]?.message?.content ?? '';
+}
+
+function formatOpenRouterError(data, statusCode) {
+  const message = data?.error?.message || `OpenRouter failed: ${statusCode}`;
+  const raw = data?.error?.metadata?.raw;
+  if (raw && raw !== message) {
+    return {
+      message,
+      metadata: { raw }
+    };
+  }
+
+  return { message };
 }
 
 function stripMarkdownFences(text) {
@@ -154,7 +172,10 @@ async function callOpenRouter(token, model, messages) {
 
     if (!openRouterResponse.ok) {
       console.error('[OpenRouter API Error]', JSON.stringify(data, null, 2));
-      throw new Error(data?.error?.message || `OpenRouter failed: ${openRouterResponse.status}`);
+      const errorInfo = formatOpenRouterError(data, openRouterResponse.status);
+      const error = new Error(errorInfo.message);
+      error.metadata = errorInfo.metadata;
+      throw error;
     }
 
     return getTextFromOpenRouter(data);
@@ -258,7 +279,11 @@ async function handleAdaptCv(request, response) {
       model: usedModel
     });
   } catch (err) {
-    return sendJson(response, 500, { ok: false, error: err.message || 'Failed to adapt CV' });
+    return sendJson(response, 500, {
+      ok: false,
+      error: err.message || 'Failed to adapt CV',
+      metadata: err.metadata || null
+    });
   }
 }
 

@@ -296,6 +296,28 @@
 
         <div class="modal-content">
           <div class="adapt-grid">
+            <label class="adapt-field" for="adapt-model-select">
+              <span>Modelo de IA</span>
+              <select id="adapt-model-select" class="modal-select">
+                <optgroup label="OpenAI">
+                  <option value="openai/gpt-4o-mini">gpt-4o-mini</option>
+                  <option value="openai/gpt-oss-120b:free">gpt-oss-120b:free</option>
+                </optgroup>
+                <optgroup label="Google">
+                  <option value="google/gemma-4-31b-it:free">gemma-4-31b-it:free</option>
+                </optgroup>
+                <optgroup label="Cohere">
+                  <option value="cohere/rerank-4-pro">rerank-4-pro</option>
+                </optgroup>
+                <optgroup label="NVIDIA">
+                  <option value="nvidia/nemotron-nano-9b-v2:free">nemotron-nano-9b-v2:free</option>
+                </optgroup>
+                <optgroup label="Qwen">
+                  <option value="qwen/qwen3-coder:free">qwen3-coder:free</option>
+                </optgroup>
+              </select>
+            </label>
+
             <label class="adapt-field" for="adapt-job-description">
               <span>Descripción de la oferta</span>
               <textarea id="adapt-job-description" class="modal-textarea" rows="10" placeholder="Pega aquí la oferta de trabajo completa..."></textarea>
