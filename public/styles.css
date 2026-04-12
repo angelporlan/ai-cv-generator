@@ -654,6 +654,7 @@ body {
   flex: 1;
   overflow: hidden;
   position: relative;
+  display: flex;
 }
 
 .editor-body.is-visual #editor {
@@ -681,6 +682,10 @@ body {
     color var(--t-mid) var(--ease);
 }
 
+.editor-body.has-reference #editor {
+  width: 58%;
+}
+
 #editor::placeholder {
   color: var(--text-tertiary);
 }
@@ -696,6 +701,66 @@ body {
   overflow: auto;
   background: var(--bg-secondary);
   padding: 16px;
+}
+
+.reference-pane {
+  width: 42%;
+  height: 100%;
+  border-left: 0.5px solid var(--border-soft);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+}
+
+.reference-pane[hidden] {
+  display: none !important;
+}
+
+.reference-pane-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 0.5px solid var(--border-soft);
+  background: var(--bg-primary);
+}
+
+.reference-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.reference-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+#reference-cv-select {
+  flex: 1;
+  min-width: 0;
+}
+
+#reference-editor {
+  width: 100%;
+  height: 100%;
+  padding: 14px;
+  border: none;
+  outline: none;
+  resize: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.72;
+}
+
+.editor-body.is-visual .reference-pane {
+  display: none;
 }
 
 .visual-shell {
@@ -1346,6 +1411,21 @@ body {
 
   .visual-row {
     grid-template-columns: 1fr;
+  }
+
+  .editor-body.has-reference {
+    flex-direction: column;
+  }
+
+  .editor-body.has-reference #editor,
+  .reference-pane {
+    width: 100%;
+  }
+
+  .reference-pane {
+    min-height: 220px;
+    border-left: none;
+    border-top: 0.5px solid var(--border-soft);
   }
 }
 

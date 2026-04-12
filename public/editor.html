@@ -109,6 +109,12 @@
             </div>
           </div>
           <div class="actions">
+            <button id="toggle-reference-button" class="button button-secondary" type="button" title="Comparar con un CV guardado">
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M1.5 2.2h3.8v7.6H1.5V2.2zm5.2 0h3.8v7.6H6.7V2.2z" stroke="currentColor" stroke-width="1.1" />
+              </svg>
+              Comparar CV
+            </button>
             <button id="import-button" class="button button-secondary" type="button">
               <svg viewBox="0 0 12 12" fill="none">
                 <path d="M6 1v7M2 6l4 4 4-4M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"
@@ -148,6 +154,16 @@
               <p>Cargando bloques...</p>
             </div>
           </div>
+          <aside id="reference-pane" class="reference-pane" hidden>
+            <div class="reference-pane-head">
+              <label class="reference-label" for="reference-cv-select">CV de referencia</label>
+              <div class="reference-controls">
+                <select id="reference-cv-select" class="template-select" title="Selecciona un CV guardado"></select>
+                <button id="close-reference-pane" class="button button-secondary" type="button" aria-label="Cerrar comparación">Cerrar</button>
+              </div>
+            </div>
+            <textarea id="reference-editor" spellcheck="false" readonly aria-label="CV de referencia"></textarea>
+          </aside>
         </div>
 
         <div class="editor-footer">

@@ -42,6 +42,24 @@ const adaptJobDescription = document.getElementById('adapt-job-description');
 const adaptOpenRouterToken = document.getElementById('adapt-openrouter-token');
 const adaptSubmitButton = document.getElementById('adapt-submit-button');
 const adaptCancelButton = document.getElementById('adapt-cancel-button');
+const toggleReferenceButton = document.getElementById('toggle-reference-button');
+const referencePane = document.getElementById('reference-pane');
+const referenceCvSelect = document.getElementById('reference-cv-select');
+const referenceEditor = document.getElementById('reference-editor');
+const closeReferencePaneButton = document.getElementById('close-reference-pane');
+const REFERENCE_CV_STORAGE_KEY = 'cv-studio-reference-cv-id';
+
+function setReferenceToggleButton(isOpen) {
+  if (!toggleReferenceButton) return;
+  const label = isOpen ? 'Ocultar comparación' : 'Comparar CV';
+  toggleReferenceButton.innerHTML = `
+    <svg viewBox="0 0 12 12" fill="none">
+      <path d="M1.5 2.2h3.8v7.6H1.5V2.2zm5.2 0h3.8v7.6H6.7V2.2z" stroke="currentColor" stroke-width="1.1" />
+    </svg>
+    ${label}
+  `;
+}
+
 let libraryData = [];
 let currentEditorMode = 'visual';
 let visualNeedsRefreshFromMarkdown = true;
@@ -636,6 +654,72 @@ function openLibrary() {
 
 function closeLibrary() {
   libraryModal.classList.remove('active');
+}
+
+function getStoredLibraryEntries() {
+  const saved = localStorage.getItem(LIBRARY_STORAGE_KEY);
+  try {
+    const parsed = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function renderReferenceOptions(preferredId = '') {
+  if (!referenceCvSelect) return [];
+
+  const entries = getStoredLibraryEntries()
+    .sort((a, b) => (a.space || '').localeCompare(b.space || '') || (a.name || '').localeCompare(b.name || ''));
+
+  if (entries.length === 0) {
+    referenceCvSelect.innerHTML = '<option value="" selected>No hay CVs guardados</option>';
+    referenceCvSelect.disabled = true;
+    return [];
+  }
+
+  referenceCvSelect.disabled = false;
+  referenceCvSelect.innerHTML = entries
+    .map((item) => `<option value="${item.id}">${escapeHtml(item.name || 'CV sin nombre')} · ${escapeHtml(item.space || 'Sin espacio')}</option>`)
+    .join('');
+
+  const existing = entries.find((entry) => entry.id === preferredId);
+  referenceCvSelect.value = existing ? existing.id : entries[0].id;
+  return entries;
+}
+
+function updateReferenceContentById(id) {
+  const entries = getStoredLibraryEntries();
+  const selected = entries.find((entry) => entry.id === id);
+  if (!selected || !referenceEditor) return;
+
+  referenceEditor.value = selected.content || '';
+  localStorage.setItem(REFERENCE_CV_STORAGE_KEY, selected.id);
+}
+
+async function openReferencePane() {
+  if (!referencePane || !editorBody) return;
+
+  const savedId = localStorage.getItem(REFERENCE_CV_STORAGE_KEY) || '';
+  const entries = renderReferenceOptions(savedId);
+
+  if (entries.length === 0) {
+    closeReferencePane();
+    await showAlert('No tienes CVs guardados en "Mis CVs" para comparar.', 'Sin CVs guardados');
+    return;
+  }
+
+  updateReferenceContentById(referenceCvSelect.value);
+  referencePane.hidden = false;
+  editorBody.classList.add('has-reference');
+  setReferenceToggleButton(true);
+}
+
+function closeReferencePane() {
+  if (!referencePane || !editorBody) return;
+  referencePane.hidden = true;
+  editorBody.classList.remove('has-reference');
+  setReferenceToggleButton(false);
 }
 
 function openAdaptModal() {
@@ -1236,6 +1320,42 @@ if (adaptJobDescription) {
   });
 }
 
+if (toggleReferenceButton) {
+  toggleReferenceButton.addEventListener('click', () => {
+    const isOpen = referencePane && !referencePane.hidden;
+    if (isOpen) {
+      closeReferencePane();
+      return;
+    }
+    openReferencePane();
+  });
+}
+
+if (closeReferencePaneButton) {
+  closeReferencePaneButton.addEventListener('click', closeReferencePane);
+}
+
+if (referenceCvSelect) {
+  referenceCvSelect.addEventListener('change', () => {
+    updateReferenceContentById(referenceCvSelect.value);
+  });
+}
+
+if (editorBody) {
+  editorBody.addEventListener('click', (event) => {
+    const closeTrigger = event.target.closest('#close-reference-pane');
+    if (closeTrigger) {
+      closeReferencePane();
+    }
+  });
+}
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && referencePane && !referencePane.hidden) {
+    closeReferencePane();
+  }
+});
+
 downloadPdfButton.addEventListener('click', downloadPdf);
 
 window.addEventListener('beforeunload', () => saveToLocalStorage(true));
@@ -1246,6 +1366,8 @@ window.addEventListener('cv-editor-font-size-changed', () => {
 
 async function init() {
   try {
+    closeReferencePane();
+
     // Restaurar plantilla visual
     const savedTemplate = localStorage.getItem(VISUAL_TEMPLATE_STORAGE_KEY);
     if (savedTemplate && visualTemplateSelector) {
