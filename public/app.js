@@ -35,6 +35,7 @@ let libraryData = [];
 let currentEditorMode = 'markdown';
 let visualNeedsRefreshFromMarkdown = true;
 let isSyncingFromVisual = false;
+let sectionsSortable = null;
 let visualState = {
   title: '',
   contacts: [],
@@ -672,8 +673,13 @@ function buildVisualEditorHtml() {
     }).join('');
 
     return `
-      <div class="visual-section">
+      <div class="visual-section" data-section-index="${sectionIndex}">
         <div class="visual-section-head">
+          <button type="button" class="drag-handle" aria-label="Arrastrar sección" title="Arrastrar sección">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M8 6h8M8 12h8M8 18h8"></path>
+            </svg>
+          </button>
           <input class="visual-input" data-bind="section-title" data-section-index="${sectionIndex}" placeholder="Título de sección" value="${escapeHtml(toSafeText(section.title))}">
           <button type="button" class="button-mini button-mini-danger" data-action="remove-section" data-section-index="${sectionIndex}">Quitar sección</button>
         </div>
@@ -711,7 +717,9 @@ function buildVisualEditorHtml() {
           <span class="visual-title">Bloques del CV</span>
           <button type="button" class="button-mini" data-action="add-section">+ Sección</button>
         </div>
-        ${sectionsHtml || '<div class="visual-empty">Crea una sección para empezar a construir tu CV.</div>'}
+        <div id="visual-sections-list" class="visual-sections-list">
+          ${sectionsHtml || '<div class="visual-empty">Crea una sección para empezar a construir tu CV.</div>'}
+        </div>
         <div class="visual-actions" style="margin-top: 12px;">
           <button type="button" class="button-mini" data-action="add-section">+ Añadir sección</button>
         </div>
@@ -720,9 +728,61 @@ function buildVisualEditorHtml() {
   `;
 }
 
+function initSectionsDragAndDrop() {
+  if (!visualEditor || !window.Sortable) {
+    return;
+  }
+
+  const sectionsList = visualEditor.querySelector('#visual-sections-list');
+  if (!sectionsList) {
+    return;
+  }
+
+  const draggableSections = sectionsList.querySelectorAll('.visual-section');
+  if (draggableSections.length < 2) {
+    if (sectionsSortable) {
+      sectionsSortable.destroy();
+      sectionsSortable = null;
+    }
+    return;
+  }
+
+  if (sectionsSortable) {
+    sectionsSortable.destroy();
+    sectionsSortable = null;
+  }
+
+  sectionsSortable = new window.Sortable(sectionsList, {
+    animation: 170,
+    easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)',
+    handle: '.drag-handle',
+    draggable: '.visual-section',
+    ghostClass: 'visual-section-ghost',
+    chosenClass: 'visual-section-chosen',
+    dragClass: 'visual-section-drag',
+    onEnd: (event) => {
+      const fromIndex = event.oldIndex;
+      const toIndex = event.newIndex;
+      if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex === toIndex) {
+        return;
+      }
+
+      const [movedSection] = visualState.sections.splice(fromIndex, 1);
+      if (!movedSection) {
+        return;
+      }
+
+      visualState.sections.splice(toIndex, 0, movedSection);
+      renderVisualEditor();
+      syncMarkdownFromVisual('Secciones reordenadas');
+    }
+  });
+}
+
 function renderVisualEditor() {
   if (!visualEditor) return;
   visualEditor.innerHTML = buildVisualEditorHtml();
+  initSectionsDragAndDrop();
 }
 
 function syncMarkdownFromVisual(statusMessage = 'Modo visual actualizado') {

@@ -755,6 +755,14 @@ body {
   border-radius: var(--radius-md);
   padding: 10px;
   background: var(--bg-primary);
+  transition: transform 0.18s var(--ease),
+    box-shadow 0.18s var(--ease),
+    border-color 0.18s var(--ease);
+}
+
+.visual-sections-list {
+  display: grid;
+  gap: 10px;
 }
 
 .visual-section-head {
@@ -763,6 +771,48 @@ body {
   gap: 8px;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.drag-handle {
+  width: 30px;
+  height: 30px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.drag-handle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.drag-handle:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-muted);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.visual-section-ghost {
+  opacity: 0.58;
+  border-color: var(--accent-muted);
+}
+
+.visual-section-chosen {
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent-muted);
+}
+
+.visual-section-drag {
+  transform: scale(1.01);
 }
 
 .visual-block {
