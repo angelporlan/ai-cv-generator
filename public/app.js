@@ -782,9 +782,29 @@ function initSectionsDragAndDrop() {
   });
 }
 
+function autoResizeTextarea(textarea) {
+  if (!(textarea instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+function initVisualTextareaAutoResize() {
+  if (!visualEditor) {
+    return;
+  }
+
+  visualEditor.querySelectorAll('.visual-textarea').forEach((textarea) => {
+    autoResizeTextarea(textarea);
+  });
+}
+
 function renderVisualEditor() {
   if (!visualEditor) return;
   visualEditor.innerHTML = buildVisualEditorHtml();
+  initVisualTextareaAutoResize();
   initSectionsDragAndDrop();
 }
 
@@ -973,6 +993,10 @@ if (visualEditor) {
   visualEditor.addEventListener('input', (event) => {
     const field = event.target.dataset.bind;
     if (!field) return;
+
+    if (event.target.matches('.visual-textarea')) {
+      autoResizeTextarea(event.target);
+    }
 
     const sectionIndex = Number(event.target.dataset.sectionIndex);
     const blockIndex = Number(event.target.dataset.blockIndex);

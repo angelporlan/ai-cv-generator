@@ -727,7 +727,8 @@ body {
 
 .visual-textarea {
   min-height: 72px;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
 }
 
 .visual-input:focus,
