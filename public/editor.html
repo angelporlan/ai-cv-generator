@@ -98,6 +98,14 @@
                   </select>
                 </div>
               </div>
+
+              <div class="selector-group">
+                <span class="selector-label">Modo editor</span>
+                <div class="editor-mode-switch" id="editor-mode-switch" role="tablist" aria-label="Modo de edición">
+                  <button type="button" class="mode-tab active" data-mode="markdown" aria-selected="true">Markdown</button>
+                  <button type="button" class="mode-tab" data-mode="visual" aria-selected="false">Visual</button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="actions">
@@ -134,6 +142,12 @@
 
         <div class="editor-body">
           <textarea id="editor" spellcheck="false" aria-label="Editor markdown del CV"></textarea>
+          <div id="visual-editor" class="visual-editor" hidden>
+            <div class="visual-empty">
+              <h3>Editor visual del CV</h3>
+              <p>Cargando bloques...</p>
+            </div>
+          </div>
         </div>
 
         <div class="editor-footer">

@@ -404,6 +404,38 @@ body {
   align-items: center;
 }
 
+.editor-mode-switch {
+  display: inline-flex;
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+
+.mode-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.mode-tab:hover {
+  color: var(--text-primary);
+}
+
+.mode-tab.active {
+  background: var(--bg-primary);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-sm);
+}
+
 .template-select {
   appearance: none;
   background: transparent;
@@ -601,6 +633,14 @@ body {
   position: relative;
 }
 
+.editor-body.is-visual #editor {
+  display: none;
+}
+
+.editor-body.is-markdown .visual-editor {
+  display: none;
+}
+
 #editor {
   width: 100%;
   height: 100%;
@@ -625,6 +665,155 @@ body {
 #editor::selection {
   background: var(--accent-light);
   color: var(--accent-text);
+}
+
+.visual-editor {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: var(--bg-secondary);
+  padding: 16px;
+}
+
+.visual-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.visual-card {
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.visual-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.visual-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.visual-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.visual-input,
+.visual-textarea,
+.visual-select {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  padding: 8px 10px;
+  outline: none;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.visual-textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.visual-input:focus,
+.visual-textarea:focus,
+.visual-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--border-focus);
+}
+
+.visual-contact-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.visual-contact-row,
+.visual-block-head,
+.visual-block-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visual-section {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: var(--bg-primary);
+}
+
+.visual-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.visual-block {
+  border: 0.5px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.visual-block-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.visual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.button-mini {
+  border: 0.5px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.button-mini:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-muted);
+}
+
+.button-mini-danger {
+  color: #c92a2a;
+}
+
+.visual-empty {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  color: var(--text-tertiary);
+  text-align: center;
 }
 
 .editor-footer {
@@ -1036,6 +1225,10 @@ body {
     padding: 4px 8px;
     font-size: 11px;
   }
+
+  .visual-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 600px) {
@@ -1049,6 +1242,16 @@ body {
 
   .logo-text {
     display: none;
+  }
+
+  .template-header-selectors {
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .template-select {
+    min-width: 120px;
   }
 
 }

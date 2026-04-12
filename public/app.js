@@ -12,6 +12,9 @@ const downloadPdfButton = document.getElementById('download-pdf-button');
 const fileInput = document.getElementById('file-input');
 const templateSelector = document.getElementById('template-selector');
 const visualTemplateSelector = document.getElementById('visual-template-selector');
+const editorModeSwitch = document.getElementById('editor-mode-switch');
+const editorBody = document.querySelector('.editor-body');
+const visualEditor = document.getElementById('visual-editor');
 const libraryModal = document.getElementById('library-modal');
 const openLibraryBtn = document.getElementById('open-library-button');
 const closeLibraryBtn = document.getElementById('close-library-button');
@@ -27,7 +30,16 @@ const confirmOkBtn = document.getElementById('confirm-ok');
 const confirmCancelBtn = document.getElementById('confirm-cancel');
 
 const LIBRARY_STORAGE_KEY = 'cv-studio-library';
+const EDITOR_MODE_STORAGE_KEY = 'cv-studio-editor-mode';
 let libraryData = [];
+let currentEditorMode = 'markdown';
+let visualNeedsRefreshFromMarkdown = true;
+let isSyncingFromVisual = false;
+let visualState = {
+  title: '',
+  contacts: [],
+  sections: []
+};
 
 let saveTimer = null;
 let lastSavedValue = '';
@@ -98,6 +110,10 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function toSafeText(value) {
+  return typeof value === 'string' ? value : '';
 }
 
 function renderInlineMarkdown(text, strip = false) {
@@ -214,6 +230,136 @@ function parseMarkdown(markdown) {
   }
 
   return data;
+}
+
+function createEmptySection() {
+  return { title: 'Nueva sección', blocks: [] };
+}
+
+function parseMarkdownToVisualState(markdown) {
+  const parsed = parseMarkdown(markdown);
+
+  return {
+    title: toSafeText(parsed.title),
+    contacts: parsed.contacts.map((contact) => ({
+      label: toSafeText(contact.label),
+      value: toSafeText(contact.value)
+    })),
+    sections: parsed.sections.map((section) => ({
+      title: toSafeText(section.title),
+      blocks: section.items.map((item) => {
+        if (item.type === 'entry') {
+          const paragraphs = item.content
+            .filter((content) => content.type === 'paragraph')
+            .map((content) => content.text)
+            .join('\n');
+          const bullets = item.content
+            .filter((content) => content.type === 'list')
+            .flatMap((content) => content.items)
+            .join('\n');
+
+          return {
+            type: 'entry',
+            title: toSafeText(item.title),
+            role: toSafeText(item.role),
+            date: toSafeText(item.date),
+            summary: paragraphs,
+            bullets
+          };
+        }
+
+        if (item.type === 'list') {
+          return {
+            type: 'list',
+            items: item.items.join('\n')
+          };
+        }
+
+        return {
+          type: 'paragraph',
+          text: toSafeText(item.text)
+        };
+      })
+    }))
+  };
+}
+
+function splitMultiline(value) {
+  return toSafeText(value)
+    .split('\n')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function serializeVisualStateToMarkdown(state) {
+  const lines = [];
+  lines.push(`# CV -- ${toSafeText(state.title).trim() || 'Nombre Apellido'}`);
+  lines.push('');
+
+  state.contacts
+    .filter((contact) => toSafeText(contact.label).trim() && toSafeText(contact.value).trim())
+    .forEach((contact) => {
+      lines.push(`**${contact.label.trim()}:** ${contact.value.trim()}`);
+    });
+
+  if (state.contacts.length > 0) {
+    lines.push('');
+  }
+
+  state.sections
+    .filter((section) => toSafeText(section.title).trim())
+    .forEach((section, sectionIndex, validSections) => {
+      if (sectionIndex > 0 || lines[lines.length - 1] !== '') {
+        lines.push('---');
+        lines.push('');
+      }
+
+      lines.push(`## ${section.title.trim()}`);
+      lines.push('');
+
+      section.blocks.forEach((block) => {
+        if (block.type === 'entry') {
+          lines.push(`### ${toSafeText(block.title).trim() || 'Puesto / Proyecto'}`);
+          if (toSafeText(block.role).trim()) {
+            lines.push(`**${block.role.trim()}**`);
+          }
+          if (toSafeText(block.date).trim()) {
+            lines.push(block.date.trim());
+          }
+          lines.push('');
+
+          splitMultiline(block.summary).forEach((paragraphLine) => {
+            lines.push(paragraphLine);
+          });
+
+          splitMultiline(block.bullets).forEach((bulletLine) => {
+            lines.push(`- ${bulletLine}`);
+          });
+
+          lines.push('');
+          return;
+        }
+
+        if (block.type === 'list') {
+          splitMultiline(block.items).forEach((item) => {
+            lines.push(`- ${item}`);
+          });
+          lines.push('');
+          return;
+        }
+
+        splitMultiline(block.text).forEach((paragraphLine) => {
+          lines.push(paragraphLine);
+        });
+        lines.push('');
+      });
+
+      if (sectionIndex === validSections.length - 1) {
+        return;
+      }
+    });
+
+  return `${lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`;
 }
 
 function renderPreview(markdown) {
@@ -483,8 +629,173 @@ function schedulePreviewUpdate() {
   previewTimer = setTimeout(updatePdfPreview, PREVIEW_DEBOUNCE_MS);
 }
 
+function blockTypeLabel(type) {
+  if (type === 'entry') return 'Experiencia / Proyecto';
+  if (type === 'list') return 'Lista';
+  return 'Párrafo';
+}
+
+function buildVisualEditorHtml() {
+  const contactRows = visualState.contacts.map((contact, contactIndex) => `
+    <div class="visual-contact-row">
+      <input class="visual-input" data-bind="contact-label" data-contact-index="${contactIndex}" placeholder="Etiqueta (Email, LinkedIn...)" value="${escapeHtml(toSafeText(contact.label))}">
+      <input class="visual-input" data-bind="contact-value" data-contact-index="${contactIndex}" placeholder="Valor" value="${escapeHtml(toSafeText(contact.value))}">
+      <button type="button" class="button-mini button-mini-danger" data-action="remove-contact" data-contact-index="${contactIndex}">Quitar</button>
+    </div>
+  `).join('');
+
+  const sectionsHtml = visualState.sections.map((section, sectionIndex) => {
+    const blocksHtml = section.blocks.map((block, blockIndex) => {
+      const blockBody = block.type === 'entry'
+        ? `
+          <div class="visual-row">
+            <input class="visual-input" data-bind="entry-title" data-section-index="${sectionIndex}" data-block-index="${blockIndex}" placeholder="Título (Empresa -- Ciudad)" value="${escapeHtml(toSafeText(block.title))}">
+            <input class="visual-input" data-bind="entry-date" data-section-index="${sectionIndex}" data-block-index="${blockIndex}" placeholder="Fecha" value="${escapeHtml(toSafeText(block.date))}">
+          </div>
+          <input class="visual-input" data-bind="entry-role" data-section-index="${sectionIndex}" data-block-index="${blockIndex}" placeholder="Rol / Puesto" value="${escapeHtml(toSafeText(block.role))}">
+          <textarea class="visual-textarea" data-bind="entry-summary" data-section-index="${sectionIndex}" data-block-index="${blockIndex}" placeholder="Resumen breve">${escapeHtml(toSafeText(block.summary))}</textarea>
+          <textarea class="visual-textarea" data-bind="entry-bullets" data-section-index="${sectionIndex}" data-block-index="${blockIndex}" placeholder="Logros (uno por línea)">${escapeHtml(toSafeText(block.bullets))}</textarea>
+        `
+        : block.type === 'list'
+          ? `<textarea class="visual-textarea" data-bind="list-items" data-section-index="${sectionIndex}" data-block-index="${blockIndex}" placeholder="Elemento de lista (uno por línea)">${escapeHtml(toSafeText(block.items))}</textarea>`
+          : `<textarea class="visual-textarea" data-bind="paragraph-text" data-section-index="${sectionIndex}" data-block-index="${blockIndex}" placeholder="Texto del párrafo">${escapeHtml(toSafeText(block.text))}</textarea>`;
+
+      return `
+        <div class="visual-block">
+          <div class="visual-block-head">
+            <span class="visual-block-type">${blockTypeLabel(block.type)}</span>
+            <button type="button" class="button-mini button-mini-danger" data-action="remove-block" data-section-index="${sectionIndex}" data-block-index="${blockIndex}">Quitar bloque</button>
+          </div>
+          ${blockBody}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="visual-section">
+        <div class="visual-section-head">
+          <input class="visual-input" data-bind="section-title" data-section-index="${sectionIndex}" placeholder="Título de sección" value="${escapeHtml(toSafeText(section.title))}">
+          <button type="button" class="button-mini button-mini-danger" data-action="remove-section" data-section-index="${sectionIndex}">Quitar sección</button>
+        </div>
+        ${blocksHtml || '<div class="visual-empty">No hay bloques en esta sección.</div>'}
+        <div class="visual-actions">
+          <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="entry">+ Experiencia</button>
+          <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="paragraph">+ Párrafo</button>
+          <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="list">+ Lista</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="visual-shell">
+      <div class="visual-card">
+        <div class="visual-card-head">
+          <span class="visual-title">Cabecera del CV</span>
+        </div>
+        <input class="visual-input" data-bind="cv-title" placeholder="Nombre y apellido" value="${escapeHtml(toSafeText(visualState.title))}">
+      </div>
+
+      <div class="visual-card">
+        <div class="visual-card-head">
+          <span class="visual-title">Datos de contacto</span>
+          <button type="button" class="button-mini" data-action="add-contact">+ Contacto</button>
+        </div>
+        <div class="visual-contact-grid">
+          ${contactRows || '<div class="visual-empty">Agrega email, teléfono o enlaces.</div>'}
+        </div>
+      </div>
+
+      <div class="visual-card">
+        <div class="visual-card-head">
+          <span class="visual-title">Bloques del CV</span>
+          <button type="button" class="button-mini" data-action="add-section">+ Sección</button>
+        </div>
+        ${sectionsHtml || '<div class="visual-empty">Crea una sección para empezar a construir tu CV.</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderVisualEditor() {
+  if (!visualEditor) return;
+  visualEditor.innerHTML = buildVisualEditorHtml();
+}
+
+function syncMarkdownFromVisual(statusMessage = 'Modo visual actualizado') {
+  const markdown = serializeVisualStateToMarkdown(visualState);
+  isSyncingFromVisual = true;
+  editor.value = markdown;
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+  isSyncingFromVisual = false;
+  setStatus(statusMessage);
+}
+
+function ensureVisualStateFromMarkdown() {
+  if (!visualNeedsRefreshFromMarkdown) return;
+  visualState = parseMarkdownToVisualState(editor.value);
+  if (visualState.sections.length === 0) {
+    visualState.sections.push(createEmptySection());
+  }
+  renderVisualEditor();
+  visualNeedsRefreshFromMarkdown = false;
+}
+
+function switchEditorMode(mode) {
+  currentEditorMode = mode === 'visual' ? 'visual' : 'markdown';
+  localStorage.setItem(EDITOR_MODE_STORAGE_KEY, currentEditorMode);
+
+  if (editorBody) {
+    editorBody.classList.toggle('is-visual', currentEditorMode === 'visual');
+    editorBody.classList.toggle('is-markdown', currentEditorMode === 'markdown');
+  }
+
+  if (visualEditor) {
+    visualEditor.hidden = currentEditorMode !== 'visual';
+  }
+
+  if (currentEditorMode === 'visual') {
+    ensureVisualStateFromMarkdown();
+  }
+
+  if (editorModeSwitch) {
+    editorModeSwitch.querySelectorAll('.mode-tab').forEach((tab) => {
+      const isActive = tab.dataset.mode === currentEditorMode;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', String(isActive));
+    });
+  }
+}
+
+function addBlockToSection(section, blockType) {
+  if (!section) return;
+
+  if (blockType === 'entry') {
+    section.blocks.push({
+      type: 'entry',
+      title: '',
+      role: '',
+      date: '',
+      summary: '',
+      bullets: ''
+    });
+    return;
+  }
+
+  if (blockType === 'list') {
+    section.blocks.push({ type: 'list', items: '' });
+    return;
+  }
+
+  section.blocks.push({ type: 'paragraph', text: '' });
+}
+
 function updateEditor(markdown, statusMessage = 'Listo') {
   editor.value = markdown;
+  visualNeedsRefreshFromMarkdown = true;
+  if (currentEditorMode === 'visual') {
+    ensureVisualStateFromMarkdown();
+  }
   schedulePreviewUpdate();
   scheduleSave();
   setStatus(statusMessage);
@@ -531,9 +842,107 @@ async function downloadPdf() {
 }
 
 editor.addEventListener('input', () => {
+  if (!isSyncingFromVisual) {
+    visualNeedsRefreshFromMarkdown = true;
+  }
   schedulePreviewUpdate();
   scheduleSave();
 });
+
+if (editorModeSwitch) {
+  editorModeSwitch.addEventListener('click', (event) => {
+    const tab = event.target.closest('.mode-tab');
+    if (!tab || !tab.dataset.mode) return;
+    switchEditorMode(tab.dataset.mode);
+  });
+}
+
+if (visualEditor) {
+  visualEditor.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-action]');
+    if (!trigger) return;
+
+    const action = trigger.dataset.action;
+    const sectionIndex = Number(trigger.dataset.sectionIndex);
+    const blockIndex = Number(trigger.dataset.blockIndex);
+    const contactIndex = Number(trigger.dataset.contactIndex);
+
+    if (action === 'add-contact') {
+      visualState.contacts.push({ label: '', value: '' });
+    }
+
+    if (action === 'remove-contact' && Number.isInteger(contactIndex)) {
+      visualState.contacts.splice(contactIndex, 1);
+    }
+
+    if (action === 'add-section') {
+      visualState.sections.push(createEmptySection());
+    }
+
+    if (action === 'remove-section' && Number.isInteger(sectionIndex)) {
+      visualState.sections.splice(sectionIndex, 1);
+      if (visualState.sections.length === 0) {
+        visualState.sections.push(createEmptySection());
+      }
+    }
+
+    if (action === 'add-block' && Number.isInteger(sectionIndex)) {
+      const section = visualState.sections[sectionIndex];
+      addBlockToSection(section, trigger.dataset.blockType);
+    }
+
+    if (action === 'remove-block' && Number.isInteger(sectionIndex) && Number.isInteger(blockIndex)) {
+      const section = visualState.sections[sectionIndex];
+      if (section) {
+        section.blocks.splice(blockIndex, 1);
+      }
+    }
+
+    renderVisualEditor();
+    syncMarkdownFromVisual();
+  });
+
+  visualEditor.addEventListener('input', (event) => {
+    const field = event.target.dataset.bind;
+    if (!field) return;
+
+    const sectionIndex = Number(event.target.dataset.sectionIndex);
+    const blockIndex = Number(event.target.dataset.blockIndex);
+    const contactIndex = Number(event.target.dataset.contactIndex);
+
+    if (field === 'cv-title') {
+      visualState.title = event.target.value;
+    }
+
+    if (field === 'section-title' && Number.isInteger(sectionIndex) && visualState.sections[sectionIndex]) {
+      visualState.sections[sectionIndex].title = event.target.value;
+    }
+
+    if (field === 'contact-label' && Number.isInteger(contactIndex) && visualState.contacts[contactIndex]) {
+      visualState.contacts[contactIndex].label = event.target.value;
+    }
+
+    if (field === 'contact-value' && Number.isInteger(contactIndex) && visualState.contacts[contactIndex]) {
+      visualState.contacts[contactIndex].value = event.target.value;
+    }
+
+    if (Number.isInteger(sectionIndex) && Number.isInteger(blockIndex)) {
+      const section = visualState.sections[sectionIndex];
+      const block = section?.blocks?.[blockIndex];
+      if (block) {
+        if (field === 'entry-title') block.title = event.target.value;
+        if (field === 'entry-role') block.role = event.target.value;
+        if (field === 'entry-date') block.date = event.target.value;
+        if (field === 'entry-summary') block.summary = event.target.value;
+        if (field === 'entry-bullets') block.bullets = event.target.value;
+        if (field === 'list-items') block.items = event.target.value;
+        if (field === 'paragraph-text') block.text = event.target.value;
+      }
+    }
+
+    syncMarkdownFromVisual();
+  });
+}
 
 if (visualTemplateSelector) {
   visualTemplateSelector.addEventListener('change', () => {
@@ -612,10 +1021,17 @@ async function init() {
     }
 
     const localDraft = localStorage.getItem(STORAGE_KEY);
+    const savedEditorMode = localStorage.getItem(EDITOR_MODE_STORAGE_KEY);
+    if (savedEditorMode === 'visual' || savedEditorMode === 'markdown') {
+      currentEditorMode = savedEditorMode;
+    }
+
     if (localDraft && localDraft.trim()) {
       editor.value = localDraft;
       lastSavedValue = localDraft;
+      visualNeedsRefreshFromMarkdown = true;
       schedulePreviewUpdate();
+      switchEditorMode(currentEditorMode);
       setStatus('Borrador local cargado');
       return;
     }
@@ -623,7 +1039,9 @@ async function init() {
     const initialMarkdown = await loadSource('cv.md');
     editor.value = initialMarkdown;
     lastSavedValue = initialMarkdown;
+    visualNeedsRefreshFromMarkdown = true;
     schedulePreviewUpdate();
+    switchEditorMode(currentEditorMode);
     setStatus('cv.md cargado');
   } catch (error) {
     setStatus('Error cargando el CV');
