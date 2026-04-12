@@ -174,7 +174,6 @@
       </section>
     </main>
 
-
     <!-- Modal: Biblioteca de CVs -->
     <div id="library-modal" class="modal-overlay">
       <div class="modal">
@@ -234,7 +233,23 @@
         </div>
       </div>
     </div>
-  </div>
+
+
+    <!-- Modal: Confirmación -->
+    <div id="confirm-modal" class="modal-overlay">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <h2 id="confirm-title" class="modal-title">¿Estás seguro?</h2>
+            <p id="confirm-message" class="modal-subtitle">Esta acción no se puede deshacer.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="confirm-cancel" class="button button-secondary">Cancelar</button>
+          <button id="confirm-ok" class="button button-primary">Confirmar</button>
+        </div>
+      </div>
+    </div>
 
 
   <script src="app.js"></script>

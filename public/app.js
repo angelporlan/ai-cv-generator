@@ -20,6 +20,11 @@ const libraryItemsContainer = document.getElementById('library-items');
 const libraryCountTag = document.getElementById('library-count');
 const newCvNameInput = document.getElementById('new-cv-name');
 const newCvSpaceSelect = document.getElementById('new-cv-space');
+const confirmModal = document.getElementById('confirm-modal');
+const confirmTitle = document.getElementById('confirm-title');
+const confirmMessage = document.getElementById('confirm-message');
+const confirmOkBtn = document.getElementById('confirm-ok');
+const confirmCancelBtn = document.getElementById('confirm-cancel');
 
 const LIBRARY_STORAGE_KEY = 'cv-studio-library';
 let libraryData = [];
@@ -29,6 +34,61 @@ let lastSavedValue = '';
 
 function setStatus(message) {
   saveStatus.textContent = message;
+}
+
+/**
+ * Muestra un modal de confirmación personalizado
+ * @param {Object} options - { title, message, okText, cancelText, variant }
+ * @returns {Promise<boolean>}
+ */
+function showConfirm({ title, message, okText = 'Confirmar', cancelText = 'Cancelar', variant = 'primary' } = {}) {
+  return new Promise((resolve) => {
+    confirmTitle.textContent = title || '¿Estás seguro?';
+    confirmMessage.textContent = message || 'Esta acción no se puede deshacer.';
+    confirmOkBtn.textContent = okText;
+    confirmCancelBtn.textContent = cancelText;
+
+    if (cancelText) {
+      confirmCancelBtn.style.display = 'inline-flex';
+    } else {
+      confirmCancelBtn.style.display = 'none';
+    }
+
+    // Aplicar variante (por ejemplo, rojo para peligro)
+    confirmOkBtn.className = `button button-${variant}`;
+
+    const handleOk = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const handleCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    const cleanup = () => {
+      confirmOkBtn.removeEventListener('click', handleOk);
+      confirmCancelBtn.removeEventListener('click', handleCancel);
+      confirmModal.classList.remove('active');
+    };
+
+    confirmOkBtn.addEventListener('click', handleOk);
+    confirmCancelBtn.addEventListener('click', handleCancel);
+    confirmModal.classList.add('active');
+  });
+}
+
+/**
+ * Muestra un aviso personalizado (equivalente a alert)
+ */
+async function showAlert(message, title = 'Atención') {
+  await showConfirm({
+    title,
+    message,
+    okText: 'Entendido',
+    cancelText: '', // Ocultar si está vacío (necesitamos CSS para eso o lógica aquí)
+  });
 }
 
 function escapeHtml(value) {
@@ -352,7 +412,7 @@ function saveToLibrary() {
   const content = editor.value;
 
   if (!name) {
-    alert('Introduce un nombre para el CV');
+    showAlert('Introduce un nombre para el CV', 'Nombre requerido');
     return;
   }
 
@@ -371,23 +431,41 @@ function saveToLibrary() {
   setStatus('CV guardado en la biblioteca');
 }
 
-function loadCvFromLibrary(id) {
+async function loadCvFromLibrary(id) {
   const cv = libraryData.find(c => c.id === id);
-  if (cv && confirm(`¿Quieres cargar "${cv.name}"? Se perderán los cambios actuales no guardados.`)) {
-    if (cv.visualTemplate && visualTemplateSelector) {
-      visualTemplateSelector.value = cv.visualTemplate;
-      localStorage.setItem(VISUAL_TEMPLATE_STORAGE_KEY, cv.visualTemplate);
+  if (cv) {
+    const confirmed = await showConfirm({
+      title: `Cargar "${cv.name}"`,
+      message: '¿Quieres cargar este CV? Se perderán los cambios actuales no guardados en el editor.',
+      okText: 'Cargar CV',
+      variant: 'primary'
+    });
+
+    if (confirmed) {
+      if (cv.visualTemplate && visualTemplateSelector) {
+        visualTemplateSelector.value = cv.visualTemplate;
+        localStorage.setItem(VISUAL_TEMPLATE_STORAGE_KEY, cv.visualTemplate);
+      }
+      updateEditor(cv.content, `"${cv.name}" cargado`);
+      closeLibrary();
     }
-    updateEditor(cv.content, `"${cv.name}" cargado`);
-    closeLibrary();
   }
 }
 
-function deleteFromLibrary(id) {
+async function deleteFromLibrary(id) {
   const cv = libraryData.find(c => c.id === id);
-  if (cv && confirm(`¿Estás seguro de que quieres eliminar "${cv.name}"?`)) {
-    libraryData = libraryData.filter(c => c.id !== id);
-    saveLibraryData();
+  if (cv) {
+    const confirmed = await showConfirm({
+      title: 'Eliminar CV',
+      message: `¿Estás seguro de que quieres eliminar "${cv.name}"? Esta acción es permanente.`,
+      okText: 'Eliminar',
+      variant: 'danger'
+    });
+
+    if (confirmed) {
+      libraryData = libraryData.filter(c => c.id !== id);
+      saveLibraryData();
+    }
   }
 }
 
@@ -466,13 +544,22 @@ if (visualTemplateSelector) {
 
 templateSelector.addEventListener('change', async () => {
   const selectedFile = templateSelector.value;
-  if (confirm(`¿Quieres cargar la plantilla "${templateSelector.options[templateSelector.selectedIndex].text}"? Se perderán los cambios no guardados en el editor.`)) {
+  const confirmed = await showConfirm({
+    title: 'Cambiar plantilla',
+    message: `¿Quieres cargar la plantilla "${templateSelector.options[templateSelector.selectedIndex].text}"? Se perderán los cambios no guardados en el editor.`,
+    okText: 'Cargar plantilla'
+  });
+
+  if (confirmed) {
     try {
       const content = await loadSource(selectedFile);
       updateEditor(content, 'Plantilla cargada');
     } catch (error) {
       setStatus('Error al cargar la plantilla');
     }
+  } else {
+    // Si cancela, restaurar el valor previo (esto es un poco complejo sin estado previo,
+    // pero podemos intentar recargar el valor del editor si coincide con alguna plantilla o dejarlo así)
   }
 });
 

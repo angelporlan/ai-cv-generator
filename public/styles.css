@@ -45,6 +45,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
   --shadow-pdf: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 20px 48px -12px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
 
   /* Radii */
   --radius-sm: 6px;
@@ -91,6 +92,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.05);
   --shadow-pdf: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 48px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* ── Global ─────────────────────────────────────────────────── */
@@ -722,6 +724,10 @@ body {
   pointer-events: auto;
 }
 
+#app.dark .modal-overlay {
+  background: rgba(0, 0, 0, 0.65);
+}
+
 .modal {
   background: var(--bg-primary);
   width: 90%;
@@ -739,6 +745,10 @@ body {
 
 .modal-overlay.active .modal {
   transform: scale(1) translateY(0);
+}
+
+.modal-sm {
+  max-width: 400px;
 }
 
 .modal-header {
@@ -782,12 +792,46 @@ body {
   flex: 1;
 }
 
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 0.5px solid var(--border-soft);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: var(--bg-secondary);
+}
+
+#app.dark .modal-footer {
+  background: var(--bg-tertiary);
+}
+
+.button-danger {
+  background: #e03131;
+  color: white;
+  border-color: transparent;
+}
+
+.button-danger:hover {
+  background: #c92a2a;
+}
+
+#app.dark .button-danger {
+  background: #c92a2a;
+}
+#app.dark .button-danger:hover {
+  background: #a61e1e;
+}
+
 .library-save-section {
   position: relative;
   background: var(--bg-secondary);
   padding: 20px;
   border-radius: var(--radius-md);
   border: 0.5px solid var(--border-soft);
+}
+
+#app.dark .library-save-section {
+  background: var(--bg-tertiary);
 }
 
 .section-badge {
