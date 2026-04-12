@@ -16,7 +16,7 @@ if (fs.existsSync('.env')) {
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
 const DEFAULT_PROMPT = 'Hola, soy tu asistente de CV.';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const REQUEST_TIMEOUT_MS = 60000;
+const REQUEST_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 120000);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const MODEL_FALLBACKS = [
   DEFAULT_MODEL,
@@ -113,6 +113,7 @@ function buildAtsAdaptationMessages(cvMarkdown, jobDescription) {
         '- Mantener redacción clara y profesional en español.',
         '- Conservar estructura markdown compatible con CV Studio.',
         '- No agregar datos falsos.',
+        '- Sigue estrictamente el formato markdown, sin incluir explicaciones ni bloques de código. Devuelve solo el markdown adaptado del CV.',
         '',
         'Oferta laboral:',
         '---',
@@ -130,7 +131,7 @@ function buildAtsAdaptationMessages(cvMarkdown, jobDescription) {
 
 function shouldRetryWithFallback(errorMessage) {
   const normalized = String(errorMessage || '').toLowerCase();
-  return normalized.includes('no endpoints found') || normalized.includes('model not found');
+  return normalized.includes('no endpoints found') || normalized.includes('model not found') || normalized.includes('timeout');
 }
 
 async function callOpenRouterWithFallback(token, preferredModel, messages) {
@@ -180,6 +181,15 @@ async function callOpenRouter(token, model, messages) {
 
     return getTextFromOpenRouter(data);
   } catch (err) {
+    if (err?.name === 'AbortError' || String(err?.message || '').toLowerCase().includes('timed out')) {
+      const timeoutError = new Error(`OpenRouter request timed out after ${REQUEST_TIMEOUT_MS}ms`);
+      timeoutError.metadata = {
+        raw: `The operation was aborted due to timeout after ${REQUEST_TIMEOUT_MS}ms while calling ${model}`
+      };
+      console.error('[OpenRouter TIMEOUT]', timeoutError.metadata.raw);
+      throw timeoutError;
+    }
+
     console.error('[OpenRouter EXCEPTION]', err.message);
     throw err;
   }
