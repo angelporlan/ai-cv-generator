@@ -64,14 +64,14 @@ function sendFile(response, filePath, contentType) {
 
   const isBinary = contentType && (contentType.startsWith('image/') || contentType.startsWith('application/pdf'));
   const content = fs.readFileSync(filePath);
-  
+
   response.writeHead(200, {
     'Content-Type': contentType,
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   });
-  
+
   response.end(content);
 }
 
@@ -342,11 +342,11 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'GET') {
     let pathname = requestUrl.pathname;
     if (pathname === '/') pathname = 'editor.html';
-    
+
     // Remove leading slash to prevent path.join from treating it as an absolute root path on Windows
     const safePathname = pathname.replace(/^\/+/, '');
     const filePath = path.join(PUBLIC_DIR, safePathname);
-    
+
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const ext = path.extname(filePath).toLowerCase();
       const mimeTypes = {
@@ -360,7 +360,7 @@ const server = http.createServer(async (request, response) => {
         '.json': 'application/json',
         '.webmanifest': 'application/manifest+json'
       };
-      
+
       return sendFile(response, filePath, mimeTypes[ext] || 'application/octet-stream');
     }
   }
