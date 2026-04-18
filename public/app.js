@@ -1941,7 +1941,113 @@ async function init() {
     setStatus('cv.md cargado');
   } catch (error) {
     setStatus('Error cargando el CV');
+  } finally {
+    // Start tour if it's the first time
+    setTimeout(() => {
+      initTour(false); // false means auto-start check
+    }, 1000);
   }
+}
+
+/* ── Interactive Tour (Driver.js) ───────────────────────────── */
+function initTour(force = true) {
+  if (typeof window.driver === 'undefined') return;
+
+  const TOUR_STORAGE_KEY = 'cv-studio-tour-completed';
+  if (!force && localStorage.getItem(TOUR_STORAGE_KEY) === 'true') {
+    return;
+  }
+
+  const driverObj = window.driver.js.driver({
+    showProgress: true,
+    nextBtnText: 'Siguiente —›',
+    prevBtnText: '‹— Anterior',
+    doneBtnText: '¡Entendido!',
+    progressText: '{{current}} de {{total}}',
+    popoverClass: 'driverjs-theme',
+    steps: [
+      {
+        popover: {
+          title: '👋 ¡Bienvenido a CV Studio!',
+          description: 'Permíteme darte una guía rápida por las herramientas premium que tienes a tu disposición para crear el mejor CV.',
+          side: "left",
+          align: 'start'
+        }
+      },
+      {
+        element: '#open-library-button',
+        popover: {
+          title: 'Biblioteca de CVs',
+          description: 'Aquí puedes guardar diferentes versiones de tu CV, gestionar tus candidaturas y ver tu progreso en un tablero Kanban.',
+          side: "bottom",
+          align: 'end'
+        }
+      },
+      {
+        element: '#template-selector',
+        popover: {
+          title: 'Plantillas de Contenido',
+          description: 'Elige una base de contenido profesional según tu sector para no empezar de cero.',
+          side: "bottom",
+          align: 'start'
+        }
+      },
+      {
+        element: '#visual-template-selector',
+        popover: {
+          title: 'Diseño Editorial',
+          description: 'Cambia el estilo visual al instante. Tenemos desde el clásico Harvard hasta diseños modernos en columnas.',
+          side: "bottom",
+          align: 'start'
+        }
+      },
+      {
+        element: '#editor-mode-switch',
+        popover: {
+          title: 'Modos de Edición',
+          description: '¿Prefieres la potencia de Markdown o la sencillez de un editor Visual? Cambia según te sientas más cómodo.',
+          side: "bottom",
+          align: 'start'
+        }
+      },
+      {
+        element: '#open-adapt-modal-button',
+        popover: {
+          title: 'Adaptación con IA',
+          description: 'Esta es nuestra joya de la corona. Pega una oferta de trabajo y la IA optimizará tu CV para superar los filtros ATS automáticamente.',
+          side: "bottom",
+          align: 'start'
+        }
+      },
+      {
+        element: '#download-pdf-button',
+        popover: {
+          title: 'Exportación Premium',
+          description: 'Cuando estés listo, descarga tu CV en un PDF perfectamente maquetado y listo para impresionar.',
+          side: "bottom",
+          align: 'end'
+        }
+      },
+      {
+        popover: {
+          title: '🚀 ¡Todo listo!',
+          description: 'Ya puedes empezar a crear tu futuro profesional. Si necesitas volver a ver esta guía, haz clic en el icono de ayuda en la parte superior.',
+          side: "left",
+          align: 'start'
+        }
+      }
+    ],
+    onDestroyed: () => {
+      localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+    }
+  });
+
+  driverObj.drive();
+}
+
+const startTourBtn = document.getElementById('start-tour-button');
+if (startTourBtn) {
+  startTourBtn.addEventListener('click', () => initTour(true));
 }
 
 init();

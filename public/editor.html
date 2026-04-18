@@ -16,6 +16,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
 </head>
 
 <body>
@@ -61,6 +62,15 @@
               </svg>
             </span>
           </span>
+        </button>
+
+        <button class="button-ghost" id="start-tour-button" title="Guía interactiva" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
         </button>
       </div>
     </header>
@@ -425,6 +435,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
     <script src="app.js"></script>
     <script>
       (function () {
@@ -436,12 +447,14 @@
         // Check saved preference
         if (localStorage.getItem('cv-studio-dark') === 'true') {
           isDark = true;
+          document.body.classList.add('dark');
           app.classList.add('dark');
           toggle.setAttribute('aria-checked', 'true');
         }
 
         toggle.addEventListener('click', () => {
           isDark = !isDark;
+          document.body.classList.toggle('dark', isDark);
           app.classList.toggle('dark', isDark);
           toggle.setAttribute('aria-checked', isDark.toString());
           localStorage.setItem('cv-studio-dark', isDark);
