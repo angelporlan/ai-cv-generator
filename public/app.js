@@ -581,6 +581,129 @@ function saveLibraryData() {
 
 let librarySearchTerm = '';
 let libraryStatusFilter = 'all';
+let libraryViewMode = localStorage.getItem('cv-studio-library-view') || 'list';
+
+function bindCardEvents(container) {
+  container.querySelectorAll('.load-cv').forEach(btn => {
+    btn.addEventListener('click', () => loadCvFromLibrary(btn.dataset.id));
+  });
+  container.querySelectorAll('.delete-cv').forEach(btn => {
+    btn.addEventListener('click', () => deleteFromLibrary(btn.dataset.id));
+  });
+  container.querySelectorAll('.edit-cv').forEach(btn => {
+    btn.addEventListener('click', () => toggleEditForm(btn.dataset.id));
+  });
+  container.querySelectorAll('.cancel-edit').forEach(btn => {
+    btn.addEventListener('click', () => toggleEditForm(btn.dataset.id, false));
+  });
+  container.querySelectorAll('.save-edit').forEach(btn => {
+    btn.addEventListener('click', () => saveEditForm(btn.dataset.id));
+  });
+}
+
+function renderKanban(sortedList) {
+  const kanbanContainer = document.getElementById('library-kanban');
+  if (!kanbanContainer) return;
+
+  const statuses = ['Enviado', 'Entrevista', 'Prueba Técnica', 'Aceptado', 'Rechazado', 'Archivado'];
+  
+  kanbanContainer.innerHTML = statuses.map(status => {
+    const items = sortedList.filter(cv => (cv.status || 'Archivado') === status);
+    
+    const itemsHtml = items.map(cv => {
+      const statusOptionsHtml = statuses
+        .map(s => `<option value="${s}"${cv.status === s ? ' selected' : ''}>${s}</option>`)
+        .join('');
+      const dateValue = cv.lastUsedDate ? new Date(cv.lastUsedDate).toISOString().split('T')[0] : '';
+      
+      return `
+      <div class="cv-card" data-cv-id="${cv.id}">
+        <div class="cv-card-header">
+          <div class="cv-card-name">${escapeHtml(cv.name)}</div>
+        </div>
+        ${cv.jobUrl ? `<div class="cv-card-description" style="margin-bottom: 4px;"><a href="${cv.jobUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>Ver Oferta</a></div>` : ''}
+        ${cv.description ? `<div class="cv-card-description">${escapeHtml(cv.description)}</div>` : ''}
+        <div class="cv-card-footer">
+          <span class="cv-card-date">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; vertical-align:middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            ${formatDate(cv.lastUsedDate)}
+          </span>
+        </div>
+        <div class="cv-card-actions">
+          <button class="button-ghost-sm load-cv" data-id="${cv.id}" title="Cargar este CV">Abrir</button>
+          <button class="button-ghost-sm edit-cv" data-id="${cv.id}" title="Editar datos">Editar</button>
+          <button class="button-ghost-sm button-danger-ghost delete-cv" data-id="${cv.id}" title="Eliminar">Eliminar</button>
+        </div>
+        <div class="cv-card-edit-form" data-edit-id="${cv.id}" hidden>
+          <div class="edit-row">
+            <div class="edit-field"><span class="edit-field-label">Nombre</span><input type="text" class="edit-field-input" data-field="name" value="${escapeHtml(cv.name)}"></div>
+            <div class="edit-field"><span class="edit-field-label">Estado</span><select class="edit-field-input" data-field="status">${statusOptionsHtml}</select></div>
+          </div>
+          <div class="edit-row">
+            <div class="edit-field"><span class="edit-field-label">Fecha</span><input type="date" class="edit-field-input" data-field="lastUsedDate" value="${dateValue}"></div>
+            <div class="edit-field"><span class="edit-field-label">URL</span><input type="url" class="edit-field-input" data-field="jobUrl" value="${escapeHtml(cv.jobUrl || '')}"></div>
+          </div>
+          <div class="edit-row full-width">
+            <div class="edit-field"><span class="edit-field-label">Empresa</span><input type="text" class="edit-field-input" data-field="description" value="${escapeHtml(cv.description || '')}"></div>
+          </div>
+          <div class="cv-card-edit-actions">
+            <button class="button button-secondary cancel-edit" data-id="${cv.id}" type="button">Cancelar</button>
+            <button class="button button-primary save-edit" data-id="${cv.id}" type="button">Guardar</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="kanban-column" data-status="${status}">
+        <div class="kanban-column-header">
+          <span>${status}</span>
+          <span class="kanban-column-count">${items.length}</span>
+        </div>
+        <div class="kanban-column-body" data-status="${status}">
+          ${itemsHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  bindCardEvents(kanbanContainer);
+  initKanbanDragAndDrop();
+}
+
+let kanbanSortables = [];
+
+function initKanbanDragAndDrop() {
+  if (!window.Sortable) return;
+  
+  kanbanSortables.forEach(s => s.destroy());
+  kanbanSortables = [];
+  
+  const columns = document.querySelectorAll('.kanban-column-body');
+  columns.forEach(col => {
+    const sortable = new window.Sortable(col, {
+      group: 'kanban',
+      animation: 150,
+      ghostClass: 'kanban-ghost',
+      dragClass: 'kanban-drag',
+      onEnd: function (evt) {
+        const itemEl = evt.item;
+        const cvId = itemEl.dataset.cvId;
+        const newStatus = evt.to.dataset.status;
+        const oldStatus = evt.from.dataset.status;
+        
+        if (newStatus !== oldStatus) {
+          const cv = libraryData.find(c => c.id === cvId);
+          if (cv) {
+            cv.status = newStatus;
+            saveLibraryData(); // This will re-render everything
+          }
+        }
+      }
+    });
+    kanbanSortables.push(sortable);
+  });
+}
 
 function renderLibrary() {
   if (!libraryCountTag || !libraryItemsContainer) return;
@@ -611,12 +734,36 @@ function renderLibrary() {
     return matchesText && matchesStatus;
   });
 
+  // Set active toggle button
+  const toggleButtons = document.querySelectorAll('#library-view-toggle .mode-tab');
+  if (toggleButtons.length) {
+    toggleButtons.forEach(btn => {
+      const isActive = btn.dataset.view === libraryViewMode;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', String(isActive));
+    });
+  }
+
+  const gridContainer = document.getElementById('library-items');
+  const kanbanContainer = document.getElementById('library-kanban');
+
+  if (libraryViewMode === 'kanban') {
+    if (gridContainer) gridContainer.hidden = true;
+    if (kanbanContainer) kanbanContainer.hidden = false;
+  } else {
+    if (gridContainer) gridContainer.hidden = false;
+    if (kanbanContainer) kanbanContainer.hidden = true;
+  }
+
   if (filtered.length === 0) {
-    libraryItemsContainer.innerHTML = `
-      <div class="no-results-message">
-        <p>No se encontraron resultados para los filtros aplicados.</p>
-      </div>
-    `;
+    if (gridContainer) {
+      gridContainer.innerHTML = `
+        <div class="no-results-message">
+          <p>No se encontraron resultados para los filtros aplicados.</p>
+        </div>
+      `;
+    }
+    if (kanbanContainer) kanbanContainer.innerHTML = '';
     return;
   }
 
@@ -708,34 +855,37 @@ function renderLibrary() {
   `;
   }).join('');
 
-  // Bind event listeners
-  libraryItemsContainer.querySelectorAll('.load-cv').forEach(btn => {
-    btn.addEventListener('click', () => loadCvFromLibrary(btn.dataset.id));
-  });
-  libraryItemsContainer.querySelectorAll('.delete-cv').forEach(btn => {
-    btn.addEventListener('click', () => deleteFromLibrary(btn.dataset.id));
-  });
-  libraryItemsContainer.querySelectorAll('.edit-cv').forEach(btn => {
-    btn.addEventListener('click', () => toggleEditForm(btn.dataset.id));
-  });
-  libraryItemsContainer.querySelectorAll('.cancel-edit').forEach(btn => {
-    btn.addEventListener('click', () => toggleEditForm(btn.dataset.id, false));
-  });
-  libraryItemsContainer.querySelectorAll('.save-edit').forEach(btn => {
-    btn.addEventListener('click', () => saveEditForm(btn.dataset.id));
-  });
+  if (libraryViewMode === 'list') {
+    bindCardEvents(libraryItemsContainer);
+  } else {
+    renderKanban(sorted);
+  }
 }
 
+// Add event listener for view toggle
+document.addEventListener('DOMContentLoaded', () => {
+  const viewToggle = document.getElementById('library-view-toggle');
+  if (viewToggle) {
+    viewToggle.addEventListener('click', (event) => {
+      const tab = event.target.closest('.mode-tab');
+      if (!tab || !tab.dataset.view) return;
+      libraryViewMode = tab.dataset.view;
+      localStorage.setItem('cv-studio-library-view', libraryViewMode);
+      renderLibrary();
+    });
+  }
+});
+
 function toggleEditForm(id, forceOpen) {
-  const card = libraryItemsContainer.querySelector(`.cv-card[data-cv-id="${id}"]`);
-  const form = libraryItemsContainer.querySelector(`.cv-card-edit-form[data-edit-id="${id}"]`);
+  const card = document.querySelector(`.cv-card[data-cv-id="${id}"]`);
+  const form = document.querySelector(`.cv-card-edit-form[data-edit-id="${id}"]`);
   if (!card || !form) return;
 
   const isHidden = form.hidden;
   const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : isHidden;
 
   // Close all other edit forms first
-  libraryItemsContainer.querySelectorAll('.cv-card-edit-form').forEach(f => {
+  document.querySelectorAll('.cv-card-edit-form').forEach(f => {
     f.hidden = true;
     f.closest('.cv-card')?.classList.remove('is-editing');
   });
@@ -750,7 +900,7 @@ function toggleEditForm(id, forceOpen) {
 }
 
 function saveEditForm(id) {
-  const form = libraryItemsContainer.querySelector(`.cv-card-edit-form[data-edit-id="${id}"]`);
+  const form = document.querySelector(`.cv-card-edit-form[data-edit-id="${id}"]`);
   if (!form) return;
 
   const cv = libraryData.find(c => c.id === id);

@@ -15,7 +15,7 @@ Este archivo sirve para seguir el progreso de las nuevas funcionalidades premium
 - [ ] **Iconos Automáticos:** Detección de RRSS y portafolios con iconos de marca.
 
 ## 🛠️ Fase 3: Utilidades y Productividad
-- [ ] **Tablero Kanban de Candidaturas:** Vista de seguimiento para el proceso de búsqueda.
+- [x] **Tablero Kanban de Candidaturas:** Vista de seguimiento para el proceso de búsqueda.
 - [ ] **Importador de LinkedIn:** Conversión de texto de perfil a Markdown funcional.
 - [ ] **Generador de QR:** Integración de códigos QR estéticos en el PDF.
 - [ ] **Checklist de Calidad:** Verificación automática de datos faltantes o errores.

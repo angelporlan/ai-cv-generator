@@ -1976,3 +1976,122 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
+
+/* ── View Toggle ────────────────────────────────────────────── */
+.library-view-toggle {
+  display: flex;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  border: 1px solid var(--border);
+  gap: 2px;
+}
+
+/* ── Kanban Board ───────────────────────────────────────────── */
+.library-kanban {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  min-height: 400px;
+  align-items: flex-start;
+  /* Custom scrollbar for horizontal scroll */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+
+.library-kanban::-webkit-scrollbar {
+  height: 6px;
+}
+.library-kanban::-webkit-scrollbar-thumb {
+  background-color: var(--border-hover);
+  border-radius: 4px;
+}
+
+.kanban-column {
+  flex: 0 0 280px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+#app.dark .kanban-column {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.kanban-column-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.kanban-column-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: 800;
+}
+
+.kanban-column-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 150px;
+  overflow-y: auto;
+}
+
+/* Kanban specific card styles */
+.library-kanban .cv-card {
+  padding: 12px;
+  cursor: grab;
+  margin: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+}
+
+.library-kanban .cv-card:active {
+  cursor: grabbing;
+}
+
+.library-kanban .cv-card-header {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.library-kanban .status-badge {
+  display: none; /* Hide status badge in kanban since column dictates status */
+}
+
+.library-kanban .cv-card-actions {
+  display: none; /* Simplify card in Kanban */
+}
+
+.library-kanban .cv-card:hover .cv-card-actions {
+  display: flex; /* Show actions on hover */
+  margin-top: 12px;
+}
+
+.kanban-ghost {
+  opacity: 0.4;
+  background: var(--bg-tertiary) !important;
+  border: 1px dashed var(--border-hover) !important;
+}
+
+.kanban-drag {
+  opacity: 1 !important;
+  transform: rotate(2deg);
+  box-shadow: 0 12px 24px -6px rgba(0,0,0,0.2) !important;
+  cursor: grabbing !important;
+}
