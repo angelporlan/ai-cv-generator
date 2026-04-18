@@ -12,6 +12,9 @@
   padding: 0;
 }
 
+[hidden] {
+  display: none !important;
+}
 :root {
   /* Backgrounds */
   --bg-primary: #ffffff;
