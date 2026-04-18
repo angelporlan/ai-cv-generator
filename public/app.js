@@ -27,7 +27,9 @@ const saveToLibraryBtn = document.getElementById('save-to-library-button');
 const libraryItemsContainer = document.getElementById('library-items');
 const libraryCountTag = document.getElementById('library-count');
 const newCvNameInput = document.getElementById('new-cv-name');
-const newCvSpaceSelect = document.getElementById('new-cv-space');
+const newCvStatusSelect = document.getElementById('new-cv-status');
+const newCvDateInput = document.getElementById('new-cv-date');
+const newCvDescriptionInput = document.getElementById('new-cv-description');
 const confirmModal = document.getElementById('confirm-modal');
 const confirmTitle = document.getElementById('confirm-title');
 const confirmMessage = document.getElementById('confirm-message');
@@ -536,10 +538,38 @@ function loadLibraryData() {
   const saved = localStorage.getItem(LIBRARY_STORAGE_KEY);
   try {
     libraryData = saved ? JSON.parse(saved) : [];
+    // Migración básica y saneamiento
+    libraryData = libraryData.map(cv => ({
+      ...cv,
+      status: cv.status || (cv.space === 'Trabajo' ? 'Enviado' : 'Archivado'),
+      description: cv.description || cv.space || '',
+      lastUsedDate: cv.lastUsedDate || cv.date || new Date().toISOString()
+    }));
   } catch (e) {
     libraryData = [];
   }
   renderLibrary();
+}
+
+function formatDate(isoString) {
+  if (!isoString) return 'Sin fecha';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return 'Sin fecha';
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return 'Sin fecha';
+  }
+}
+
+function getStatusClass(status) {
+  const s = String(status || '').toLowerCase();
+  if (s.includes('enviado')) return 'status-enviado';
+  if (s.includes('entrevista')) return 'status-entrevista';
+  if (s.includes('prueba')) return 'status-prueba';
+  if (s.includes('aceptado') || s.includes('oferta')) return 'status-aceptado';
+  if (s.includes('rechazado')) return 'status-rechazado';
+  return 'status-archivado';
 }
 
 function saveLibraryData() {
@@ -547,8 +577,12 @@ function saveLibraryData() {
   renderLibrary();
 }
 
-function renderLibrary() {
+let librarySearchTerm = '';
+
+function renderLibrary(filterOverride) {
   if (!libraryCountTag || !libraryItemsContainer) return;
+  
+  const filter = typeof filterOverride === 'string' ? filterOverride : librarySearchTerm;
   
   libraryCountTag.textContent = `${libraryData.length} CV${libraryData.length !== 1 ? 's' : ''}`;
   
@@ -561,42 +595,178 @@ function renderLibrary() {
     return;
   }
 
-  // Ordenar por espacio y luego por nombre
-  const sorted = [...libraryData].sort((a, b) => a.space.localeCompare(b.space) || a.name.localeCompare(b.name));
+  // Filtrar
+  const normalizedFilter = filter.toLowerCase().trim();
+  const filtered = normalizedFilter
+    ? libraryData.filter(cv =>
+        (cv.name || '').toLowerCase().includes(normalizedFilter) ||
+        (cv.description || '').toLowerCase().includes(normalizedFilter) ||
+        (cv.status || '').toLowerCase().includes(normalizedFilter)
+      )
+    : libraryData;
 
-  libraryItemsContainer.innerHTML = sorted.map(cv => `
-    <div class="cv-card">
+  if (filtered.length === 0) {
+    libraryItemsContainer.innerHTML = `
+      <div class="no-results-message">
+        <p>No se encontraron resultados para "<strong>${escapeHtml(filter)}</strong>"</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Ordenar por fecha de uso desc
+  const sorted = [...filtered].sort((a, b) => new Date(b.lastUsedDate) - new Date(a.lastUsedDate));
+
+  const statusOptions = ['Enviado', 'Entrevista', 'Prueba Técnica', 'Aceptado', 'Rechazado', 'Archivado'];
+
+  libraryItemsContainer.innerHTML = sorted.map(cv => {
+    const statusOptionsHtml = statusOptions
+      .map(s => `<option value="${s}"${cv.status === s ? ' selected' : ''}>${s}</option>`)
+      .join('');
+
+    const dateValue = cv.lastUsedDate
+      ? new Date(cv.lastUsedDate).toISOString().split('T')[0]
+      : '';
+
+    return `
+    <div class="cv-card" data-cv-id="${cv.id}">
       <div class="cv-card-header">
         <div>
           <div class="cv-card-name">${escapeHtml(cv.name)}</div>
-          <div class="cv-card-space">${cv.space}</div>
+          <div class="status-badge ${getStatusClass(cv.status)}">${cv.status || 'Sin estado'}</div>
         </div>
       </div>
+      
+      ${cv.description ? `<div class="cv-card-description">${escapeHtml(cv.description)}</div>` : ''}
+      
+      <div class="cv-card-footer">
+        <span class="cv-card-date">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px; vertical-align:middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          ${formatDate(cv.lastUsedDate)}
+        </span>
+      </div>
+
       <div class="cv-card-actions">
-        <button class="button-ghost-sm load-cv" data-id="${cv.id}">
+        <button class="button-ghost-sm load-cv" data-id="${cv.id}" title="Cargar este CV">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
           Abrir
         </button>
-        <button class="button-ghost-sm button-danger-ghost delete-cv" data-id="${cv.id}">
+        <button class="button-ghost-sm edit-cv" data-id="${cv.id}" title="Editar datos">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          Editar
+        </button>
+        <button class="button-ghost-sm button-danger-ghost delete-cv" data-id="${cv.id}" title="Eliminar">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           Eliminar
         </button>
       </div>
-    </div>
-  `).join('');
 
-  // Listeners para los botones generados
+      <!-- Inline edit form (hidden by default) -->
+      <div class="cv-card-edit-form" data-edit-id="${cv.id}" hidden>
+        <div class="edit-row">
+          <div class="edit-field">
+            <span class="edit-field-label">Nombre</span>
+            <input type="text" class="edit-field-input" data-field="name" value="${escapeHtml(cv.name)}">
+          </div>
+          <div class="edit-field">
+            <span class="edit-field-label">Estado</span>
+            <select class="edit-field-input" data-field="status">${statusOptionsHtml}</select>
+          </div>
+        </div>
+        <div class="edit-row">
+          <div class="edit-field">
+            <span class="edit-field-label">Fecha de envío</span>
+            <input type="date" class="edit-field-input" data-field="lastUsedDate" value="${dateValue}">
+          </div>
+          <div class="edit-field">
+            <span class="edit-field-label">Empresa / Descripción</span>
+            <input type="text" class="edit-field-input" data-field="description" value="${escapeHtml(cv.description || '')}">
+          </div>
+        </div>
+        <div class="cv-card-edit-actions">
+          <button class="button button-secondary cancel-edit" data-id="${cv.id}" type="button">Cancelar</button>
+          <button class="button button-primary save-edit" data-id="${cv.id}" type="button">Guardar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  // Bind event listeners
   libraryItemsContainer.querySelectorAll('.load-cv').forEach(btn => {
     btn.addEventListener('click', () => loadCvFromLibrary(btn.dataset.id));
   });
   libraryItemsContainer.querySelectorAll('.delete-cv').forEach(btn => {
     btn.addEventListener('click', () => deleteFromLibrary(btn.dataset.id));
   });
+  libraryItemsContainer.querySelectorAll('.edit-cv').forEach(btn => {
+    btn.addEventListener('click', () => toggleEditForm(btn.dataset.id));
+  });
+  libraryItemsContainer.querySelectorAll('.cancel-edit').forEach(btn => {
+    btn.addEventListener('click', () => toggleEditForm(btn.dataset.id, false));
+  });
+  libraryItemsContainer.querySelectorAll('.save-edit').forEach(btn => {
+    btn.addEventListener('click', () => saveEditForm(btn.dataset.id));
+  });
+}
+
+function toggleEditForm(id, forceOpen) {
+  const card = libraryItemsContainer.querySelector(`.cv-card[data-cv-id="${id}"]`);
+  const form = libraryItemsContainer.querySelector(`.cv-card-edit-form[data-edit-id="${id}"]`);
+  if (!card || !form) return;
+
+  const isHidden = form.hidden;
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : isHidden;
+
+  // Close all other edit forms first
+  libraryItemsContainer.querySelectorAll('.cv-card-edit-form').forEach(f => {
+    f.hidden = true;
+    f.closest('.cv-card')?.classList.remove('is-editing');
+  });
+
+  form.hidden = !shouldOpen;
+  card.classList.toggle('is-editing', shouldOpen);
+
+  if (shouldOpen) {
+    const firstInput = form.querySelector('input[type="text"]');
+    if (firstInput) firstInput.focus();
+  }
+}
+
+function saveEditForm(id) {
+  const form = libraryItemsContainer.querySelector(`.cv-card-edit-form[data-edit-id="${id}"]`);
+  if (!form) return;
+
+  const cv = libraryData.find(c => c.id === id);
+  if (!cv) return;
+
+  const nameInput = form.querySelector('[data-field="name"]');
+  const statusInput = form.querySelector('[data-field="status"]');
+  const dateInput = form.querySelector('[data-field="lastUsedDate"]');
+  const descInput = form.querySelector('[data-field="description"]');
+
+  const newName = nameInput ? nameInput.value.trim() : cv.name;
+  if (!newName) {
+    showAlert('El nombre no puede estar vacío.', 'Nombre requerido');
+    return;
+  }
+
+  cv.name = newName;
+  cv.status = statusInput ? statusInput.value : cv.status;
+  cv.lastUsedDate = dateInput && dateInput.value
+    ? new Date(dateInput.value).toISOString()
+    : cv.lastUsedDate;
+  cv.description = descInput ? descInput.value.trim() : cv.description;
+
+  saveLibraryData();
+  setStatus(`"${cv.name}" actualizado`);
 }
 
 function saveToLibrary() {
   const name = newCvNameInput.value.trim();
-  const space = newCvSpaceSelect.value;
+  const status = newCvStatusSelect.value;
+  const description = newCvDescriptionInput.value.trim();
+  const dateValue = newCvDateInput.value;
   const content = editor.value;
 
   if (!name) {
@@ -607,7 +777,9 @@ function saveToLibrary() {
   const newCv = {
     id: Date.now().toString(),
     name,
-    space,
+    status,
+    description,
+    lastUsedDate: dateValue ? new Date(dateValue).toISOString() : new Date().toISOString(),
     content,
     visualTemplate: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
     date: new Date().toISOString()
@@ -615,8 +787,13 @@ function saveToLibrary() {
 
   libraryData.push(newCv);
   saveLibraryData();
+  
+  // Limpiar campos
   newCvNameInput.value = '';
-  setStatus('CV guardado en la biblioteca');
+  newCvDescriptionInput.value = '';
+  newCvDateInput.value = new Date().toISOString().split('T')[0];
+  
+  setStatus('Postulación guardada en la biblioteca');
 }
 
 async function loadCvFromLibrary(id) {
@@ -659,11 +836,18 @@ async function deleteFromLibrary(id) {
 
 function openLibrary() {
   loadLibraryData();
+  if (newCvDateInput && !newCvDateInput.value) {
+    newCvDateInput.value = new Date().toISOString().split('T')[0];
+  }
   libraryModal.classList.add('active');
 }
 
 function closeLibrary() {
   libraryModal.classList.remove('active');
+  // Reset search
+  librarySearchTerm = '';
+  const searchInput = document.getElementById('library-search');
+  if (searchInput) searchInput.value = '';
 }
 
 function getStoredLibraryEntries() {
@@ -1444,6 +1628,15 @@ saveToLibraryBtn.addEventListener('click', saveToLibrary);
 libraryModal.addEventListener('click', (e) => {
   if (e.target === libraryModal) closeLibrary();
 });
+
+// Library search
+const librarySearchInput = document.getElementById('library-search');
+if (librarySearchInput) {
+  librarySearchInput.addEventListener('input', () => {
+    librarySearchTerm = librarySearchInput.value;
+    renderLibrary();
+  });
+}
 
 if (openAdaptModalButton) {
   openAdaptModalButton.addEventListener('click', openAdaptModal);

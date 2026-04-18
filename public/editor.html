@@ -246,17 +246,32 @@
             <div class="section-badge">NUEVO</div>
             <h3>Guardar versión actual</h3>
             <div class="save-form">
-              <div class="input-group">
-                <input type="text" id="new-cv-name" placeholder="Nombre del CV (ej: Desarrollador Backend)"
-                  class="modal-input">
+              <div class="input-row">
+                <div class="input-group">
+                  <label for="new-cv-name" class="modal-label">Nombre del CV</label>
+                  <input type="text" id="new-cv-name" placeholder="ej: Desarrollador Backend" class="modal-input">
+                </div>
+                <div class="input-group">
+                  <label for="new-cv-status" class="modal-label">Estado</label>
+                  <select id="new-cv-status" class="modal-select">
+                    <option value="Enviado">Enviado</option>
+                    <option value="Entrevista">Primera Entrevista</option>
+                    <option value="Prueba Técnica">Prueba Técnica</option>
+                    <option value="Aceptado">Oferta Recibida</option>
+                    <option value="Rechazado">Rechazado</option>
+                    <option value="Archivado">Archivado</option>
+                  </select>
+                </div>
               </div>
-              <div class="input-group">
-                <select id="new-cv-space" class="modal-select">
-                  <option value="Trabajo">Trabajo</option>
-                  <option value="Educación">Educación</option>
-                  <option value="Personal">Personal</option>
-                  <option value="Otros">Otros</option>
-                </select>
+              <div class="input-row">
+                <div class="input-group">
+                  <label for="new-cv-date" class="modal-label">Fecha de envío</label>
+                  <input type="date" id="new-cv-date" class="modal-input">
+                </div>
+                <div class="input-group">
+                  <label for="new-cv-description" class="modal-label">Empresa / Descripción</label>
+                  <input type="text" id="new-cv-description" placeholder="ej: Google / Tech Lead" class="modal-input">
+                </div>
               </div>
               <button id="save-to-library-button" class="button button-primary">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
@@ -265,7 +280,7 @@
                   <polyline points="17 21 17 13 7 13 7 21"></polyline>
                   <polyline points="7 3 7 8 15 8"></polyline>
                 </svg>
-                <span>Guardar</span>
+                <span>Guardar Versión</span>
               </button>
             </div>
           </section>
@@ -275,8 +290,12 @@
           <!-- List Section -->
           <section class="library-list-section">
             <div class="section-header">
-              <h3>Mis Espacios</h3>
+              <h3>Mis Postulaciones</h3>
               <span id="library-count" class="count-tag">0 CVs</span>
+            </div>
+            <div class="library-search-wrapper">
+              <svg class="library-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="library-search" class="library-search-input" placeholder="Buscar por nombre, empresa o estado…" autocomplete="off">
             </div>
             <div id="library-items" class="library-grid">
               <!-- Items injected by JS -->
