@@ -109,6 +109,45 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Custom Scrollbars (Global) ─────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background var(--t-fast) var(--ease);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+  border: 0px solid transparent; /* Expands slightly on hover */
+  background-clip: content-box;
+}
+
+#app.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#app.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Firefox support (basic) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+
 /* ── Page shell ─────────────────────────────────────────────── */
 .page-shell {
   display: flex;
@@ -1125,23 +1164,8 @@ body {
   transition: background var(--t-mid) var(--ease);
 }
 
-/* Custom scrollbar */
-.preview-surface::-webkit-scrollbar {
-  width: 6px;
-}
+/* Scrollbar managed globally */
 
-.preview-surface::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.preview-surface::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 100px;
-}
-
-.preview-surface::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
-}
 
 .preview-scaler {
   transform-origin: top center;
