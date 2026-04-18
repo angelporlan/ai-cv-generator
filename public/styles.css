@@ -1380,6 +1380,10 @@ body {
   gap: 20px;
 }
 
+.input-row.full-width {
+  grid-template-columns: 1fr;
+}
+
 .input-group {
   display: flex;
   flex-direction: column;
@@ -1590,6 +1594,10 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.cv-card-edit-form .edit-row.full-width {
+  grid-template-columns: 1fr;
 }
 
 .cv-card-edit-form .edit-field {

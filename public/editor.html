@@ -109,7 +109,8 @@
             </div>
           </div>
           <div class="actions">
-            <button id="toggle-reference-button" class="button button-secondary" type="button" title="Comparar con un CV guardado">
+            <button id="toggle-reference-button" class="button button-secondary" type="button"
+              title="Comparar con un CV guardado">
               <svg viewBox="0 0 12 12" fill="none">
                 <path d="M1.5 2.2h3.8v7.6H1.5V2.2zm5.2 0h3.8v7.6H6.7V2.2z" stroke="currentColor" stroke-width="1.1" />
               </svg>
@@ -157,13 +158,17 @@
           <aside id="reference-pane" class="reference-pane" hidden>
             <div class="reference-pane-head">
               <label class="reference-label" for="reference-cv-select">CV de referencia</label>
-              <div class="reference-mode-switch" id="reference-mode-switch" role="tablist" aria-label="Modo de referencia">
-                <button type="button" class="mode-tab active" data-reference-mode="markdown" aria-selected="true">Markdown</button>
-                <button type="button" class="mode-tab" data-reference-mode="visual" aria-selected="false">Visual</button>
+              <div class="reference-mode-switch" id="reference-mode-switch" role="tablist"
+                aria-label="Modo de referencia">
+                <button type="button" class="mode-tab active" data-reference-mode="markdown"
+                  aria-selected="true">Markdown</button>
+                <button type="button" class="mode-tab" data-reference-mode="visual"
+                  aria-selected="false">Visual</button>
               </div>
               <div class="reference-controls">
                 <select id="reference-cv-select" class="template-select" title="Selecciona un CV guardado"></select>
-                <button id="close-reference-pane" class="button button-secondary" type="button" aria-label="Cerrar comparación">Cerrar</button>
+                <button id="close-reference-pane" class="button button-secondary" type="button"
+                  aria-label="Cerrar comparación">Cerrar</button>
               </div>
             </div>
             <textarea id="reference-editor" spellcheck="false" readonly aria-label="CV de referencia"></textarea>
@@ -179,7 +184,8 @@
         <input id="file-input" type="file" accept=".md,text/markdown,text/plain" hidden>
       </section>
 
-      <div id="workspace-resizer" class="workspace-resizer" role="separator" aria-orientation="vertical" aria-label="Ajustar ancho de paneles"></div>
+      <div id="workspace-resizer" class="workspace-resizer" role="separator" aria-orientation="vertical"
+        aria-label="Ajustar ancho de paneles"></div>
 
       <!-- Preview Panel -->
       <section class="panel preview-panel">
@@ -189,20 +195,23 @@
             <h2 class="panel-title">CV en vivo</h2>
             <button id="open-adapt-modal-button" class="button button-accent panel-inline-action" type="button">
               <svg viewBox="0 0 12 12" fill="none">
-                <path d="M6 1.5l1.3 2.7L10 5.1 8 7.1l.5 2.9L6 8.6 3.5 10l.5-2.9-2-2 2.7-.9L6 1.5z" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M6 1.5l1.3 2.7L10 5.1 8 7.1l.5 2.9L6 8.6 3.5 10l.5-2.9-2-2 2.7-.9L6 1.5z" stroke="currentColor"
+                  stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               Adaptar CV con IA
             </button>
           </div>
           <div class="actions">
-            <button class="button button-secondary zoom-btn" type="button" id="font-size-decrease" aria-label="Reducir tamaño de fuente">
+            <button class="button button-secondary zoom-btn" type="button" id="font-size-decrease"
+              aria-label="Reducir tamaño de fuente">
               <svg viewBox="0 0 12 12" fill="none">
                 <path d="M2 8h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
                 <path d="M6 3v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
               </svg>
             </button>
             <span class="zoom-label" id="font-size-label">12.5px</span>
-            <button class="button button-secondary zoom-btn" type="button" id="font-size-increase" aria-label="Aumentar tamaño de fuente">
+            <button class="button button-secondary zoom-btn" type="button" id="font-size-increase"
+              aria-label="Aumentar tamaño de fuente">
               <svg viewBox="0 0 12 12" fill="none">
                 <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
               </svg>
@@ -269,6 +278,12 @@
                   <input type="date" id="new-cv-date" class="modal-input">
                 </div>
                 <div class="input-group">
+                  <label for="new-cv-url" class="modal-label">URL de la oferta</label>
+                  <input type="url" id="new-cv-url" placeholder="https://..." class="modal-input">
+                </div>
+              </div>
+              <div class="input-row full-width">
+                <div class="input-group">
                   <label for="new-cv-description" class="modal-label">Empresa / Descripción</label>
                   <input type="text" id="new-cv-description" placeholder="ej: Google / Tech Lead" class="modal-input">
                 </div>
@@ -295,8 +310,13 @@
             </div>
             <div class="library-controls">
               <div class="library-search-wrapper">
-                <svg class="library-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" id="library-search" class="library-search-input" placeholder="Buscar por nombre, empresa..." autocomplete="off">
+                <svg class="library-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="library-search" class="library-search-input"
+                  placeholder="Buscar por nombre, empresa..." autocomplete="off">
               </div>
               <div class="library-filter-wrapper">
                 <select id="library-status-filter" class="library-filter-select">
@@ -375,12 +395,14 @@
 
             <label class="adapt-field" for="adapt-job-description">
               <span>Descripción de la oferta</span>
-              <textarea id="adapt-job-description" class="modal-textarea" rows="10" placeholder="Pega aquí la oferta de trabajo completa..."></textarea>
+              <textarea id="adapt-job-description" class="modal-textarea" rows="10"
+                placeholder="Pega aquí la oferta de trabajo completa..."></textarea>
             </label>
 
             <label class="adapt-field" for="adapt-openrouter-token">
               <span>Token de OpenRouter</span>
-              <input id="adapt-openrouter-token" class="modal-input" type="password" placeholder="sk-or-v1-..." autocomplete="off">
+              <input id="adapt-openrouter-token" class="modal-input" type="password" placeholder="sk-or-v1-..."
+                autocomplete="off">
             </label>
           </div>
         </div>
@@ -392,139 +414,139 @@
       </div>
     </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-  <script src="app.js"></script>
-  <script>
-    (function () {
-      // Dark mode toggle
-      const toggle = document.getElementById('dark-toggle');
-      const app = document.getElementById('app');
-      let isDark = false;
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+      (function () {
+        // Dark mode toggle
+        const toggle = document.getElementById('dark-toggle');
+        const app = document.getElementById('app');
+        let isDark = false;
 
-      // Check saved preference
-      if (localStorage.getItem('cv-studio-dark') === 'true') {
-        isDark = true;
-        app.classList.add('dark');
-        toggle.setAttribute('aria-checked', 'true');
-      }
-
-      toggle.addEventListener('click', () => {
-        isDark = !isDark;
-        app.classList.toggle('dark', isDark);
-        toggle.setAttribute('aria-checked', isDark.toString());
-        localStorage.setItem('cv-studio-dark', isDark);
-      });
-
-      // Char & line counter
-      const editor = document.getElementById('editor');
-      const charCount = document.getElementById('char-count');
-      const lineCount = document.getElementById('line-count');
-      const saveStatus = document.getElementById('save-status');
-      const statusLabel = saveStatus.querySelector('.status-label');
-
-      function updateStats() {
-        if (!editor || !charCount || !lineCount) return;
-        const val = editor.value;
-        charCount.textContent = val.length.toLocaleString('es') + ' caracteres';
-        lineCount.textContent = val.split('\n').length.toLocaleString('es') + ' líneas';
-      }
-
-      let saveTimer;
-      if (editor) {
-        editor.addEventListener('input', () => {
-          if (statusLabel) statusLabel.textContent = 'Editando…';
-          saveStatus.classList.add('unsaved');
-          updateStats();
-          clearTimeout(saveTimer);
-          saveTimer = setTimeout(() => {
-            if (statusLabel) statusLabel.textContent = 'Guardado';
-            saveStatus.classList.remove('unsaved');
-          }, 1200);
-        });
-        updateStats();
-      }
-
-      // Zoom control
-      const zoomIn = document.getElementById('zoom-in');
-      const zoomOut = document.getElementById('zoom-out');
-      const zoomLabel = document.getElementById('zoom-label');
-      const scaler = document.getElementById('preview-scaler');
-      const pdfPreview = document.getElementById('pdf-preview');
-      let zoom = 1;
-      let basePreviewWidth = 595;
-      let basePreviewHeight = 842;
-
-      // Editor font size control
-      const FONT_SIZE_KEY = 'cv-studio-editor-font-size';
-      const fontSizeDecrease = document.getElementById('font-size-decrease');
-      const fontSizeIncrease = document.getElementById('font-size-increase');
-      const fontSizeLabel = document.getElementById('font-size-label');
-      let editorFontSize = Number(localStorage.getItem(FONT_SIZE_KEY) || '12.5');
-
-      function applyEditorFontSize() {
-        editorFontSize = Math.min(18, Math.max(10, editorFontSize));
-        if (editor) editor.style.fontSize = editorFontSize.toFixed(1).replace('.0', '') + 'px';
-        if (fontSizeLabel) fontSizeLabel.textContent = editorFontSize.toFixed(1).replace('.0', '') + 'px';
-        localStorage.setItem(FONT_SIZE_KEY, editorFontSize.toString());
-        window.dispatchEvent(new CustomEvent('cv-editor-font-size-changed', {
-          detail: { fontSize: editorFontSize }
-        }));
-      }
-
-      if (fontSizeIncrease) {
-        fontSizeIncrease.addEventListener('click', () => {
-          editorFontSize += 0.5;
-          applyEditorFontSize();
-        });
-      }
-
-      if (fontSizeDecrease) {
-        fontSizeDecrease.addEventListener('click', () => {
-          editorFontSize -= 0.5;
-          applyEditorFontSize();
-        });
-      }
-
-      applyEditorFontSize();
-
-      function refreshBasePreviewSize() {
-        if (!pdfPreview) return;
-        const rect = pdfPreview.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-
-        // Recover the non-zoomed size from current dimensions.
-        basePreviewWidth = rect.width / zoom;
-        basePreviewHeight = rect.height / zoom;
-      }
-
-      function applyZoom() {
-        if (scaler) scaler.style.transform = 'none';
-        if (pdfPreview) {
-          pdfPreview.style.width = `${basePreviewWidth * zoom}px`;
-          pdfPreview.style.height = `${basePreviewHeight * zoom}px`;
+        // Check saved preference
+        if (localStorage.getItem('cv-studio-dark') === 'true') {
+          isDark = true;
+          app.classList.add('dark');
+          toggle.setAttribute('aria-checked', 'true');
         }
-        if (zoomLabel) zoomLabel.textContent = Math.round(zoom * 100) + '%';
-      }
 
-      if (zoomIn) zoomIn.addEventListener('click', () => { zoom = Math.min(2, zoom + 0.1); applyZoom(); });
-      if (zoomOut) zoomOut.addEventListener('click', () => { zoom = Math.max(0.4, zoom - 0.1); applyZoom(); });
+        toggle.addEventListener('click', () => {
+          isDark = !isDark;
+          app.classList.toggle('dark', isDark);
+          toggle.setAttribute('aria-checked', isDark.toString());
+          localStorage.setItem('cv-studio-dark', isDark);
+        });
 
-      if (pdfPreview) {
-        pdfPreview.addEventListener('load', () => {
+        // Char & line counter
+        const editor = document.getElementById('editor');
+        const charCount = document.getElementById('char-count');
+        const lineCount = document.getElementById('line-count');
+        const saveStatus = document.getElementById('save-status');
+        const statusLabel = saveStatus.querySelector('.status-label');
+
+        function updateStats() {
+          if (!editor || !charCount || !lineCount) return;
+          const val = editor.value;
+          charCount.textContent = val.length.toLocaleString('es') + ' caracteres';
+          lineCount.textContent = val.split('\n').length.toLocaleString('es') + ' líneas';
+        }
+
+        let saveTimer;
+        if (editor) {
+          editor.addEventListener('input', () => {
+            if (statusLabel) statusLabel.textContent = 'Editando…';
+            saveStatus.classList.add('unsaved');
+            updateStats();
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+              if (statusLabel) statusLabel.textContent = 'Guardado';
+              saveStatus.classList.remove('unsaved');
+            }, 1200);
+          });
+          updateStats();
+        }
+
+        // Zoom control
+        const zoomIn = document.getElementById('zoom-in');
+        const zoomOut = document.getElementById('zoom-out');
+        const zoomLabel = document.getElementById('zoom-label');
+        const scaler = document.getElementById('preview-scaler');
+        const pdfPreview = document.getElementById('pdf-preview');
+        let zoom = 1;
+        let basePreviewWidth = 595;
+        let basePreviewHeight = 842;
+
+        // Editor font size control
+        const FONT_SIZE_KEY = 'cv-studio-editor-font-size';
+        const fontSizeDecrease = document.getElementById('font-size-decrease');
+        const fontSizeIncrease = document.getElementById('font-size-increase');
+        const fontSizeLabel = document.getElementById('font-size-label');
+        let editorFontSize = Number(localStorage.getItem(FONT_SIZE_KEY) || '12.5');
+
+        function applyEditorFontSize() {
+          editorFontSize = Math.min(18, Math.max(10, editorFontSize));
+          if (editor) editor.style.fontSize = editorFontSize.toFixed(1).replace('.0', '') + 'px';
+          if (fontSizeLabel) fontSizeLabel.textContent = editorFontSize.toFixed(1).replace('.0', '') + 'px';
+          localStorage.setItem(FONT_SIZE_KEY, editorFontSize.toString());
+          window.dispatchEvent(new CustomEvent('cv-editor-font-size-changed', {
+            detail: { fontSize: editorFontSize }
+          }));
+        }
+
+        if (fontSizeIncrease) {
+          fontSizeIncrease.addEventListener('click', () => {
+            editorFontSize += 0.5;
+            applyEditorFontSize();
+          });
+        }
+
+        if (fontSizeDecrease) {
+          fontSizeDecrease.addEventListener('click', () => {
+            editorFontSize -= 0.5;
+            applyEditorFontSize();
+          });
+        }
+
+        applyEditorFontSize();
+
+        function refreshBasePreviewSize() {
+          if (!pdfPreview) return;
+          const rect = pdfPreview.getBoundingClientRect();
+          if (!rect.width || !rect.height) return;
+
+          // Recover the non-zoomed size from current dimensions.
+          basePreviewWidth = rect.width / zoom;
+          basePreviewHeight = rect.height / zoom;
+        }
+
+        function applyZoom() {
+          if (scaler) scaler.style.transform = 'none';
+          if (pdfPreview) {
+            pdfPreview.style.width = `${basePreviewWidth * zoom}px`;
+            pdfPreview.style.height = `${basePreviewHeight * zoom}px`;
+          }
+          if (zoomLabel) zoomLabel.textContent = Math.round(zoom * 100) + '%';
+        }
+
+        if (zoomIn) zoomIn.addEventListener('click', () => { zoom = Math.min(2, zoom + 0.1); applyZoom(); });
+        if (zoomOut) zoomOut.addEventListener('click', () => { zoom = Math.max(0.4, zoom - 0.1); applyZoom(); });
+
+        if (pdfPreview) {
+          pdfPreview.addEventListener('load', () => {
+            refreshBasePreviewSize();
+            applyZoom();
+          });
+        }
+
+        window.addEventListener('resize', () => {
           refreshBasePreviewSize();
           applyZoom();
         });
-      }
 
-      window.addEventListener('resize', () => {
         refreshBasePreviewSize();
         applyZoom();
-      });
-
-      refreshBasePreviewSize();
-      applyZoom();
-    })();
-  </script>
+      })();
+    </script>
   </div>
 </body>
 

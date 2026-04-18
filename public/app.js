@@ -29,6 +29,7 @@ const libraryCountTag = document.getElementById('library-count');
 const newCvNameInput = document.getElementById('new-cv-name');
 const newCvStatusSelect = document.getElementById('new-cv-status');
 const newCvDateInput = document.getElementById('new-cv-date');
+const newCvUrlInput = document.getElementById('new-cv-url');
 const newCvDescriptionInput = document.getElementById('new-cv-description');
 const confirmModal = document.getElementById('confirm-modal');
 const confirmTitle = document.getElementById('confirm-title');
@@ -543,6 +544,7 @@ function loadLibraryData() {
       ...cv,
       status: cv.status || (cv.space === 'Trabajo' ? 'Enviado' : 'Archivado'),
       description: cv.description || cv.space || '',
+      jobUrl: cv.jobUrl || '',
       lastUsedDate: cv.lastUsedDate || cv.date || new Date().toISOString()
     }));
   } catch (e) {
@@ -641,6 +643,10 @@ function renderLibrary() {
         </div>
       </div>
       
+      ${cv.jobUrl ? `<div class="cv-card-description" style="margin-bottom: 4px;"><a href="${cv.jobUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        Ver Oferta
+      </a></div>` : ''}
       ${cv.description ? `<div class="cv-card-description">${escapeHtml(cv.description)}</div>` : ''}
       
       <div class="cv-card-footer">
@@ -682,6 +688,12 @@ function renderLibrary() {
             <span class="edit-field-label">Fecha de envío</span>
             <input type="date" class="edit-field-input" data-field="lastUsedDate" value="${dateValue}">
           </div>
+          <div class="edit-field">
+            <span class="edit-field-label">URL del trabajo</span>
+            <input type="url" class="edit-field-input" data-field="jobUrl" value="${escapeHtml(cv.jobUrl || '')}" placeholder="https://...">
+          </div>
+        </div>
+        <div class="edit-row full-width">
           <div class="edit-field">
             <span class="edit-field-label">Empresa / Descripción</span>
             <input type="text" class="edit-field-input" data-field="description" value="${escapeHtml(cv.description || '')}">
@@ -748,6 +760,7 @@ function saveEditForm(id) {
   const statusInput = form.querySelector('[data-field="status"]');
   const dateInput = form.querySelector('[data-field="lastUsedDate"]');
   const descInput = form.querySelector('[data-field="description"]');
+  const urlInput = form.querySelector('[data-field="jobUrl"]');
 
   const newName = nameInput ? nameInput.value.trim() : cv.name;
   if (!newName) {
@@ -761,6 +774,7 @@ function saveEditForm(id) {
     ? new Date(dateInput.value).toISOString()
     : cv.lastUsedDate;
   cv.description = descInput ? descInput.value.trim() : cv.description;
+  cv.jobUrl = urlInput ? urlInput.value.trim() : cv.jobUrl;
 
   saveLibraryData();
   setStatus(`"${cv.name}" actualizado`);
@@ -770,6 +784,7 @@ function saveToLibrary() {
   const name = newCvNameInput.value.trim();
   const status = newCvStatusSelect.value;
   const description = newCvDescriptionInput.value.trim();
+  const jobUrl = newCvUrlInput.value.trim();
   const dateValue = newCvDateInput.value;
   const content = editor.value;
 
@@ -783,6 +798,7 @@ function saveToLibrary() {
     name,
     status,
     description,
+    jobUrl,
     lastUsedDate: dateValue ? new Date(dateValue).toISOString() : new Date().toISOString(),
     content,
     visualTemplate: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
@@ -795,6 +811,7 @@ function saveToLibrary() {
   // Limpiar campos
   newCvNameInput.value = '';
   newCvDescriptionInput.value = '';
+  newCvUrlInput.value = '';
   newCvDateInput.value = new Date().toISOString().split('T')[0];
   
   setStatus('Postulación guardada en la biblioteca');
