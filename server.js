@@ -62,7 +62,17 @@ function sendFile(response, filePath, contentType) {
     return sendJson(response, 404, { ok: false, error: 'File not found' });
   }
 
-  return sendText(response, 200, fs.readFileSync(filePath, 'utf8'), contentType);
+  const isBinary = contentType && (contentType.startsWith('image/') || contentType.startsWith('application/pdf'));
+  const content = fs.readFileSync(filePath);
+  
+  response.writeHead(200, {
+    'Content-Type': contentType,
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  });
+  
+  response.end(content);
 }
 
 function getTextFromOpenRouter(data) {
@@ -303,41 +313,16 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'OPTIONS') return sendJson(response, 204, {});
 
-  if (request.method === 'GET' && requestUrl.pathname === '/') {
-    return sendFile(response, path.join(PUBLIC_DIR, 'editor.html'), 'text/html; charset=utf-8');
-  }
-
-  if (request.method === 'GET' && requestUrl.pathname === '/app.js') {
-    return sendFile(response, path.join(PUBLIC_DIR, 'app.js'), 'application/javascript; charset=utf-8');
-  }
-
-  if (request.method === 'GET' && requestUrl.pathname === '/styles.css') {
-    return sendFile(response, path.join(PUBLIC_DIR, 'styles.css'), 'text/css; charset=utf-8');
-  }
-
-  if (request.method === 'GET' && requestUrl.pathname === '/favicon.ico') {
-    response.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    });
-    response.end();
-    return;
-  }
-
+  // API Routes
   if (request.method === 'GET' && requestUrl.pathname === '/api/cv') {
     const content = getEmbeddedCvContent(requestUrl.searchParams.get('file'));
-    if (!content) {
-      return sendJson(response, 404, { ok: false, error: 'CV content not found' });
-    }
-
+    if (!content) return sendJson(response, 404, { ok: false, error: 'CV content not found' });
     return sendText(response, 200, content, 'text/markdown; charset=utf-8');
   }
 
   if (request.method === 'GET' && requestUrl.pathname === '/ask') {
     return await handleAsk(requestUrl, response);
   }
-
 
   if (request.method === 'POST' && requestUrl.pathname === '/api/preview.pdf') {
     return await handlePreviewPdf(request, response);
@@ -351,6 +336,33 @@ const server = http.createServer(async (request, response) => {
     const result = createCvPdfResponse(response, requestUrl.searchParams.get('file'));
     if (!result.ok) sendJson(response, result.statusCode || 500, { ok: false, error: result.error });
     return;
+  }
+
+  // Static Files Server (public/)
+  if (request.method === 'GET') {
+    let pathname = requestUrl.pathname;
+    if (pathname === '/') pathname = 'editor.html';
+    
+    // Remove leading slash to prevent path.join from treating it as an absolute root path on Windows
+    const safePathname = pathname.replace(/^\/+/, '');
+    const filePath = path.join(PUBLIC_DIR, safePathname);
+    
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes = {
+        '.html': 'text/html; charset=utf-8',
+        '.js': 'application/javascript; charset=utf-8',
+        '.css': 'text/css; charset=utf-8',
+        '.ico': 'image/x-icon',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.svg': 'image/svg+xml',
+        '.json': 'application/json',
+        '.webmanifest': 'application/manifest+json'
+      };
+      
+      return sendFile(response, filePath, mimeTypes[ext] || 'application/octet-stream');
+    }
   }
 
   sendJson(response, 404, { ok: false, error: 'Not found' });
