@@ -1494,12 +1494,16 @@ body {
 
 /* ── CV card edit form ──────────────────────────────────────── */
 .cv-card-edit-form {
-  display: flex;
+  display: none; /* Oculto por defecto */
   flex-direction: column;
   gap: 8px;
   padding-top: 8px;
   border-top: 0.5px solid var(--border-soft);
   animation: fadeIn .2s var(--ease);
+}
+
+.cv-card.is-editing .cv-card-edit-form {
+  display: flex;
 }
 
 .cv-card-edit-form .edit-row {
