@@ -54,7 +54,8 @@
   --radius-xl: 16px;
 
   /* Typography */
-  --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', var(--font-sans);
   --font-serif: 'Newsreader', Georgia, serif;
   --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 
@@ -175,9 +176,10 @@ body {
 }
 
 .logo-text {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   color: var(--text-primary);
   transition: color var(--t-mid) var(--ease);
 }
@@ -396,17 +398,19 @@ body {
 }
 
 .panel-kicker {
+  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-tertiary);
   transition: color var(--t-mid) var(--ease);
 }
 
 .panel-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-primary);
   margin-top: 1px;
   letter-spacing: -0.01em;
@@ -433,7 +437,8 @@ body {
 }
 
 .selector-label {
-  font-size: 8.5px;
+  font-family: var(--font-display);
+  font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
   color: var(--text-tertiary);
@@ -1228,7 +1233,8 @@ body {
 }
 
 .modal-title {
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
 }
