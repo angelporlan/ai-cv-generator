@@ -15,6 +15,7 @@
 [hidden] {
   display: none !important;
 }
+
 :root {
   /* Backgrounds */
   --bg-primary: #ffffff;
@@ -132,7 +133,8 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
-  border: 0px solid transparent; /* Expands slightly on hover */
+  border: 0px solid transparent;
+  /* Expands slightly on hover */
   background-clip: content-box;
 }
 
@@ -226,6 +228,12 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.panel-header-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 /* ── Status pill ────────────────────────────────────────────── */
@@ -456,7 +464,6 @@ body {
 }
 
 .panel-inline-action {
-  margin-top: 7px;
   padding: 4px 9px;
   font-size: 11px;
 }
@@ -1325,6 +1332,7 @@ body {
 .dark .button-danger {
   background: #c92a2a;
 }
+
 .dark .button-danger:hover {
   background: #a61e1e;
 }
@@ -1399,7 +1407,8 @@ body {
   letter-spacing: 0.06em;
 }
 
-.modal-input, .modal-select {
+.modal-input,
+.modal-select {
   width: 100%;
   background: var(--bg-primary);
   border: 1px solid var(--border);
@@ -1413,7 +1422,8 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.modal-input:focus, .modal-select:focus {
+.modal-input:focus,
+.modal-select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--border-focus);
 }
@@ -1449,7 +1459,7 @@ body {
   gap: 7px;
 }
 
-.adapt-field > span {
+.adapt-field>span {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -1518,8 +1528,8 @@ body {
   outline: none;
   cursor: pointer;
   transition: border-color var(--t-fast) var(--ease),
-              box-shadow var(--t-fast) var(--ease),
-              background var(--t-fast) var(--ease);
+    box-shadow var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
 }
 
 .library-filter-select:focus {
@@ -1555,8 +1565,8 @@ body {
   color: var(--text-primary);
   outline: none;
   transition: border-color var(--t-fast) var(--ease),
-              box-shadow var(--t-fast) var(--ease),
-              background var(--t-fast) var(--ease);
+    box-shadow var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
 }
 
 .library-search-input::placeholder {
@@ -1577,7 +1587,8 @@ body {
 
 /* ── CV card edit form ──────────────────────────────────────── */
 .cv-card-edit-form {
-  display: none; /* Oculto por defecto */
+  display: none;
+  /* Oculto por defecto */
   flex-direction: column;
   gap: 8px;
   padding-top: 8px;
@@ -1665,7 +1676,7 @@ body {
   border: 1px dashed var(--border-soft);
   border-radius: var(--radius-xl);
   background: var(--bg-primary);
-  box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .cv-card {
@@ -1680,13 +1691,15 @@ body {
   cursor: default;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .cv-card::after {
   content: "";
   position: absolute;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 4px;
   background: linear-gradient(90deg, var(--accent), #7f77dd);
   opacity: 0;
@@ -1695,7 +1708,7 @@ body {
 
 .cv-card:hover {
   border-color: var(--border);
-  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.08), 0 4px 12px -4px rgba(0,0,0,0.04);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.08), 0 4px 12px -4px rgba(0, 0, 0, 0.04);
   transform: translateY(-4px);
 }
 
@@ -1706,7 +1719,7 @@ body {
 .dark .cv-card {
   background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .dark .cv-card:hover {
@@ -1771,20 +1784,58 @@ body {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
 }
 
-.status-enviado { background: var(--accent-light); color: var(--accent-text); }
-.status-entrevista { background: #fff4e6; color: #d9480f; }
-.status-prueba { background: #f3f0ff; color: #5f3dc4; }
-.status-aceptado { background: #ebfbee; color: #087f5b; }
-.status-rechazado { background: #fff5f5; color: #c92a2a; }
-.status-archivado { background: var(--bg-tertiary); color: var(--text-secondary); }
+.status-enviado {
+  background: var(--accent-light);
+  color: var(--accent-text);
+}
 
-.dark .status-entrevista { background: rgba(217, 72, 15, 0.15); color: #ffa94d; }
-.dark .status-prueba { background: rgba(95, 61, 196, 0.15); color: #d0bfff; }
-.dark .status-aceptado { background: rgba(8, 127, 91, 0.15); color: #63e6be; }
-.dark .status-rechazado { background: rgba(201, 42, 42, 0.15); color: #ff8787; }
+.status-entrevista {
+  background: #fff4e6;
+  color: #d9480f;
+}
+
+.status-prueba {
+  background: #f3f0ff;
+  color: #5f3dc4;
+}
+
+.status-aceptado {
+  background: #ebfbee;
+  color: #087f5b;
+}
+
+.status-rechazado {
+  background: #fff5f5;
+  color: #c92a2a;
+}
+
+.status-archivado {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.dark .status-entrevista {
+  background: rgba(217, 72, 15, 0.15);
+  color: #ffa94d;
+}
+
+.dark .status-prueba {
+  background: rgba(95, 61, 196, 0.15);
+  color: #d0bfff;
+}
+
+.dark .status-aceptado {
+  background: rgba(8, 127, 91, 0.15);
+  color: #63e6be;
+}
+
+.dark .status-rechazado {
+  background: rgba(201, 42, 42, 0.15);
+  color: #ff8787;
+}
 
 .cv-card-actions {
   display: flex;
@@ -1911,7 +1962,9 @@ body {
     justify-content: center;
   }
 
-}@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+}
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 
 /* ATS Score Widget */
 .ats-score-badge {
@@ -1921,14 +1974,14 @@ body {
   background: rgba(var(--accent-rgb, 10, 10, 10), 0.04);
   padding: 4px 12px 4px 8px;
   border-radius: 99px;
-  border: 1px solid rgba(0,0,0,0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   margin-left: 12px;
   transition: all 0.3s ease;
 }
 
 .dark .ats-score-badge {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .ats-score-circle {
@@ -1948,17 +2001,18 @@ body {
 
 .circle-bg {
   fill: none;
-  stroke: rgba(0,0,0,0.05);
+  stroke: rgba(0, 0, 0, 0.05);
   stroke-width: 3.5;
 }
 
 .dark .circle-bg {
-  stroke: rgba(255,255,255,0.1);
+  stroke: rgba(255, 255, 255, 0.1);
 }
 
 .circle {
   fill: none;
-  stroke: #10b981; /* Success green */
+  stroke: #10b981;
+  /* Success green */
   stroke-width: 3.5;
   stroke-linecap: round;
   transition: stroke-dasharray 0.8s ease;
@@ -2006,6 +2060,7 @@ body {
 .library-kanban::-webkit-scrollbar {
   height: 6px;
 }
+
 .library-kanban::-webkit-scrollbar-thumb {
   background-color: var(--border-hover);
   border-radius: 4px;
@@ -2074,15 +2129,18 @@ body {
 }
 
 .library-kanban .status-badge {
-  display: none; /* Hide status badge in kanban since column dictates status */
+  display: none;
+  /* Hide status badge in kanban since column dictates status */
 }
 
 .library-kanban .cv-card-actions {
-  display: none; /* Simplify card in Kanban */
+  display: none;
+  /* Simplify card in Kanban */
 }
 
 .library-kanban .cv-card:hover .cv-card-actions {
-  display: flex; /* Show actions on hover */
+  display: flex;
+  /* Show actions on hover */
   margin-top: 12px;
 }
 
@@ -2095,7 +2153,7 @@ body {
 .kanban-drag {
   opacity: 1 !important;
   transform: rotate(2deg);
-  box-shadow: 0 12px 24px -6px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.2) !important;
   cursor: grabbing !important;
 }
 
