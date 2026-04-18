@@ -578,11 +578,13 @@ function saveLibraryData() {
 }
 
 let librarySearchTerm = '';
+let libraryStatusFilter = 'all';
 
-function renderLibrary(filterOverride) {
+function renderLibrary() {
   if (!libraryCountTag || !libraryItemsContainer) return;
   
-  const filter = typeof filterOverride === 'string' ? filterOverride : librarySearchTerm;
+  const filter = librarySearchTerm;
+  const statusFilter = libraryStatusFilter;
   
   libraryCountTag.textContent = `${libraryData.length} CV${libraryData.length !== 1 ? 's' : ''}`;
   
@@ -597,18 +599,20 @@ function renderLibrary(filterOverride) {
 
   // Filtrar
   const normalizedFilter = filter.toLowerCase().trim();
-  const filtered = normalizedFilter
-    ? libraryData.filter(cv =>
-        (cv.name || '').toLowerCase().includes(normalizedFilter) ||
-        (cv.description || '').toLowerCase().includes(normalizedFilter) ||
-        (cv.status || '').toLowerCase().includes(normalizedFilter)
-      )
-    : libraryData;
+  const filtered = libraryData.filter(cv => {
+    const matchesText = !normalizedFilter || 
+      (cv.name || '').toLowerCase().includes(normalizedFilter) ||
+      (cv.description || '').toLowerCase().includes(normalizedFilter);
+    
+    const matchesStatus = statusFilter === 'all' || cv.status === statusFilter;
+    
+    return matchesText && matchesStatus;
+  });
 
   if (filtered.length === 0) {
     libraryItemsContainer.innerHTML = `
       <div class="no-results-message">
-        <p>No se encontraron resultados para "<strong>${escapeHtml(filter)}</strong>"</p>
+        <p>No se encontraron resultados para los filtros aplicados.</p>
       </div>
     `;
     return;
@@ -846,8 +850,11 @@ function closeLibrary() {
   libraryModal.classList.remove('active');
   // Reset search
   librarySearchTerm = '';
+  libraryStatusFilter = 'all';
   const searchInput = document.getElementById('library-search');
   if (searchInput) searchInput.value = '';
+  const statusFilter = document.getElementById('library-status-filter');
+  if (statusFilter) statusFilter.value = 'all';
 }
 
 function getStoredLibraryEntries() {
@@ -1634,6 +1641,14 @@ const librarySearchInput = document.getElementById('library-search');
 if (librarySearchInput) {
   librarySearchInput.addEventListener('input', () => {
     librarySearchTerm = librarySearchInput.value;
+    renderLibrary();
+  });
+}
+
+const libraryStatusFilterSelect = document.getElementById('library-status-filter');
+if (libraryStatusFilterSelect) {
+  libraryStatusFilterSelect.addEventListener('change', () => {
+    libraryStatusFilter = libraryStatusFilterSelect.value;
     renderLibrary();
   });
 }

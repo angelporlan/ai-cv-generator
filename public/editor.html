@@ -293,9 +293,22 @@
               <h3>Mis Postulaciones</h3>
               <span id="library-count" class="count-tag">0 CVs</span>
             </div>
-            <div class="library-search-wrapper">
-              <svg class="library-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <input type="text" id="library-search" class="library-search-input" placeholder="Buscar por nombre, empresa o estado…" autocomplete="off">
+            <div class="library-controls">
+              <div class="library-search-wrapper">
+                <svg class="library-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="library-search" class="library-search-input" placeholder="Buscar por nombre, empresa..." autocomplete="off">
+              </div>
+              <div class="library-filter-wrapper">
+                <select id="library-status-filter" class="library-filter-select">
+                  <option value="all">Todos los estados</option>
+                  <option value="Enviado">Enviado</option>
+                  <option value="Entrevista">Primera Entrevista</option>
+                  <option value="Prueba Técnica">Prueba Técnica</option>
+                  <option value="Aceptado">Oferta Recibida</option>
+                  <option value="Rechazado">Rechazado</option>
+                  <option value="Archivado">Archivado</option>
+                </select>
+              </div>
             </div>
             <div id="library-items" class="library-grid">
               <!-- Items injected by JS -->

@@ -1440,9 +1440,43 @@ body {
 }
 
 /* ── Library search ─────────────────────────────────────────── */
+.library-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
 .library-search-wrapper {
   position: relative;
-  margin-bottom: 14px;
+  flex: 1;
+}
+
+.library-filter-wrapper {
+  flex-shrink: 0;
+  min-width: 160px;
+}
+
+.library-filter-select {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease),
+              background var(--t-fast) var(--ease);
+}
+
+.library-filter-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--border-focus);
+  background: var(--bg-primary);
 }
 
 .library-search-icon {
