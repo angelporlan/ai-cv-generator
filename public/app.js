@@ -1913,12 +1913,9 @@ if (toggleIconsBtn) {
     toggleIconsBtn.classList.toggle('active', showIcons);
     toggleIconsBtn.setAttribute('aria-checked', String(showIcons));
     
-    // Sincronizar previsualización HTML
-    renderPreview(editor.value);
-    
-    // Programar actualización del PDF (igual que al escribir texto)
+    // Actualizar el PDF inmediatamente al cambiar iconos
     setStatus(showIcons ? 'Iconos activados' : 'Iconos desactivados');
-    schedulePreviewUpdate();
+    updatePdfPreview();
   });
 }
 
