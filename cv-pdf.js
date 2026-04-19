@@ -68,6 +68,34 @@ function normalizeLine(line) {
   return line.replace(/\r/g, '').trimEnd();
 }
 
+const SVG_ICONS = {
+  linkedIn: 'M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z',
+  github: 'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12',
+  web: 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z',
+  email: 'M0 3v18h24v-18h-24zm6.623 7.929l-4.623 5.712v-9.458l4.623 3.746zm-4.141-5.929h19.035l-9.517 7.713-9.518-7.713zm5.694 7.188l3.824 3.099 3.83-3.104 5.612 8.817h-18.779l5.513-8.812zm9.208-1.264l4.616-3.741v9.348l-4.616-5.607z',
+  phone: 'M20 15.5c-1.25 0-2.45-.2-3.57-.57-.35-.11-.75-.03-1.02.24l-2.2 2.2c-2.83-1.44-5.15-3.75-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C8.7 6.45 8.5 5.25 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z',
+  location: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'
+};
+
+function getIconType(label, value = '') {
+  const nl = label.toLowerCase();
+  const nv = value.toLowerCase();
+  if (nl.includes('linkedin')) return 'linkedIn';
+  if (nl.includes('github')) return 'github';
+  if (nl.includes('portfolio') || nl.includes('web') || nv.includes('http')) return 'web';
+  if (nl.includes('phone') || nl.includes('teléfono') || /^\+?[0-9\s-]{7,}$/.test(nv)) return 'phone';
+  if (nl.includes('email') || nl.includes('correo') || nv.includes('@')) return 'email';
+  if (nl.includes('location') || nl.includes('ubicación')) return 'location';
+  return null;
+}
+
+function drawIcon(doc, type, x, y, size, color = '#000000') {
+  const p = SVG_ICONS[type];
+  if (!p) return false;
+  doc.save().translate(x, y).scale(size / 24).path(p).fill(color).restore();
+  return true;
+}
+
 function cleanMarkdownInline(text) {
   return text
     .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -320,31 +348,55 @@ function drawEntry(doc, entry, layout) {
   doc.moveDown(layout.entryGap);
 }
 
-function drawContactLines(doc, contact, layout) {
+function drawContactLines(doc, contact, layout, showIcons = true) {
   if (!contact.length) {
     return;
   }
 
-  // Usamos el separador clásico · con buenos espacios
   const sep = '   ·   ';
-  const firstLine = contact.slice(0, 3).map((item) => `${item.label}: ${item.value}`).join(sep);
-  const secondLine = contact.slice(3).map((item) => `${item.label}: ${item.value}`).join(sep);
+  const iconSize = layout.contactSize * 0.9;
+  const iconGap = 3;
+
+  const renderLine = (items, y) => {
+    let totalWidth = 0;
+    const itemData = items.map((item, i) => {
+      const text = `${item.label}: ${item.value}`;
+      const textWidth = doc.widthOfString(text);
+      const iconType = showIcons ? getIconType(item.label, item.value) : null;
+      const iconWidth = iconType ? iconSize + iconGap : 0;
+      const sepWidth = (i < items.length - 1) ? doc.widthOfString(sep) : 0;
+      totalWidth += iconWidth + textWidth + sepWidth;
+      return { text, textWidth, iconType, iconWidth, sepWidth };
+    });
+
+    let currentX = PAGE_MARGIN + (CONTENT_WIDTH - totalWidth) / 2;
+    itemData.forEach((data) => {
+      if (data.iconType) {
+        drawIcon(doc, data.iconType, currentX, y - 0.5, iconSize, COLORS.muted);
+        currentX += data.iconWidth;
+      }
+      doc.text(data.text, currentX, y, { lineBreak: false });
+      currentX += data.textWidth;
+      if (data.sepWidth > 0) {
+        doc.text(sep, currentX, y, { lineBreak: false });
+        currentX += data.sepWidth;
+      }
+    });
+  };
 
   doc.font('Helvetica')
     .fontSize(layout.contactSize)
-    .fillColor(COLORS.muted)
-    .text(firstLine, PAGE_MARGIN, doc.y, {
-      width: CONTENT_WIDTH,
-      align: 'center',
-      lineGap: 1.5
-    });
+    .fillColor(COLORS.muted);
 
-  if (secondLine) {
-    doc.text(secondLine, PAGE_MARGIN, doc.y + 1, {
-      width: CONTENT_WIDTH,
-      align: 'center',
-      lineGap: 1.5
-    });
+  const firstLineItems = contact.slice(0, 3);
+  renderLine(firstLineItems, doc.y);
+  doc.y += layout.contactSize;
+
+  if (contact.length > 3) {
+    doc.y += 2.5; // Margen entre líneas de contacto
+    const secondLineItems = contact.slice(3);
+    renderLine(secondLineItems, doc.y);
+    doc.y += layout.contactSize;
   }
 }
 
@@ -395,7 +447,7 @@ function drawSkillsSection(doc, section, layout) {
   }
 }
 
-function renderCvPdf(doc, cv, layout) {
+function renderCvPdf(doc, cv, layout, showIcons = true) {
   // Existing Harvard rendering remains here...
   doc.info.Title = `CV - ${cv.name}`;
   doc.info.Author = cv.name;
@@ -412,16 +464,16 @@ function renderCvPdf(doc, cv, layout) {
     });
 
   doc.moveDown(0.2);
-  drawContactLines(doc, cv.contact, layout);
+  drawContactLines(doc, cv.contact, layout, showIcons);
 
-  const headerRuleY = doc.y + 6;
+  const headerRuleY = doc.y + 12; // Añadido más margen antes de la raya
   doc.moveTo(PAGE_MARGIN, headerRuleY)
     .lineTo(PAGE_MARGIN + CONTENT_WIDTH, headerRuleY)
     .strokeColor(COLORS.accent)
     .lineWidth(0.8)
     .stroke();
 
-  doc.y = headerRuleY + 6;
+  doc.y = headerRuleY + 10; // Añadido más margen después de la raya
 
   for (const section of cv.sections) {
     if (section.title.toLowerCase() === 'skills' || section.title.toLowerCase() === 'habilidades') {
@@ -445,7 +497,7 @@ function renderCvPdf(doc, cv, layout) {
   }
 }
 
-function renderModernCvPdf(doc, cv, scale = 1) {
+function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
   const { sidebarWidth, sidebarColor, sidebarPadding, mainPadding, sidebarTextColor, sidebarMutedColor, accentColor, lineColor } = MODERN_CONFIG;
   const pageHeight = doc.page.height;
   const pageWidth = doc.page.width;
@@ -486,12 +538,26 @@ function renderModernCvPdf(doc, cv, scale = 1) {
   };
 
   // Draw Contact in Sidebar first if available
-  if (cv.contact && cv.contact.length > 0) {
+    if (cv.contact && cv.contact.length > 0) {
     drawSidebarHeading('Contacto');
     doc.font('Helvetica').fontSize(8.5 * scale).fillColor(sidebarTextColor);
     for (const info of cv.contact) {
-      const contactText = typeof info === 'string' ? info : `${info.label}: ${info.value}`;
-      doc.text(contactText, sidebarPadding, currentY, { width: sidebarWidth - sidebarPadding * 2, lineGap: 2 });
+      const label = info.label || '';
+      const value = info.value || '';
+      const iconType = showIcons ? getIconType(label, value) : null;
+      const iconSize = 8.5 * scale;
+      
+      let textX = sidebarPadding;
+      if (iconType) {
+        drawIcon(doc, iconType, sidebarPadding, currentY + 1, iconSize, sidebarTextColor);
+        textX += iconSize + 5;
+      }
+      
+      const contactText = `${label}: ${value}`;
+      doc.text(contactText, textX, currentY, { 
+        width: sidebarWidth - sidebarPadding - textX + sidebarPadding, 
+        lineGap: 2 
+      });
       currentY = doc.y + 4;
     }
     currentY += 15;
@@ -650,9 +716,9 @@ function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
   doc.pipe(response);
   
   if (templateType === 'modern') {
-    renderModernCvPdf(doc, cv, fontScale);
+    renderModernCvPdf(doc, cv, fontScale, options.showIcons !== false);
   } else {
-    renderCvPdf(doc, cv, layout);
+    renderCvPdf(doc, cv, layout, options.showIcons !== false);
   }
   doc.end();
 }

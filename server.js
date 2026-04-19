@@ -247,9 +247,10 @@ async function handlePreviewPdf(request, response) {
   const download = body.download !== false;
   const requestedFontSize = Number(body.fontSize);
   const fontSize = Number.isFinite(requestedFontSize) ? requestedFontSize : undefined;
+  const showIcons = body.showIcons !== false;
 
   try {
-    createPdfDocumentFromMarkdown(markdown, response, { download, template, fontSize });
+    createPdfDocumentFromMarkdown(markdown, response, { download, template, fontSize, showIcons });
   } catch (err) {
     console.error('[preview-pdf] EXCEPTION:', err);
     sendJson(response, 500, { ok: false, error: err.message });

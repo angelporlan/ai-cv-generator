@@ -61,6 +61,7 @@ const REFERENCE_MODE_STORAGE_KEY = 'cv-studio-reference-mode';
 const WORKSPACE_SPLIT_STORAGE_KEY = 'cv-studio-workspace-split';
 
 let currentReferenceMode = localStorage.getItem(REFERENCE_MODE_STORAGE_KEY) === 'visual' ? 'visual' : 'markdown';
+let showIcons = localStorage.getItem('cv-studio-show-icons') !== 'false';
 
 function setReferenceToggleButton(isOpen) {
   if (!toggleReferenceButton) return;
@@ -157,6 +158,55 @@ function escapeHtml(value) {
 
 function toSafeText(value) {
   return typeof value === 'string' ? value : '';
+}
+
+const ICON_MAP = {
+  linkedIn: 'fa-brands fa-linkedin',
+  github: 'fa-brands fa-github',
+  portfolio: 'fa-solid fa-globe',
+  web: 'fa-solid fa-globe',
+  website: 'fa-solid fa-globe',
+  phone: 'fa-solid fa-phone',
+  teléfono: 'fa-solid fa-phone',
+  email: 'fa-solid fa-envelope',
+  correo: 'fa-solid fa-envelope',
+  location: 'fa-solid fa-location-dot',
+  ubicación: 'fa-solid fa-location-dot',
+  dirección: 'fa-solid fa-location-dot',
+  twitter: 'fa-brands fa-twitter',
+  x: 'fa-brands fa-x-twitter',
+  instagram: 'fa-brands fa-instagram',
+  facebook: 'fa-brands fa-facebook',
+  stackoverflow: 'fa-brands fa-stack-overflow',
+  youtube: 'fa-brands fa-youtube',
+  behance: 'fa-brands fa-behance',
+  dribbble: 'fa-brands fa-dribbble'
+};
+
+function getIconForLabel(label, value = '') {
+  const normalizedLabel = label.toLowerCase().trim();
+  const normalizedValue = value.toLowerCase().trim();
+  
+  // 1. Check by label
+  for (const [key, icon] of Object.entries(ICON_MAP)) {
+    if (normalizedLabel.includes(key.toLowerCase())) {
+      return `<i class="${icon}"></i>`;
+    }
+  }
+  
+  // 2. Check by value (URLs)
+  if (normalizedValue.includes('linkedin.com')) return `<i class="${ICON_MAP.linkedIn}"></i>`;
+  if (normalizedValue.includes('github.com')) return `<i class="${ICON_MAP.github}"></i>`;
+  if (normalizedValue.includes('twitter.com')) return `<i class="${ICON_MAP.twitter}"></i>`;
+  if (normalizedValue.includes('x.com')) return `<i class="${ICON_MAP.x}"></i>`;
+  if (normalizedValue.includes('instagram.com')) return `<i class="${ICON_MAP.instagram}"></i>`;
+  if (normalizedValue.includes('facebook.com')) return `<i class="${ICON_MAP.facebook}"></i>`;
+  
+  // 3. Guess by content
+  if (normalizedValue.includes('@')) return `<i class="${ICON_MAP.email}"></i>`;
+  if (/^\+?[0-9\s-]{7,}$/.test(normalizedValue)) return `<i class="${ICON_MAP.phone}"></i>`;
+  
+  return '';
 }
 
 function renderInlineMarkdown(text, strip = false) {
@@ -472,7 +522,12 @@ function renderPreview(markdown) {
     <header>
       <h1>${renderInlineMarkdown(data.title)}</h1>
       <div class="preview-contact">
-        ${data.contacts.map((contact) => `<span>${renderInlineMarkdown(contact.label)}: ${renderInlineMarkdown(contact.value)}</span>`).join('')}
+        ${data.contacts.map((contact) => `
+          <span>
+            ${showIcons ? getIconForLabel(contact.label, contact.value) : ''}
+            ${renderInlineMarkdown(contact.label)}: ${renderInlineMarkdown(contact.value)}
+          </span>
+        `).join('')}
       </div>
     </header>
     ${sectionsHtml || '<p class="empty-state">Empieza a escribir tu CV en markdown para verlo aquí.</p>'}
@@ -514,7 +569,8 @@ async function updatePdfPreview() {
         markdown, 
         download: false,
         template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
-        fontSize
+        fontSize,
+        showIcons
       })
     });
 
@@ -1618,7 +1674,8 @@ async function downloadPdf() {
       markdown: editor.value,
       download: true,
       template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
-      fontSize
+      fontSize,
+      showIcons
     })
   });
 
@@ -1842,6 +1899,27 @@ if (adaptCvModal) {
 
 if (adaptSubmitButton) {
   adaptSubmitButton.addEventListener('click', adaptCvWithAi);
+}
+
+const toggleIconsBtn = document.getElementById('toggle-icons-btn');
+if (toggleIconsBtn) {
+  // Sync initial state
+  toggleIconsBtn.classList.toggle('active', showIcons);
+  toggleIconsBtn.setAttribute('aria-checked', String(showIcons));
+  
+  toggleIconsBtn.addEventListener('click', () => {
+    showIcons = !showIcons;
+    localStorage.setItem('cv-studio-show-icons', String(showIcons));
+    toggleIconsBtn.classList.toggle('active', showIcons);
+    toggleIconsBtn.setAttribute('aria-checked', String(showIcons));
+    
+    // Sincronizar previsualización HTML
+    renderPreview(editor.value);
+    
+    // Programar actualización del PDF (igual que al escribir texto)
+    setStatus(showIcons ? 'Iconos activados' : 'Iconos desactivados');
+    schedulePreviewUpdate();
+  });
 }
 
 if (adaptJobDescription) {

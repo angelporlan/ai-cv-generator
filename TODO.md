@@ -12,7 +12,7 @@ Este archivo sirve para seguir el progreso de las nuevas funcionalidades premium
 - [ ] **Nuevas Plantillas Visuales:** Diseños "Minimal", "Creative" y "Swiss".
 - [ ] **Personalización en Vivo:** Selector de colores de acento, tipografías y márgenes.
 - [ ] **Fondo Mesh Gradient:** Fondo dinámico y moderno para el workspace.
-- [ ] **Iconos Automáticos:** Detección de RRSS y portafolios con iconos de marca.
+- [x] **Iconos Automáticos:** Detección de RRSS y portafolios con iconos de marca.
 
 ## 🛠️ Fase 3: Utilidades y Productividad
 - [x] **Tablero Kanban de Candidaturas:** Vista de seguimiento para el proceso de búsqueda.
