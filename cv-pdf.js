@@ -667,6 +667,504 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MINIMAL TEMPLATE
+// ═══════════════════════════════════════════════════════════════════
+
+const MINIMAL_CONFIG = {
+  marginTop: 55,
+  marginSide: 60,
+  nameColor: '#2d2d2d',
+  textColor: '#3a3a3a',
+  mutedColor: '#888888',
+  ruleColor: '#e0e0e0',
+  accentColor: '#555555'
+};
+
+function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
+  const cfg = MINIMAL_CONFIG;
+  const pageWidth = doc.page.width;
+  const contentWidth = pageWidth - cfg.marginSide * 2;
+  const fs = (size) => size * scale;
+  let y = cfg.marginTop;
+
+  doc.info.Title = `CV - ${cv.name}`;
+  doc.info.Author = cv.name;
+
+  // ── Name ──
+  doc.font('Helvetica').fontSize(fs(22)).fillColor(cfg.nameColor)
+    .text(cv.name, cfg.marginSide, y, { width: contentWidth, align: 'center' });
+  y = doc.y + 8;
+
+  // ── Contact line ──
+  if (cv.contact.length) {
+    doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.mutedColor);
+    const parts = cv.contact.map(c => {
+      const iconType = showIcons ? getIconType(c.label, c.value) : null;
+      return `${c.label}: ${c.value}`;
+    });
+    doc.text(parts.join('  |  '), cfg.marginSide, y, { width: contentWidth, align: 'center', lineGap: 2 });
+    y = doc.y + 6;
+
+    // Icons row (drawn on top)
+    if (showIcons) {
+      const iconSize = fs(8);
+      doc.font('Helvetica').fontSize(fs(8.5));
+      const fullText = parts.join('  |  ');
+      const totalWidth = doc.widthOfString(fullText);
+      let iconX = cfg.marginSide + (contentWidth - totalWidth) / 2;
+      for (const c of cv.contact) {
+        const iconType = getIconType(c.label, c.value);
+        const itemText = `${c.label}: ${c.value}`;
+        const itemWidth = doc.widthOfString(itemText);
+        if (iconType) {
+          drawIcon(doc, iconType, iconX - iconSize - 3, y - doc.currentLineHeight() - 5, iconSize, cfg.mutedColor);
+        }
+        iconX += itemWidth + doc.widthOfString('  |  ');
+      }
+    }
+  }
+
+  // ── Thin separator ──
+  y += 10;
+  doc.moveTo(cfg.marginSide + contentWidth * 0.3, y)
+    .lineTo(cfg.marginSide + contentWidth * 0.7, y)
+    .strokeColor(cfg.ruleColor).lineWidth(0.5).stroke();
+  y += 18;
+
+  // ── Sections ──
+  for (const section of cv.sections) {
+    // Section title
+    doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor(cfg.accentColor)
+      .text(section.title.toUpperCase(), cfg.marginSide, y, {
+        width: contentWidth, characterSpacing: 1.5
+      });
+    y = doc.y + 3;
+    doc.moveTo(cfg.marginSide, y).lineTo(cfg.marginSide + contentWidth, y)
+      .strokeColor(cfg.ruleColor).lineWidth(0.3).stroke();
+    y += 8;
+
+    // Paragraphs
+    for (const p of section.paragraphs || []) {
+      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.textColor)
+        .text(p, cfg.marginSide, y, { width: contentWidth, lineGap: 2, align: 'justify' });
+      y = doc.y + 5;
+    }
+
+    // Entries
+    for (const entry of section.entries || []) {
+      const entryY = y;
+      doc.font('Helvetica-Bold').fontSize(fs(9.5)).fillColor(cfg.nameColor)
+        .text(entry.heading, cfg.marginSide, entryY, { width: contentWidth * 0.7 });
+      if (entry.date) {
+        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.mutedColor)
+          .text(entry.date, cfg.marginSide, entryY, { width: contentWidth, align: 'right' });
+      }
+      y = doc.y + 1;
+      if (entry.subheading) {
+        doc.font('Helvetica-Oblique').fontSize(fs(8.5)).fillColor(cfg.textColor)
+          .text(entry.subheading, cfg.marginSide, y);
+        y = doc.y + 2;
+      }
+      for (const p of entry.paragraphs || []) {
+        doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.textColor)
+          .text(p, cfg.marginSide, y, { width: contentWidth, lineGap: 1.5 });
+        y = doc.y + 3;
+      }
+      for (const b of entry.bullets || []) {
+        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.textColor)
+          .text('–  ' + b, cfg.marginSide + 12, y, { width: contentWidth - 12, lineGap: 1.5 });
+        y = doc.y + 2;
+      }
+      y += 6;
+    }
+
+    // Skills (list items with colon splitting)
+    const isSkills = section.title.toLowerCase() === 'skills' || section.title.toLowerCase() === 'habilidades';
+    if (isSkills) {
+      const items = [...(section.paragraphs || []), ...(section.bullets || [])];
+      for (const item of items) {
+        const colonIdx = item.indexOf(':');
+        if (colonIdx !== -1) {
+          const label = item.substring(0, colonIdx).trim();
+          const value = item.substring(colonIdx + 1).trim();
+          doc.font('Helvetica-Bold').fontSize(fs(8.5)).fillColor(cfg.accentColor)
+            .text(label + ': ', cfg.marginSide, y, { continued: true, width: contentWidth });
+          doc.font('Helvetica').fillColor(cfg.textColor).text(value, { width: contentWidth, lineGap: 1.5 });
+        } else {
+          doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.textColor)
+            .text(item, cfg.marginSide, y, { width: contentWidth, lineGap: 1.5 });
+        }
+        y = doc.y + 2;
+      }
+    }
+
+    // General bullets
+    if (!isSkills) {
+      for (const b of section.bullets || []) {
+        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.textColor)
+          .text('–  ' + b, cfg.marginSide + 12, y, { width: contentWidth - 12, lineGap: 1.5 });
+        y = doc.y + 2;
+      }
+    }
+
+    y += 10;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CREATIVE TEMPLATE
+// ═══════════════════════════════════════════════════════════════════
+
+const CREATIVE_CONFIG = {
+  sidebarWidth: 170,
+  sidebarColorTop: '#6C3483',
+  sidebarColorBottom: '#C2185B',
+  accentColor: '#8E24AA',
+  sidebarPadding: 18,
+  mainPadding: 28,
+  sidebarTextColor: '#ffffff',
+  sidebarMutedColor: '#e0c8f0',
+  mainTextColor: '#333333',
+  mainMutedColor: '#777777',
+  lineColor: '#eeeeee'
+};
+
+function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
+  const cfg = CREATIVE_CONFIG;
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+  const mainX = cfg.mainPadding;
+  const mainWidth = pageWidth - cfg.sidebarWidth - cfg.mainPadding * 2;
+  const sideX = pageWidth - cfg.sidebarWidth;
+  const sideContentX = sideX + cfg.sidebarPadding;
+  const sideContentWidth = cfg.sidebarWidth - cfg.sidebarPadding * 2;
+  const fs = (size) => size * scale;
+
+  doc.info.Title = `CV - ${cv.name}`;
+  doc.info.Author = cv.name;
+
+  // ── Sidebar gradient background ──
+  const gradient = doc.linearGradient(sideX, 0, sideX, pageHeight);
+  gradient.stop(0, cfg.sidebarColorTop).stop(1, cfg.sidebarColorBottom);
+  doc.rect(sideX, 0, cfg.sidebarWidth, pageHeight).fill(gradient);
+
+  // ── Sidebar content ──
+  let sideY = 40;
+
+  const drawSidebarHeading = (title) => {
+    doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor(cfg.sidebarTextColor)
+      .text(title.toUpperCase(), sideContentX, sideY, { width: sideContentWidth, characterSpacing: 0.8 });
+    sideY = doc.y + 4;
+    doc.moveTo(sideContentX, sideY)
+      .lineTo(sideContentX + sideContentWidth, sideY)
+      .strokeColor('rgba(255,255,255,0.3)').lineWidth(0.5).stroke();
+    sideY += 8;
+  };
+
+  // Contact in sidebar
+  if (cv.contact && cv.contact.length) {
+    drawSidebarHeading('Contacto');
+    doc.font('Helvetica').fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
+    for (const info of cv.contact) {
+      const iconType = showIcons ? getIconType(info.label, info.value) : null;
+      const iconSize = fs(8);
+      let textX = sideContentX;
+      if (iconType) {
+        drawIcon(doc, iconType, sideContentX, sideY + 1, iconSize, cfg.sidebarTextColor);
+        textX += iconSize + 5;
+      }
+      doc.text(`${info.label}: ${info.value}`, textX, sideY, {
+        width: sideContentWidth - (textX - sideContentX), lineGap: 2
+      });
+      sideY = doc.y + 4;
+    }
+    sideY += 12;
+  }
+
+  // Sidebar sections (skills, languages)
+  const sidebarTitles = ['skills', 'habilidades', 'idiomas', 'languages', 'aptitudes', 'competencias'];
+  const sidebarSections = [];
+  const mainSections = [];
+  for (const section of cv.sections) {
+    if (sidebarTitles.includes(section.title.toLowerCase())) {
+      sidebarSections.push(section);
+    } else {
+      mainSections.push(section);
+    }
+  }
+
+  for (const section of sidebarSections) {
+    drawSidebarHeading(section.title);
+    doc.font('Helvetica').fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
+    const items = [...(section.paragraphs || []), ...(section.bullets || [])];
+    for (const item of items) {
+      doc.font('Helvetica').fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
+      doc.text('● ' + item, sideContentX + 2, sideY, {
+        width: sideContentWidth - 4, lineGap: 2
+      });
+      sideY = doc.y + 3;
+    }
+    sideY += 12;
+  }
+
+  // ── Main content ──
+  let y = 40;
+
+  // Name with accent color
+  doc.font('Helvetica-Bold').fontSize(fs(26)).fillColor(cfg.accentColor)
+    .text(cv.name, mainX, y, { width: mainWidth });
+  y = doc.y + 4;
+
+  // Decorative accent bar under name
+  doc.rect(mainX, y, 50, 3).fill(cfg.accentColor);
+  y += 18;
+
+  // Main sections
+  for (const section of mainSections) {
+    // Section title with colored bar
+    doc.rect(mainX, y + 1, 4, fs(11)).fill(cfg.accentColor);
+    doc.font('Helvetica-Bold').fontSize(fs(11)).fillColor(cfg.mainTextColor)
+      .text(section.title.toUpperCase(), mainX + 12, y, { width: mainWidth - 12, characterSpacing: 0.5 });
+    y = doc.y + 4;
+    doc.moveTo(mainX, y).lineTo(mainX + mainWidth, y)
+      .strokeColor(cfg.lineColor).lineWidth(0.8).stroke();
+    y += 8;
+
+    // Paragraphs
+    for (const p of section.paragraphs || []) {
+      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+        .text(p, mainX, y, { width: mainWidth, lineGap: 2, align: 'justify' });
+      y = doc.y + 6;
+    }
+
+    // Entries
+    for (const entry of section.entries || []) {
+      const entryY = y;
+      doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor(cfg.mainTextColor)
+        .text(entry.heading, mainX, entryY, { width: mainWidth - 80 });
+      if (entry.date) {
+        doc.font('Helvetica-Bold').fontSize(fs(8.5)).fillColor(cfg.accentColor)
+          .text(entry.date, mainX, entryY, { width: mainWidth, align: 'right' });
+      }
+      y = doc.y + 2;
+      if (entry.subheading) {
+        doc.font('Helvetica-BoldOblique').fontSize(fs(8.5)).fillColor(cfg.mainMutedColor)
+          .text(entry.subheading, mainX, y);
+        y = doc.y + 3;
+      }
+      for (const p of entry.paragraphs || []) {
+        doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+          .text(p, mainX, y, { width: mainWidth, lineGap: 1.5 });
+        y = doc.y + 3;
+      }
+      for (const b of entry.bullets || []) {
+        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.mainTextColor)
+          .text('● ', mainX + 8, y, { continued: true });
+        doc.fillColor(cfg.mainTextColor).text(b, { width: mainWidth - 20, lineGap: 1.5 });
+        y = doc.y + 2;
+      }
+      y += 7;
+    }
+
+    // General bullets
+    for (const b of section.bullets || []) {
+      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+        .text('● ' + b, mainX + 8, y, { width: mainWidth - 8, lineGap: 1.5 });
+      y = doc.y + 3;
+    }
+
+    y += 12;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SWISS TEMPLATE
+// ═══════════════════════════════════════════════════════════════════
+
+const SWISS_CONFIG = {
+  sidebarWidth: 150,
+  sidebarColor: '#1a1a1a',
+  accentColor: '#E63946',
+  sidebarPadding: 16,
+  mainPadding: 28,
+  sidebarTextColor: '#f0f0f0',
+  sidebarMutedColor: '#aaaaaa',
+  mainTextColor: '#222222',
+  mainMutedColor: '#666666',
+  lineColor: '#cccccc'
+};
+
+function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
+  const cfg = SWISS_CONFIG;
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+  const mainX = cfg.sidebarWidth + cfg.mainPadding;
+  const mainWidth = pageWidth - cfg.sidebarWidth - cfg.mainPadding * 2;
+  const sideContentX = cfg.sidebarPadding;
+  const sideContentWidth = cfg.sidebarWidth - cfg.sidebarPadding * 2;
+  const fs = (size) => size * scale;
+
+  doc.info.Title = `CV - ${cv.name}`;
+  doc.info.Author = cv.name;
+
+  // ── Sidebar background ──
+  doc.rect(0, 0, cfg.sidebarWidth, pageHeight).fill(cfg.sidebarColor);
+
+  // ── Red accent stripe at top of sidebar ──
+  doc.rect(0, 0, cfg.sidebarWidth, 5).fill(cfg.accentColor);
+
+  // ── Sidebar content ──
+  let sideY = 30;
+
+  // Name in sidebar
+  doc.font('Helvetica-Bold').fontSize(fs(13)).fillColor(cfg.sidebarTextColor)
+    .text(cv.name.split(' ')[0] || cv.name, sideContentX, sideY, { width: sideContentWidth });
+  sideY = doc.y;
+  if (cv.name.split(' ').length > 1) {
+    doc.font('Helvetica').fontSize(fs(13)).fillColor(cfg.accentColor)
+      .text(cv.name.split(' ').slice(1).join(' '), sideContentX, sideY, { width: sideContentWidth });
+    sideY = doc.y;
+  }
+  sideY += 16;
+
+  const drawSwissSidebarHeading = (title) => {
+    doc.font('Helvetica-Bold').fontSize(fs(8.5)).fillColor(cfg.accentColor)
+      .text(title.toUpperCase(), sideContentX, sideY, {
+        width: sideContentWidth, characterSpacing: 1.5
+      });
+    sideY = doc.y + 4;
+    doc.moveTo(sideContentX, sideY)
+      .lineTo(sideContentX + sideContentWidth, sideY)
+      .strokeColor(cfg.accentColor).lineWidth(0.3).stroke();
+    sideY += 8;
+  };
+
+  // Contact
+  if (cv.contact && cv.contact.length) {
+    drawSwissSidebarHeading('Contacto');
+    for (const info of cv.contact) {
+      const iconType = showIcons ? getIconType(info.label, info.value) : null;
+      const iconSize = fs(7.5);
+      let textX = sideContentX;
+      if (iconType) {
+        drawIcon(doc, iconType, sideContentX, sideY + 1, iconSize, cfg.sidebarTextColor);
+        textX += iconSize + 4;
+      }
+      doc.font('Helvetica').fontSize(fs(7.5)).fillColor(cfg.sidebarMutedColor)
+        .text(info.label, textX, sideY, { width: sideContentWidth - (textX - sideContentX) });
+      sideY = doc.y;
+      doc.font('Helvetica').fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
+        .text(info.value, textX, sideY, { width: sideContentWidth - (textX - sideContentX), lineGap: 1.5 });
+      sideY = doc.y + 6;
+    }
+    sideY += 8;
+  }
+
+  // Sidebar sections (skills, languages)
+  const sidebarTitles = ['skills', 'habilidades', 'idiomas', 'languages', 'aptitudes', 'competencias'];
+  const sidebarSections = [];
+  const mainSections = [];
+  for (const section of cv.sections) {
+    if (sidebarTitles.includes(section.title.toLowerCase())) {
+      sidebarSections.push(section);
+    } else {
+      mainSections.push(section);
+    }
+  }
+
+  for (const section of sidebarSections) {
+    drawSwissSidebarHeading(section.title);
+    const items = [...(section.paragraphs || []), ...(section.bullets || [])];
+    for (const item of items) {
+      const colonIdx = item.indexOf(':');
+      if (colonIdx !== -1) {
+        const label = item.substring(0, colonIdx).trim();
+        const value = item.substring(colonIdx + 1).trim();
+        doc.font('Helvetica-Bold').fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
+          .text(label, sideContentX, sideY, { width: sideContentWidth });
+        sideY = doc.y;
+        doc.font('Helvetica').fontSize(fs(7)).fillColor(cfg.sidebarMutedColor)
+          .text(value, sideContentX, sideY, { width: sideContentWidth, lineGap: 1.5 });
+      } else {
+        doc.font('Helvetica').fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
+          .text('▸ ' + item, sideContentX, sideY, { width: sideContentWidth, lineGap: 1.5 });
+      }
+      sideY = doc.y + 4;
+    }
+    sideY += 8;
+  }
+
+  // ── Main content ──
+  let y = 30;
+
+  // Name in main area (large)
+  doc.font('Helvetica-Bold').fontSize(fs(28)).fillColor(cfg.mainTextColor)
+    .text(cv.name.toUpperCase(), mainX, y, { width: mainWidth, characterSpacing: 1.5 });
+  y = doc.y + 2;
+
+  // Red accent bar
+  doc.rect(mainX, y, 40, 2.5).fill(cfg.accentColor);
+  y += 18;
+
+  // Main sections
+  for (const section of mainSections) {
+    // Section title
+    doc.font('Helvetica-Bold').fontSize(fs(11)).fillColor(cfg.accentColor)
+      .text(section.title.toUpperCase(), mainX, y, {
+        width: mainWidth, characterSpacing: 1
+      });
+    y = doc.y + 2;
+    doc.moveTo(mainX, y).lineTo(mainX + mainWidth, y)
+      .strokeColor(cfg.lineColor).lineWidth(0.3).stroke();
+    y += 8;
+
+    // Paragraphs
+    for (const p of section.paragraphs || []) {
+      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+        .text(p, mainX, y, { width: mainWidth, lineGap: 2, align: 'justify' });
+      y = doc.y + 6;
+    }
+
+    // Entries
+    for (const entry of section.entries || []) {
+      const entryY = y;
+      doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor(cfg.mainTextColor)
+        .text(entry.heading, mainX, entryY, { width: mainWidth - 90 });
+      if (entry.date) {
+        doc.font('Helvetica-Bold').fontSize(fs(8.5)).fillColor(cfg.accentColor)
+          .text(entry.date, mainX, entryY, { width: mainWidth, align: 'right' });
+      }
+      y = doc.y + 1;
+      if (entry.subheading) {
+        doc.font('Helvetica-Oblique').fontSize(fs(9)).fillColor(cfg.mainMutedColor)
+          .text(entry.subheading, mainX, y);
+        y = doc.y + 3;
+      }
+      for (const p of entry.paragraphs || []) {
+        doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+          .text(p, mainX, y, { width: mainWidth, lineGap: 1.5 });
+        y = doc.y + 3;
+      }
+      for (const b of entry.bullets || []) {
+        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.mainTextColor)
+          .text('▸ ' + b, mainX + 8, y, { width: mainWidth - 8, lineGap: 1.5 });
+        y = doc.y + 2;
+      }
+      y += 7;
+    }
+
+    // General bullets
+    for (const b of section.bullets || []) {
+      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+        .text('▸ ' + b, mainX + 8, y, { width: mainWidth - 8, lineGap: 1.5 });
+      y = doc.y + 3;
+    }
+
+    y += 12;
+  }
+}
+
 function getEmbeddedCvContent(fileName) {
   const safeFileName = fileName || 'cv.md';
   return CV_MAPPING[safeFileName] || null;
@@ -717,6 +1215,12 @@ function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
   
   if (templateType === 'modern') {
     renderModernCvPdf(doc, cv, fontScale, options.showIcons !== false);
+  } else if (templateType === 'minimal') {
+    renderMinimalCvPdf(doc, cv, fontScale, options.showIcons !== false);
+  } else if (templateType === 'creative') {
+    renderCreativeCvPdf(doc, cv, fontScale, options.showIcons !== false);
+  } else if (templateType === 'swiss') {
+    renderSwissCvPdf(doc, cv, fontScale, options.showIcons !== false);
   } else {
     renderCvPdf(doc, cv, layout, options.showIcons !== false);
   }
