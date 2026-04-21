@@ -139,6 +139,39 @@ function buildAtsAdaptationMessages(cvMarkdown, jobDescription) {
   ];
 }
 
+function buildLinkedInImportMessages(linkedInText) {
+  return [
+    {
+      role: 'system',
+      content: [
+        'Eres un experto en redacción de currículums técnicos y parseo de datos estructurados.',
+        'Tu tarea es tomar el texto en bruto pegado desde un perfil de LinkedIn (o PDF de LinkedIn) y convertirlo a un formato Markdown limpio y profesional.',
+        'Sigue la estructura estándar de CV que incluye: Nombre, título (opcional), información de contacto, resumen, experiencia, educación y habilidades.',
+        'Devuelve solo el markdown del CV, sin explicaciones ni bloques de código.'
+      ].join(' ')
+    },
+    {
+      role: 'user',
+      content: [
+        'Convierte este texto bruto de LinkedIn a un currículum en formato Markdown estructurado.',
+        'Objetivos:',
+        '- Extraer nombre, cargo/titular y datos de contacto.',
+        '- Estructurar la "Experiencia Profesional" resaltando los cargos, empresas, fechas y descripciones concisas (usa viñetas o listas).',
+        '- Estructurar "Educación" y "Proyectos" si los hay.',
+        '- Estructurar "Habilidades" (Skills).',
+        '- Elimina texto irrelevante generado por la UI de LinkedIn (ej. "Ver más", "Contactos mutuos", "Recomendaciones", etc.).',
+        '- Mantén un tono profesional en español.',
+        '- Sigue estrictamente el formato markdown, sin incluir explicaciones ni bloques de código. Devuelve solo el markdown estructurado.',
+        '',
+        'Texto de LinkedIn:',
+        '---',
+        linkedInText,
+        '---'
+      ].join('\n')
+    }
+  ];
+}
+
 function shouldRetryWithFallback(errorMessage) {
   const normalized = String(errorMessage || '').toLowerCase();
   return normalized.includes('no endpoints found') || normalized.includes('model not found') || normalized.includes('timeout');
@@ -313,6 +346,51 @@ async function handleAdaptCv(request, response) {
   }
 }
 
+async function handleImportLinkedIn(request, response) {
+  let body;
+  try {
+    body = await readRequestBody(request);
+  } catch {
+    return sendJson(response, 400, { ok: false, error: 'Invalid JSON' });
+  }
+
+  const linkedInText = typeof body?.linkedInText === 'string' ? body.linkedInText.trim() : '';
+  const token = typeof body?.token === 'string' ? body.token.trim() : '';
+  const model = typeof body?.model === 'string' && body.model.trim() ? body.model.trim() : DEFAULT_MODEL;
+
+  if (!linkedInText) {
+    return sendJson(response, 400, { ok: false, error: 'Missing linkedInText' });
+  }
+
+  if (!token) {
+    return sendJson(response, 400, { ok: false, error: 'Missing token' });
+  }
+
+  try {
+    const { responseText, usedModel } = await callOpenRouterWithFallback(
+      token,
+      model,
+      buildLinkedInImportMessages(linkedInText)
+    );
+    const cvMarkdown = stripMarkdownFences(responseText);
+
+    if (!cvMarkdown) {
+      return sendJson(response, 502, { ok: false, error: 'Empty response from AI model' });
+    }
+
+    return sendJson(response, 200, {
+      ok: true,
+      markdown: cvMarkdown,
+      model: usedModel
+    });
+  } catch (err) {
+    return sendJson(response, 500, {
+      ok: false,
+      error: err.message || 'Failed to import LinkedIn profile',
+      metadata: err.metadata || null
+    });
+  }
+}
 
 const server = http.createServer(async (request, response) => {
   const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
@@ -336,6 +414,10 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'POST' && requestUrl.pathname === '/api/adapt-cv') {
     return await handleAdaptCv(request, response);
+  }
+
+  if (request.method === 'POST' && requestUrl.pathname === '/api/import-linkedin') {
+    return await handleImportLinkedIn(request, response);
   }
 
   if (request.method === 'GET' && requestUrl.pathname === '/cv.pdf') {

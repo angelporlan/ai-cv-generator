@@ -2220,4 +2220,86 @@ if (startTourBtn) {
   startTourBtn.addEventListener('click', () => initTour(true));
 }
 
+/* ── LinkedIn Importer Logic ─────────────────────────────── */
+const importLinkedinButton = document.getElementById('import-linkedin-button');
+const linkedinModal = document.getElementById('linkedin-modal');
+const closeLinkedinModalBtn = document.getElementById('close-linkedin-modal-button');
+const linkedinCancelBtn = document.getElementById('linkedin-cancel-button');
+const linkedinSubmitBtn = document.getElementById('linkedin-submit-button');
+const linkedinText = document.getElementById('linkedin-text');
+const linkedinToken = document.getElementById('linkedin-openrouter-token');
+
+if (importLinkedinButton && linkedinModal) {
+  importLinkedinButton.addEventListener('click', () => {
+    linkedinModal.classList.add('active');
+    const storedToken = localStorage.getItem(ADAPT_TOKEN_STORAGE_KEY);
+    if (storedToken && linkedinToken && !linkedinToken.value.trim()) {
+      linkedinToken.value = storedToken;
+    }
+    linkedinText.value = '';
+    linkedinText.focus();
+  });
+
+  const closeLinkedinModal = () => linkedinModal.classList.remove('active');
+  
+  if (closeLinkedinModalBtn) closeLinkedinModalBtn.addEventListener('click', closeLinkedinModal);
+  if (linkedinCancelBtn) linkedinCancelBtn.addEventListener('click', closeLinkedinModal);
+
+  if (linkedinSubmitBtn) {
+    linkedinSubmitBtn.addEventListener('click', async () => {
+      const text = linkedinText.value.trim();
+      const token = linkedinToken.value.trim();
+
+      if (!text) {
+        alert('Por favor, pega el texto de tu perfil de LinkedIn.');
+        linkedinText.focus();
+        return;
+      }
+      if (!token) {
+        alert('Por favor, ingresa tu token de OpenRouter.');
+        linkedinToken.focus();
+        return;
+      }
+
+      localStorage.setItem(ADAPT_TOKEN_STORAGE_KEY, token);
+      
+      const originalBtnText = linkedinSubmitBtn.innerText;
+      linkedinSubmitBtn.innerText = 'Procesando perfil con IA...';
+      linkedinSubmitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/import-linkedin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            linkedInText: text,
+            token: token
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.markdown) {
+          editor.value = data.markdown;
+          if (!isSyncingFromVisual) {
+            visualNeedsRefreshFromMarkdown = true;
+          }
+          schedulePreviewUpdate();
+          scheduleSave();
+          closeLinkedinModal();
+          setStatus('Perfil de LinkedIn importado con éxito');
+        } else {
+          alert('Error de IA: ' + (data.error || 'Error desconocido'));
+        }
+      } catch (error) {
+        console.error('LinkedIn Import Error:', error);
+        alert('Hubo un error de conexión al importar el perfil.');
+      } finally {
+        linkedinSubmitBtn.innerText = originalBtnText;
+        linkedinSubmitBtn.disabled = false;
+      }
+    });
+  }
+}
+
 init();

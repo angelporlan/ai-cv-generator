@@ -139,6 +139,10 @@
               </svg>
               Importar .md
             </button>
+            <button id="import-linkedin-button" class="button button-secondary" type="button">
+              <img src="svg/linkedin.svg" width="14" height="14" alt="LinkedIn" style="border-radius: 2px;" />
+              Importar LinkedIn
+            </button>
             <button id="example-button" class="button button-secondary" type="button">
               <svg viewBox="0 0 12 12" fill="none">
                 <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3" />
@@ -507,6 +511,39 @@
       </div>
     </div>
 
+    <!-- Modal: Importar de LinkedIn -->
+    <div id="linkedin-modal" class="modal-overlay">
+      <div class="modal modal-adapt">
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <h2 class="modal-title">Importar de LinkedIn</h2>
+            <p class="modal-subtitle">Pega todo el texto de tu perfil de LinkedIn y deja que la IA lo formatee como Markdown.</p>
+          </div>
+          <button id="close-linkedin-modal-button" class="modal-close" aria-label="Cerrar">&times;</button>
+        </div>
+
+        <div class="modal-content">
+          <div class="adapt-grid">
+            <label class="adapt-field" for="linkedin-text">
+              <span>Texto del perfil</span>
+              <textarea id="linkedin-text" class="modal-textarea" rows="10"
+                placeholder="Pega aquí el contenido de tu perfil (selecciona todo en LinkedIn y copia, o pega el texto de un PDF exportado)..."></textarea>
+            </label>
+
+            <label class="adapt-field" for="linkedin-openrouter-token">
+              <span>Token de OpenRouter</span>
+              <input id="linkedin-openrouter-token" class="modal-input" type="password" placeholder="sk-or-v1-..."
+                autocomplete="off">
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="linkedin-cancel-button" class="button button-secondary" type="button">Cancelar</button>
+          <button id="linkedin-submit-button" class="button button-primary" type="button">Procesar y Generar CV</button>
+        </div>
+      </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
     <script src="app.js"></script>
