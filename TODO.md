@@ -21,8 +21,8 @@ Este archivo sirve para seguir el progreso de las nuevas funcionalidades premium
 - [x] **Checklist de Calidad:** Verificación automática de datos faltantes o errores.
 
 ## ✨ Fase 4: Pulido y UX
-- [ ] **Micro-animaciones:** Transiciones fluidas entre modos y estados de carga.
-- [ ] **Tour Interactivo:** Guía rápida para nuevos usuarios.
+- [x] **Micro-animaciones:** Transiciones fluidas entre modos y estados de carga.
+- [x] **Tour Interactivo:** Guía rápida para nuevos usuarios.
 - [ ] **Exportación Multiple:** Opción de exportar como página web estática (HTML/CSS).
 
 ---

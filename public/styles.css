@@ -2519,3 +2519,302 @@ body {
   color: var(--text-secondary);
   line-height: 1.4;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   MICRO-ANIMATIONS — Fase 4
+   Transiciones fluidas entre modos y estados de carga
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ──────────────────────────────────────────────── */
+
+/* Staggered card entrance */
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Soft slide for editor mode switch */
+@keyframes editorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Spinner rotation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Subtle bounce for success feedback */
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Glow pulse for active processing */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+/* Status text fade transition */
+@keyframes statusFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── CV Cards — staggered entrance ──────────────────────────── */
+.library-grid .cv-card {
+  animation: cardEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.library-grid .cv-card:nth-child(1) { animation-delay: 0.03s; }
+.library-grid .cv-card:nth-child(2) { animation-delay: 0.07s; }
+.library-grid .cv-card:nth-child(3) { animation-delay: 0.11s; }
+.library-grid .cv-card:nth-child(4) { animation-delay: 0.15s; }
+.library-grid .cv-card:nth-child(5) { animation-delay: 0.19s; }
+.library-grid .cv-card:nth-child(6) { animation-delay: 0.23s; }
+.library-grid .cv-card:nth-child(n+7) { animation-delay: 0.27s; }
+
+/* ── Button micro-interactions ──────────────────────────────── */
+.button,
+.button-ghost,
+.button-mini,
+.button-ghost-sm {
+  transition: all var(--t-fast) var(--ease);
+  will-change: transform;
+}
+
+.button:active,
+.button-ghost:active,
+.button-mini:active,
+.button-ghost-sm:active {
+  transform: scale(0.95);
+  transition-duration: 0.06s;
+}
+
+.button-primary:active {
+  transform: scale(0.96);
+  filter: brightness(0.92);
+}
+
+.button-accent:active {
+  transform: scale(0.96);
+}
+
+/* Subtle glow on primary button hover */
+.button-primary:hover {
+  box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* ── Editor mode switch — smooth crossfade ──────────────────── */
+.editor-body.is-visual #editor {
+  display: none;
+}
+
+.editor-body.is-markdown .visual-editor {
+  display: none;
+}
+
+.visual-editor {
+  animation: editorSlideIn 0.3s var(--ease) both;
+}
+
+.editor-body.is-markdown #editor {
+  animation: editorSlideIn 0.25s var(--ease) both;
+}
+
+/* Mode tab — active indicator with smooth slide */
+.mode-tab.active {
+  transition: all var(--t-mid) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Loading / Processing states ────────────────────────────── */
+
+/* Shimmer skeleton for loading areas */
+.is-loading {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.is-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent-light) 60%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: inherit;
+}
+
+/* Button generating state — inline spinner */
+.button:disabled[data-processing="true"],
+.button.is-processing {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.button.is-processing::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Glow pulse on adapt submit when processing */
+.button-primary.is-processing {
+  animation: glowPulse 1.4s ease infinite;
+}
+
+/* ── Status pill — text change animation ────────────────────── */
+.status-pill {
+  overflow: hidden;
+}
+
+#status-text {
+  display: inline-block;
+  animation: statusFade 0.3s var(--ease) both;
+}
+
+/* ── Quality checklist — staggered reveal ───────────────────── */
+.quality-item {
+  animation: cardEntrance 0.35s var(--ease) both;
+}
+
+.quality-item:nth-child(1) { animation-delay: 0.04s; }
+.quality-item:nth-child(2) { animation-delay: 0.08s; }
+.quality-item:nth-child(3) { animation-delay: 0.12s; }
+.quality-item:nth-child(4) { animation-delay: 0.16s; }
+.quality-item:nth-child(5) { animation-delay: 0.20s; }
+.quality-item:nth-child(6) { animation-delay: 0.24s; }
+.quality-item:nth-child(7) { animation-delay: 0.28s; }
+
+/* Quality score circle — animated entrance */
+.quality-score-circle {
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+}
+
+/* ── Modal content — staggered field appearance ─────────────── */
+.adapt-field {
+  animation: editorSlideIn 0.3s var(--ease) both;
+}
+
+.adapt-field:nth-child(1) { animation-delay: 0.05s; }
+.adapt-field:nth-child(2) { animation-delay: 0.10s; }
+.adapt-field:nth-child(3) { animation-delay: 0.15s; }
+.adapt-field:nth-child(4) { animation-delay: 0.20s; }
+
+/* ── Focus ring — animated glow ─────────────────────────────── */
+.modal-input:focus,
+.modal-select:focus,
+.modal-textarea:focus {
+  transition: border-color var(--t-fast) var(--ease),
+    box-shadow 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Visual editor blocks — smooth entrance ─────────────────── */
+.visual-section {
+  animation: editorSlideIn 0.3s var(--ease) both;
+}
+
+.visual-block {
+  animation: editorSlideIn 0.25s var(--ease) both;
+}
+
+/* ── Reference pane — slide in ──────────────────────────────── */
+.reference-pane {
+  animation: editorSlideIn 0.3s var(--ease) both;
+}
+
+/* ── Toolbar hover lift ─────────────────────────────────────── */
+.panel-header .button:hover,
+.panel-header .button-ghost:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Dark mode transition — whole-page smoothness ───────────── */
+body {
+  transition: background-color var(--t-slow) var(--ease),
+    color var(--t-slow) var(--ease);
+}
+
+.toolbar {
+  transition: background var(--t-slow) var(--ease),
+    border-color var(--t-slow) var(--ease);
+}
+
+/* ── Kanban cards — entrance ────────────────────────────────── */
+.library-kanban .cv-card {
+  animation: cardEntrance 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Smooth scrollbar fade ──────────────────────────────────── */
+.preview-surface::-webkit-scrollbar-thumb,
+.visual-editor::-webkit-scrollbar-thumb,
+#editor::-webkit-scrollbar-thumb {
+  transition: background 0.2s var(--ease);
+}
+
+/* ── Reduce motion — accessibility ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -90,6 +90,10 @@ let lastSavedValue = '';
 
 function setStatus(message) {
   saveStatus.textContent = message;
+  // Re-trigger the statusFade CSS animation
+  saveStatus.style.animation = 'none';
+  saveStatus.offsetHeight; // force reflow
+  saveStatus.style.animation = '';
 }
 
 /**
@@ -1443,6 +1447,7 @@ async function adaptCvWithAi() {
 
   if (adaptSubmitButton) {
     adaptSubmitButton.disabled = true;
+    adaptSubmitButton.classList.add('is-processing');
     adaptSubmitButton.textContent = 'Generando...';
   }
 
@@ -1481,7 +1486,11 @@ async function adaptCvWithAi() {
   } finally {
     if (adaptSubmitButton) {
       adaptSubmitButton.disabled = false;
-      adaptSubmitButton.textContent = 'Generar CV ATS';
+      adaptSubmitButton.classList.remove('is-processing');
+      // Restore correct label based on current action
+      const currentAction = document.getElementById('adapt-action-select')?.value || 'adapt';
+      const labels = { cover_letter: 'Generar Carta', skill_gap: 'Analizar Gap', translate: 'Traducir CV', optimize_star: 'Optimizar Logros' };
+      adaptSubmitButton.textContent = labels[currentAction] || 'Generar CV ATS';
     }
   }
 }
