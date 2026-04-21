@@ -102,20 +102,92 @@ function stripMarkdownFences(text) {
   return fenced ? fenced[1].trim() : trimmed;
 }
 
-function buildAtsAdaptationMessages(cvMarkdown, jobDescription) {
-  return [
-    {
-      role: 'system',
-      content: [
+function buildAiActionMessages(action, cvMarkdown, userInput) {
+  let systemMsg = '';
+  let userMsg = '';
+
+  switch (action) {
+    case 'skill_gap':
+      systemMsg = 'Eres un experto en reclutamiento técnico y recursos humanos. Tu tarea es analizar un CV contra una oferta laboral y proporcionar un análisis de "Skill Gap". Devuelve el reporte en formato Markdown puro sin explicaciones adicionales fuera del reporte. NO uses bloques de código cerrados tipo ```markdown.';
+      userMsg = [
+        'Realiza un análisis de "Skill Gap" entre mi CV y la oferta laboral.',
+        'Proporciona:',
+        '1. Un "Score de Compatibilidad" (%).',
+        '2. Fortalezas (qué cumplo).',
+        '3. Brechas (qué falta o no está claro).',
+        '4. Sugerencias de palabras clave a incluir en mi CV.',
+        '',
+        'Oferta laboral:',
+        '---',
+        userInput,
+        '---',
+        '',
+        'CV original:',
+        '---',
+        cvMarkdown,
+        '---'
+      ].join('\n');
+      break;
+
+    case 'cover_letter':
+      systemMsg = 'Eres un redactor experto en carreras profesionales. Escribe cartas de presentación persuasivas, profesionales y modernas. Devuelve SÓLO el texto de la carta en formato Markdown puro, sin explicaciones ni bloques de código.';
+      userMsg = [
+        'Escribe una carta de presentación basada en mi CV para aplicar a la siguiente oferta.',
+        'La carta debe ser persuasiva, destacar mis fortalezas relevantes para la oferta y mantener un tono profesional en español.',
+        'Estructura la carta en Markdown.',
+        '',
+        'Oferta laboral:',
+        '---',
+        userInput,
+        '---',
+        '',
+        'Mi CV:',
+        '---',
+        cvMarkdown,
+        '---'
+      ].join('\n');
+      break;
+
+    case 'optimize_star':
+      systemMsg = 'Eres un experto en currículums y optimización de logros. Tu tarea es reescribir la sección de "Experiencia" del CV usando la metodología STAR (Situación, Tarea, Acción, Resultado). MANTÉN EXACTAMENTE TODO EL RESTO DEL FORMATO MARKDOWN INTACTO. Devuelve solo el Markdown completo resultante, sin explicaciones, sin bloques de código.';
+      userMsg = [
+        'Reescribe las viñetas de experiencia de mi CV aplicando el método STAR para maximizar el impacto. Usa números y porcentajes si es posible inferirlos lógicamente, o mejora la redacción orientada a resultados.',
+        'Mantén la estructura Markdown intacta. NO modifiques la educación ni los datos personales.',
+        '',
+        'Oferta laboral o notas adicionales (si las hay):',
+        '---',
+        userInput,
+        '---',
+        '',
+        'Mi CV:',
+        '---',
+        cvMarkdown,
+        '---'
+      ].join('\n');
+      break;
+
+    case 'translate':
+      systemMsg = 'Eres un traductor profesional experto en currículums técnicos. Traduce el documento manteniendo intacta la estructura Markdown original, los encabezados y la semántica técnica. Devuelve solo el Markdown resultante, sin explicaciones ni bloques de código.';
+      userMsg = [
+        `Traduce el siguiente CV al idioma: ${userInput || 'Inglés'}.`,
+        'MANTÉN todos los caracteres especiales, iconos y estructura Markdown original.',
+        '',
+        'CV original:',
+        '---',
+        cvMarkdown,
+        '---'
+      ].join('\n');
+      break;
+
+    case 'adapt':
+    default:
+      systemMsg = [
         'Eres un experto en reclutamiento técnico y optimización ATS.',
         'Adapta el CV del candidato a la oferta sin inventar experiencia no respaldada.',
         'Mantén formato markdown limpio para este editor de CV.',
         'Devuelve solo markdown del CV, sin explicaciones, sin bloques de código.'
-      ].join(' ')
-    },
-    {
-      role: 'user',
-      content: [
+      ].join(' ');
+      userMsg = [
         'Adapta y optimiza este CV para la oferta laboral.',
         'Objetivos:',
         '- Reforzar palabras clave ATS relevantes de la oferta.',
@@ -127,15 +199,20 @@ function buildAtsAdaptationMessages(cvMarkdown, jobDescription) {
         '',
         'Oferta laboral:',
         '---',
-        jobDescription,
+        userInput,
         '---',
         '',
         'CV original:',
         '---',
         cvMarkdown,
         '---'
-      ].join('\n')
-    }
+      ].join('\n');
+      break;
+  }
+
+  return [
+    { role: 'system', content: systemMsg },
+    { role: 'user', content: userMsg }
   ];
 }
 
@@ -304,16 +381,17 @@ async function handleAdaptCv(request, response) {
   }
 
   const markdown = typeof body?.markdown === 'string' ? body.markdown.trim() : '';
-  const jobDescription = typeof body?.jobDescription === 'string' ? body.jobDescription.trim() : '';
+  const userInput = typeof body?.jobDescription === 'string' ? body.jobDescription.trim() : '';
   const token = typeof body?.token === 'string' ? body.token.trim() : '';
   const model = typeof body?.model === 'string' && body.model.trim() ? body.model.trim() : DEFAULT_MODEL;
+  const action = typeof body?.action === 'string' ? body.action.trim() : 'adapt';
 
   if (!markdown) {
     return sendJson(response, 400, { ok: false, error: 'Missing markdown' });
   }
 
-  if (!jobDescription) {
-    return sendJson(response, 400, { ok: false, error: 'Missing jobDescription' });
+  if (!userInput && action !== 'optimize_star' && action !== 'translate') {
+    return sendJson(response, 400, { ok: false, error: 'Missing userInput (jobDescription)' });
   }
 
   if (!token) {
@@ -324,7 +402,7 @@ async function handleAdaptCv(request, response) {
     const { responseText, usedModel } = await callOpenRouterWithFallback(
       token,
       model,
-      buildAtsAdaptationMessages(markdown, jobDescription)
+      buildAiActionMessages(action, markdown, userInput)
     );
     const adaptedMarkdown = stripMarkdownFences(responseText);
 

@@ -1411,16 +1411,23 @@ function closeAdaptModal() {
 async function adaptCvWithAi() {
   const markdown = editor.value;
   const model = adaptModelSelect ? adaptModelSelect.value : '';
+  const actionSelect = document.getElementById('adapt-action-select');
+  const action = actionSelect ? actionSelect.value : 'adapt';
   const jobDescription = adaptJobDescription ? adaptJobDescription.value.trim() : '';
   const token = adaptOpenRouterToken ? adaptOpenRouterToken.value.trim() : '';
 
   if (!markdown.trim()) {
-    await showAlert('Primero escribe o carga un CV para poder adaptarlo.', 'CV vacío');
+    await showAlert('Primero escribe o carga un CV para poder usar la IA.', 'CV vacío');
     return;
   }
 
-  if (!jobDescription) {
-    await showAlert('Pega la descripción de la oferta para generar el CV adaptado.', 'Falta la oferta');
+  if (!jobDescription && action !== 'optimize_star' && action !== 'translate') {
+    await showAlert('Pega la descripción de la oferta para continuar.', 'Falta información');
+    return;
+  }
+
+  if (!jobDescription && action === 'translate') {
+    await showAlert('Escribe a qué idioma quieres traducir el currículum.', 'Falta información');
     return;
   }
 
@@ -1439,13 +1446,13 @@ async function adaptCvWithAi() {
     adaptSubmitButton.textContent = 'Generando...';
   }
 
-  setStatus('Adaptando CV con IA...');
+  setStatus('Procesando con IA...');
 
   try {
     const response = await fetch('/api/adapt-cv', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown, jobDescription, token, model })
+      body: JSON.stringify({ markdown, jobDescription, token, model, action })
     });
 
     const payload = await response.json().catch(() => ({}));
@@ -1459,10 +1466,10 @@ async function adaptCvWithAi() {
     }
 
     if (!payload?.markdown || !payload.markdown.trim()) {
-      throw new Error('La IA no devolvió contenido de CV válido');
+      throw new Error('La IA no devolvió contenido válido');
     }
 
-    updateEditor(payload.markdown, 'CV adaptado y optimizado para ATS');
+    updateEditor(payload.markdown, 'Operación con IA completada (Usa Ctrl+Z para deshacer si lo necesitas)');
     closeAdaptModal();
   } catch (error) {
     console.error('[adapt-cv] Error:', error);
@@ -1994,6 +2001,34 @@ if (adaptCvModal) {
 
 if (adaptSubmitButton) {
   adaptSubmitButton.addEventListener('click', adaptCvWithAi);
+}
+
+const adaptActionSelect = document.getElementById('adapt-action-select');
+const adaptInputLabelContainer = document.getElementById('adapt-input-label-container');
+const adaptInputLabel = document.getElementById('adapt-input-label');
+
+if (adaptActionSelect && adaptInputLabel && adaptJobDescription) {
+  adaptActionSelect.addEventListener('change', () => {
+    const val = adaptActionSelect.value;
+    if (val === 'translate') {
+      adaptInputLabel.textContent = 'Idioma de destino';
+      adaptJobDescription.placeholder = 'Ej: Inglés, Alemán, Francés...';
+    } else if (val === 'optimize_star') {
+      adaptInputLabel.textContent = 'Oferta laboral o notas (Opcional)';
+      adaptJobDescription.placeholder = 'Opcional: Pega la oferta para alinear tus logros a lo que buscan, o déjalo vacío...';
+    } else {
+      adaptInputLabel.textContent = 'Descripción de la oferta';
+      adaptJobDescription.placeholder = 'Pega aquí la oferta de trabajo completa...';
+    }
+    
+    if (adaptSubmitButton) {
+      if (val === 'cover_letter') adaptSubmitButton.textContent = 'Generar Carta';
+      else if (val === 'skill_gap') adaptSubmitButton.textContent = 'Analizar Gap';
+      else if (val === 'translate') adaptSubmitButton.textContent = 'Traducir CV';
+      else if (val === 'optimize_star') adaptSubmitButton.textContent = 'Optimizar Logros';
+      else adaptSubmitButton.textContent = 'Generar CV ATS';
+    }
+  });
 }
 
 const toggleIconsBtn = document.getElementById('toggle-icons-btn');

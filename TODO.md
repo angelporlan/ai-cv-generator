@@ -3,10 +3,10 @@
 Este archivo sirve para seguir el progreso de las nuevas funcionalidades premium que estamos añadiendo a CV Studio.
 
 ## 🧠 Fase 1: Inteligencia Artificial Avanzada
-- [ ] **Análisis de "Skill Gap":** Score de compatibilidad y sugerencia de palabras clave.
-- [ ] **Generador de Carta de Presentación:** Creación de cartas basadas en el CV y la oferta.
-- [ ] **Optimizador de Logros (STAR):** Mejora de la redacción de experiencias laborales.
-- [ ] **Traducción Inteligente:** Soporte multi-idioma manteniendo el formato Markdown.
+- [x] **Análisis de "Skill Gap":** Score de compatibilidad y sugerencia de palabras clave.
+- [x] **Generador de Carta de Presentación:** Creación de cartas basadas en el CV y la oferta.
+- [x] **Optimizador de Logros (STAR):** Mejora de la redacción de experiencias laborales.
+- [x] **Traducción Inteligente:** Soporte multi-idioma manteniendo el formato Markdown.
 
 ## 🎨 Fase 2: Diseño y Estética Premium
 - [x] **Nuevas Plantillas Visuales:** Diseños "Minimal", "Creative" y "Swiss".

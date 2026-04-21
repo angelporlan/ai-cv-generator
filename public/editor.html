@@ -466,8 +466,8 @@
       <div class="modal modal-adapt">
         <div class="modal-header">
           <div class="modal-header-info">
-            <h2 class="modal-title">Adaptar CV a oferta con IA</h2>
-            <p class="modal-subtitle">Pega la vacante y optimiza tu CV para filtros ATS.</p>
+            <h2 class="modal-title">Asistente de IA para el CV</h2>
+            <p class="modal-subtitle">Utiliza la inteligencia artificial para adaptar, analizar o traducir tu currículum.</p>
           </div>
           <button id="close-adapt-modal-button" class="modal-close" aria-label="Cerrar">&times;</button>
         </div>
@@ -496,8 +496,19 @@
               </select>
             </label>
 
-            <label class="adapt-field" for="adapt-job-description">
-              <span>Descripción de la oferta</span>
+            <label class="adapt-field" for="adapt-action-select">
+              <span>Acción a realizar</span>
+              <select id="adapt-action-select" class="modal-select">
+                <option value="adapt">Adaptar a oferta (ATS)</option>
+                <option value="skill_gap">Análisis de Skill Gap</option>
+                <option value="cover_letter">Generar Carta de Presentación</option>
+                <option value="optimize_star">Optimizar Logros (Método STAR)</option>
+                <option value="translate">Traducción Inteligente</option>
+              </select>
+            </label>
+
+            <label class="adapt-field" id="adapt-input-label-container" for="adapt-job-description">
+              <span id="adapt-input-label">Descripción de la oferta</span>
               <textarea id="adapt-job-description" class="modal-textarea" rows="10"
                 placeholder="Pega aquí la oferta de trabajo completa..."></textarea>
             </label>
