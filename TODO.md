@@ -16,9 +16,9 @@ Este archivo sirve para seguir el progreso de las nuevas funcionalidades premium
 
 ## 🛠️ Fase 3: Utilidades y Productividad
 - [x] **Tablero Kanban de Candidaturas:** Vista de seguimiento para el proceso de búsqueda.
-- [ ] **Importador de LinkedIn:** Conversión de texto de perfil a Markdown funcional.
+- [x] **Importador de LinkedIn:** Conversión de texto de perfil a Markdown funcional.
 - [ ] **Generador de QR:** Integración de códigos QR estéticos en el PDF.
-- [ ] **Checklist de Calidad:** Verificación automática de datos faltantes o errores.
+- [x] **Checklist de Calidad:** Verificación automática de datos faltantes o errores.
 
 ## ✨ Fase 4: Pulido y UX
 - [ ] **Micro-animaciones:** Transiciones fluidas entre modos y estados de carga.

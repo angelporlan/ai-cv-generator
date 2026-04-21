@@ -2302,4 +2302,120 @@ if (importLinkedinButton && linkedinModal) {
   }
 }
 
+/* ── Quality Check Logic ─────────────────────────────── */
+const qualityBtn = document.getElementById('quality-check-button');
+const qualityModal = document.getElementById('quality-check-modal');
+const closeQualityModalBtn = document.getElementById('close-quality-modal-button');
+const qualityCloseBtn = document.getElementById('quality-close-btn');
+const qualityScoreText = document.getElementById('quality-score-text');
+const qualityScoreCircle = document.getElementById('quality-score-circle');
+const qualityList = document.getElementById('quality-list');
+
+function analyzeCvQuality(markdown) {
+  const checks = [];
+  let score = 0;
+  
+  // 1. Email
+  const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(markdown);
+  checks.push({
+    pass: hasEmail,
+    title: 'Correo Electrónico',
+    desc: hasEmail ? '¡Bien! Tienes un email de contacto.' : 'Falta un correo electrónico. Los reclutadores necesitan saber cómo contactarte.'
+  });
+  if (hasEmail) score += 15;
+
+  // 2. Phone
+  // A very basic check: string with + and/or 8-15 digits
+  const hasPhone = /[\+\d][\d\s\-\(\)]{7,20}\d/.test(markdown);
+  checks.push({
+    pass: hasPhone,
+    title: 'Número de Teléfono',
+    desc: hasPhone ? 'Teléfono detectado correctamente.' : 'Es muy recomendable incluir un número de teléfono.'
+  });
+  if (hasPhone) score += 15;
+
+  // 3. Digital Presence
+  const hasLink = /(linkedin\.com|github\.com|portfolio|behance|dribbble|gitlab)/i.test(markdown);
+  checks.push({
+    pass: hasLink,
+    title: 'Presencia Digital',
+    desc: hasLink ? 'Has incluido enlaces a tu perfil profesional.' : 'Considera añadir tu LinkedIn, GitHub o portafolio.'
+  });
+  if (hasLink) score += 15;
+
+  // 4. Experience Section
+  const hasExperience = /#+.*(Experiencia|Experience|Trabajo|Work)/i.test(markdown);
+  checks.push({
+    pass: hasExperience,
+    title: 'Experiencia Profesional',
+    desc: hasExperience ? 'Sección de experiencia identificada.' : 'Falta una sección clara de "Experiencia Profesional" o "Work Experience".'
+  });
+  if (hasExperience) score += 20;
+
+  // 5. Education Section
+  const hasEducation = /#+.*(Educación|Education|Estudios|Formación)/i.test(markdown);
+  checks.push({
+    pass: hasEducation,
+    title: 'Educación',
+    desc: hasEducation ? 'Sección de educación identificada.' : 'Añade tu formación académica ("Educación").'
+  });
+  if (hasEducation) score += 10;
+
+  // 6. Action Verbs
+  const actionVerbs = /(desarrollé|lideré|implementé|gestioné|mejoré|aumenté|creé|optimicé|logré|diseñé|coordiné|developed|led|implemented|managed|improved|increased|created|optimized|achieved|designed|coordinated)/i;
+  const hasActionVerbs = actionVerbs.test(markdown);
+  checks.push({
+    pass: hasActionVerbs,
+    title: 'Verbos de Acción',
+    desc: hasActionVerbs ? 'Usas verbos de acción para describir impacto.' : 'Mejora tus descripciones usando verbos fuertes (ej. "Lideré", "Implementé").'
+  });
+  if (hasActionVerbs) score += 15;
+
+  // 7. Length
+  const length = markdown.trim().length;
+  const goodLength = length > 500 && length < 4000;
+  checks.push({
+    pass: goodLength,
+    title: 'Longitud del CV',
+    desc: goodLength ? 'La longitud de tu CV es óptima.' : (length <= 500 ? 'El CV es demasiado corto, añade más detalles.' : 'El CV es muy largo. Intenta mantenerlo conciso (1-2 páginas).')
+  });
+  if (goodLength) score += 10;
+
+  return { checks, score };
+}
+
+function renderQualityCheck() {
+  const markdown = editor.value || '';
+  const { checks, score } = analyzeCvQuality(markdown);
+  
+  qualityScoreText.textContent = score;
+  qualityScoreCircle.className = 'quality-score-circle';
+  if (score >= 80) qualityScoreCircle.classList.add('score-high');
+  else if (score >= 50) qualityScoreCircle.classList.add('score-medium');
+  else qualityScoreCircle.classList.add('score-low');
+
+  qualityList.innerHTML = '';
+  checks.forEach(check => {
+    const item = document.createElement('div');
+    item.className = `quality-item ${check.pass ? 'quality-pass' : 'quality-fail'}`;
+    item.innerHTML = `
+      <div class="quality-icon">${check.pass ? '✅' : '❌'}</div>
+      <div class="quality-content">
+        <div class="quality-title">${check.title}</div>
+        <div class="quality-desc">${check.desc}</div>
+      </div>
+    `;
+    qualityList.appendChild(item);
+  });
+  
+  qualityModal.classList.add('active');
+}
+
+if (qualityBtn && qualityModal) {
+  qualityBtn.addEventListener('click', renderQualityCheck);
+  const closeQuality = () => qualityModal.classList.remove('active');
+  if (closeQualityModalBtn) closeQualityModalBtn.addEventListener('click', closeQuality);
+  if (qualityCloseBtn) qualityCloseBtn.addEventListener('click', closeQuality);
+}
+
 init();
