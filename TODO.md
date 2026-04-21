@@ -10,7 +10,7 @@ Este archivo sirve para seguir el progreso de las nuevas funcionalidades premium
 
 ## 🎨 Fase 2: Diseño y Estética Premium
 - [x] **Nuevas Plantillas Visuales:** Diseños "Minimal", "Creative" y "Swiss".
-- [ ] **Personalización en Vivo:** Selector de colores de acento, tipografías y márgenes.
+- [x] **Personalización en Vivo:** Selector de colores de acento, tipografías y márgenes.
 - [x] **Fondo Mesh Gradient:** Fondo dinámico y moderno para el workspace.
 - [x] **Iconos Automáticos:** Detección de RRSS y portafolios con iconos de marca.
 
