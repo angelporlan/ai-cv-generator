@@ -570,7 +570,10 @@ async function updatePdfPreview() {
         download: false,
         template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
         fontSize,
-        showIcons
+        showIcons,
+        accentColor: localStorage.getItem(EDITOR_ACCENT_COLOR_KEY) || '',
+        fontFamily: localStorage.getItem(EDITOR_FONT_FAMILY_KEY) || 'helvetica',
+        pageMargin: Number(localStorage.getItem(EDITOR_PAGE_MARGIN_KEY)) || 36
       })
     });
 
@@ -1311,6 +1314,95 @@ function openAdaptModal() {
   }
 }
 
+/* ── Personalization Panel Logic ─────────────────────────────── */
+const EDITOR_ACCENT_COLOR_KEY = 'cv_studio_accent_color';
+const EDITOR_FONT_FAMILY_KEY = 'cv_studio_font_family';
+const EDITOR_PAGE_MARGIN_KEY = 'cv_studio_page_margin';
+
+const toggleCustomizeBtn = document.getElementById('toggle-customize-btn');
+const customizePanel = document.getElementById('customize-panel');
+const presetColors = document.querySelectorAll('.color-preset');
+const customHexColor = document.getElementById('custom-hex-color');
+const fontFamilySelector = document.getElementById('font-family-selector');
+const marginSelectorTabs = document.querySelectorAll('#margin-selector .mode-tab');
+
+if (toggleCustomizeBtn && customizePanel) {
+  toggleCustomizeBtn.addEventListener('click', () => {
+    const isExpanded = toggleCustomizeBtn.getAttribute('aria-expanded') === 'true';
+    toggleCustomizeBtn.setAttribute('aria-expanded', !isExpanded);
+    toggleCustomizeBtn.classList.toggle('active');
+    customizePanel.hidden = isExpanded;
+  });
+}
+
+function updateColorUI(color) {
+  presetColors.forEach(btn => {
+    if (btn.dataset.color.toLowerCase() === color.toLowerCase()) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  customHexColor.value = color;
+}
+
+presetColors.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const color = btn.dataset.color;
+    localStorage.setItem(EDITOR_ACCENT_COLOR_KEY, color);
+    updateColorUI(color);
+    schedulePreviewUpdate();
+  });
+});
+
+if (customHexColor) {
+  customHexColor.addEventListener('input', (e) => {
+    const color = e.target.value;
+    localStorage.setItem(EDITOR_ACCENT_COLOR_KEY, color);
+    updateColorUI(color);
+    schedulePreviewUpdate();
+  });
+}
+
+if (fontFamilySelector) {
+  const savedFont = localStorage.getItem(EDITOR_FONT_FAMILY_KEY) || 'helvetica';
+  fontFamilySelector.value = savedFont;
+  
+  fontFamilySelector.addEventListener('change', (e) => {
+    localStorage.setItem(EDITOR_FONT_FAMILY_KEY, e.target.value);
+    schedulePreviewUpdate();
+  });
+}
+
+marginSelectorTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    marginSelectorTabs.forEach(t => {
+      t.classList.remove('active');
+      t.setAttribute('aria-checked', 'false');
+    });
+    tab.classList.add('active');
+    tab.setAttribute('aria-checked', 'true');
+    localStorage.setItem(EDITOR_PAGE_MARGIN_KEY, tab.dataset.margin);
+    schedulePreviewUpdate();
+  });
+});
+
+const savedMargin = localStorage.getItem(EDITOR_PAGE_MARGIN_KEY) || '36';
+marginSelectorTabs.forEach(tab => {
+  if (tab.dataset.margin === savedMargin) {
+    tab.classList.add('active');
+    tab.setAttribute('aria-checked', 'true');
+  } else {
+    tab.classList.remove('active');
+    tab.setAttribute('aria-checked', 'false');
+  }
+});
+
+const savedColor = localStorage.getItem(EDITOR_ACCENT_COLOR_KEY);
+if (savedColor) {
+  updateColorUI(savedColor);
+}
+
 function closeAdaptModal() {
   if (!adaptCvModal) return;
   adaptCvModal.classList.remove('active');
@@ -1675,7 +1767,10 @@ async function downloadPdf() {
       download: true,
       template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
       fontSize,
-      showIcons
+      showIcons,
+      accentColor: localStorage.getItem(EDITOR_ACCENT_COLOR_KEY) || '',
+      fontFamily: localStorage.getItem(EDITOR_FONT_FAMILY_KEY) || 'helvetica',
+      pageMargin: Number(localStorage.getItem(EDITOR_PAGE_MARGIN_KEY)) || 36
     })
   });
 

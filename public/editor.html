@@ -221,6 +221,10 @@
           </div>
 
           <div class="actions">
+            <!-- Botón de personalización en vivo -->
+            <button class="button button-secondary" id="toggle-customize-btn" type="button" aria-expanded="false" title="Personalizar diseño">
+              🎨 Personalizar
+            </button>
             <!-- Icons toggle -->
             <button class="icon-toggle-btn active" id="toggle-icons-btn" role="switch" aria-checked="true"
               title="Mostrar/Ocultar iconos de marca">
@@ -252,6 +256,46 @@
                 <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
               </svg>
             </button>
+          </div>
+        </div>
+
+        <!-- Personalization Panel -->
+        <div class="customize-panel" id="customize-panel" hidden>
+          <div class="customize-group">
+            <span class="customize-label">Color de acento</span>
+            <div class="color-picker-group">
+              <div class="preset-colors" id="preset-colors">
+                <button type="button" class="color-preset" data-color="#534ab7" style="background-color: #534ab7;" title="Púrpura"></button>
+                <button type="button" class="color-preset" data-color="#1c7ed6" style="background-color: #1c7ed6;" title="Azul"></button>
+                <button type="button" class="color-preset" data-color="#2b8a3e" style="background-color: #2b8a3e;" title="Verde"></button>
+                <button type="button" class="color-preset" data-color="#c92a2a" style="background-color: #c92a2a;" title="Rojo"></button>
+                <button type="button" class="color-preset" data-color="#e67700" style="background-color: #e67700;" title="Naranja"></button>
+                <button type="button" class="color-preset" data-color="#0b7285" style="background-color: #0b7285;" title="Teal"></button>
+                <button type="button" class="color-preset" data-color="#a61e4d" style="background-color: #a61e4d;" title="Rosa"></button>
+                <button type="button" class="color-preset" data-color="#000000" style="background-color: #000000;" title="Negro puro"></button>
+              </div>
+              <input type="color" id="custom-hex-color" class="custom-hex-input" title="Elegir color libre">
+            </div>
+          </div>
+
+          <div class="customize-group">
+            <span class="customize-label">Tipografía</span>
+            <div class="template-selector-wrapper">
+              <select id="font-family-selector" class="template-select" title="Tipografía del documento">
+                <option value="helvetica" selected>Helvetica (Moderna)</option>
+                <option value="times">Times (Clásica)</option>
+                <option value="courier">Courier (Monoespaciada)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="customize-group">
+            <span class="customize-label">Márgenes</span>
+            <div class="editor-mode-switch" id="margin-selector" role="radiogroup" aria-label="Márgenes del documento">
+              <button type="button" class="mode-tab" data-margin="28" role="radio" aria-checked="false">Compacto</button>
+              <button type="button" class="mode-tab active" data-margin="36" role="radio" aria-checked="true">Normal</button>
+              <button type="button" class="mode-tab" data-margin="48" role="radio" aria-checked="false">Amplio</button>
+            </div>
           </div>
         </div>
 

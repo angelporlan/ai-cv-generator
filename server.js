@@ -242,15 +242,20 @@ async function handlePreviewPdf(request, response) {
     return sendJson(response, 400, { ok: false, error: 'Missing markdown' });
   }
 
-  // Permitir elegir plantilla
+  // Opciones de personalización
   const template = body.template || 'harvard';
   const download = body.download !== false;
   const requestedFontSize = Number(body.fontSize);
   const fontSize = Number.isFinite(requestedFontSize) ? requestedFontSize : undefined;
   const showIcons = body.showIcons !== false;
+  const accentColor = body.accentColor;
+  const fontFamily = body.fontFamily;
+  const pageMargin = body.pageMargin;
 
   try {
-    createPdfDocumentFromMarkdown(markdown, response, { download, template, fontSize, showIcons });
+    createPdfDocumentFromMarkdown(markdown, response, { 
+      download, template, fontSize, showIcons, accentColor, fontFamily, pageMargin 
+    });
   } catch (err) {
     console.error('[preview-pdf] EXCEPTION:', err);
     sendJson(response, 500, { ok: false, error: err.message });

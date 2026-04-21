@@ -15,6 +15,20 @@ const COLORS = {
   rule: '#000000'
 };
 
+// Font family mapping (PDFKit built-in fonts)
+const FONT_FAMILIES = {
+  helvetica: { regular: 'Helvetica', bold: 'Helvetica-Bold', italic: 'Helvetica-Oblique', boldItalic: 'Helvetica-BoldOblique' },
+  times: { regular: 'Times-Roman', bold: 'Times-Bold', italic: 'Times-Italic', boldItalic: 'Times-BoldItalic' },
+  courier: { regular: 'Courier', bold: 'Courier-Bold', italic: 'Courier-Oblique', boldItalic: 'Courier-BoldOblique' }
+};
+
+function buildCustomize(options) {
+  const fontFamily = FONT_FAMILIES[options.fontFamily] || FONT_FAMILIES.helvetica;
+  const pageMargin = Number(options.pageMargin) || PAGE_MARGIN;
+  const accentColor = options.accentColor || null; // null = use template default
+  return { fontFamily, pageMargin, accentColor };
+}
+
 // Tamaños de fuente base optimizados para mejor legibilidad en 1 página
 const BASE_LAYOUT = {
   nameSize: 20,
@@ -232,31 +246,40 @@ function ensurePageSpace(doc, heightNeeded) {
   return;
 }
 
-function drawSectionHeading(doc, title, layout) {
+function drawSectionHeading(doc, title, layout, cust = {}) {
+  const margin = cust.pageMargin || PAGE_MARGIN;
+  const cWidth = 595.28 - margin * 2;
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const accent = cust.accentColor || COLORS.accent;
+  const rule = cust.accentColor || COLORS.rule;
+
   ensurePageSpace(doc, 22);
   doc.moveDown(layout.sectionGap);
 
-  doc.font('Helvetica-Bold')
+  doc.font(ff.bold)
     .fontSize(layout.sectionSize)
-    .fillColor(COLORS.accent)
-    .text(title.toUpperCase(), PAGE_MARGIN, doc.y, {
-      width: CONTENT_WIDTH,
+    .fillColor(accent)
+    .text(title.toUpperCase(), margin, doc.y, {
+      width: cWidth,
       align: 'left',
       characterSpacing: 0.5
     });
 
-  const ruleY = doc.y + 2.5; // Mejor separación de la línea
-  doc.moveTo(PAGE_MARGIN, ruleY)
-    .lineTo(PAGE_MARGIN + CONTENT_WIDTH, ruleY)
-    .strokeColor(COLORS.rule)
-    .lineWidth(0.75) // Línea un poco más sólida
+  const ruleY = doc.y + 2.5;
+  doc.moveTo(margin, ruleY)
+    .lineTo(margin + cWidth, ruleY)
+    .strokeColor(rule)
+    .lineWidth(0.75)
     .stroke();
 
   doc.y = ruleY + 4.5;
 }
 
-function drawParagraph(doc, text, layout, options = {}) {
-  const font = options.font || 'Helvetica';
+function drawParagraph(doc, text, layout, options = {}, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const margin = cust.pageMargin || PAGE_MARGIN;
+  const cWidth = 595.28 - margin * 2;
+  const font = options.font || ff.regular;
   const size = options.size || layout.bodySize;
   const color = options.color || COLORS.text;
   const gap = options.gap ?? layout.paragraphGap;
@@ -266,8 +289,8 @@ function drawParagraph(doc, text, layout, options = {}) {
   doc.font(font)
     .fontSize(size)
     .fillColor(color)
-    .text(text, PAGE_MARGIN, doc.y, {
-      width: CONTENT_WIDTH,
+    .text(text, margin, doc.y, {
+      width: cWidth,
       align,
       lineGap: layout.lineGap
     });
@@ -275,24 +298,26 @@ function drawParagraph(doc, text, layout, options = {}) {
   doc.moveDown(gap);
 }
 
-function drawBullet(doc, text, layout) {
+function drawBullet(doc, text, layout, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const margin = cust.pageMargin || PAGE_MARGIN;
+  const cWidth = 595.28 - margin * 2;
+
   ensurePageSpace(doc, 16);
-  // Posiciones ajustadas para el sangrado de las viñetas
-  const bulletX = PAGE_MARGIN + 8;
-  const textX = PAGE_MARGIN + 18;
+  const bulletX = margin + 8;
+  const textX = margin + 18;
   const startY = doc.y;
 
-  // Tamaño de viñeta corregido
-  doc.font('Helvetica')
+  doc.font(ff.regular)
     .fontSize(layout.bulletSize)
     .fillColor(COLORS.text)
     .text('\u2022', bulletX, startY);
 
-  doc.font('Helvetica')
+  doc.font(ff.regular)
     .fontSize(layout.bodySize)
     .fillColor(COLORS.text)
     .text(text, textX, startY, {
-      width: CONTENT_WIDTH - 18,
+      width: cWidth - 18,
       align: 'left',
       lineGap: layout.lineGap
     });
@@ -300,59 +325,63 @@ function drawBullet(doc, text, layout) {
   doc.moveDown(layout.bulletGap);
 }
 
-function drawEntry(doc, entry, layout) {
+function drawEntry(doc, entry, layout, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const margin = cust.pageMargin || PAGE_MARGIN;
+  const cWidth = 595.28 - margin * 2;
+
   ensurePageSpace(doc, 28);
   const startY = doc.y;
 
-  // Título alineado a la izquierda
-  doc.font('Helvetica-Bold')
+  doc.font(ff.bold)
     .fontSize(layout.headingSize)
     .fillColor(COLORS.text)
-    .text(entry.heading, PAGE_MARGIN, startY, {
-      width: CONTENT_WIDTH * 0.7,
+    .text(entry.heading, margin, startY, {
+      width: cWidth * 0.7,
       continued: false
     });
 
-  // Fecha perfectamente alineada a la derecha en la misma línea
   if (entry.date) {
-    doc.font('Helvetica')
+    doc.font(ff.regular)
       .fontSize(layout.metaSize)
       .fillColor(COLORS.muted)
-      .text(entry.date, PAGE_MARGIN, startY, {
-        width: CONTENT_WIDTH,
+      .text(entry.date, margin, startY, {
+        width: cWidth,
         align: 'right'
       });
   }
 
-  // Subtítulo (Rol)
   if (entry.subheading) {
     doc.y += 1;
-    doc.font('Helvetica-Oblique')
+    doc.font(ff.italic)
       .fontSize(layout.metaSize)
       .fillColor(COLORS.text)
-      .text(entry.subheading, PAGE_MARGIN, doc.y, {
-        width: CONTENT_WIDTH
+      .text(entry.subheading, margin, doc.y, {
+        width: cWidth
       });
   }
 
   doc.moveDown(0.15);
 
   for (const paragraph of entry.paragraphs || []) {
-    drawParagraph(doc, paragraph, layout, { gap: layout.paragraphGap });
+    drawParagraph(doc, paragraph, layout, { gap: layout.paragraphGap }, cust);
   }
 
   for (const bullet of entry.bullets || []) {
-    drawBullet(doc, bullet, layout);
+    drawBullet(doc, bullet, layout, cust);
   }
 
   doc.moveDown(layout.entryGap);
 }
 
-function drawContactLines(doc, contact, layout, showIcons = true) {
+function drawContactLines(doc, contact, layout, showIcons = true, cust = {}) {
   if (!contact.length) {
     return;
   }
 
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const margin = cust.pageMargin || PAGE_MARGIN;
+  const cWidth = 595.28 - margin * 2;
   const sep = '   ·   ';
   const iconSize = layout.contactSize * 0.9;
   const iconGap = 3;
@@ -369,7 +398,7 @@ function drawContactLines(doc, contact, layout, showIcons = true) {
       return { text, textWidth, iconType, iconWidth, sepWidth };
     });
 
-    let currentX = PAGE_MARGIN + (CONTENT_WIDTH - totalWidth) / 2;
+    let currentX = margin + (cWidth - totalWidth) / 2;
     itemData.forEach((data) => {
       if (data.iconType) {
         drawIcon(doc, data.iconType, currentX, y - 0.5, iconSize, COLORS.muted);
@@ -384,7 +413,7 @@ function drawContactLines(doc, contact, layout, showIcons = true) {
     });
   };
 
-  doc.font('Helvetica')
+  doc.font(ff.regular)
     .fontSize(layout.contactSize)
     .fillColor(COLORS.muted);
 
@@ -393,15 +422,20 @@ function drawContactLines(doc, contact, layout, showIcons = true) {
   doc.y += layout.contactSize;
 
   if (contact.length > 3) {
-    doc.y += 2.5; // Margen entre líneas de contacto
+    doc.y += 2.5;
     const secondLineItems = contact.slice(3);
     renderLine(secondLineItems, doc.y);
     doc.y += layout.contactSize;
   }
 }
 
-function drawSkillsSection(doc, section, layout) {
-  drawSectionHeading(doc, section.title, layout);
+function drawSkillsSection(doc, section, layout, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const margin = cust.pageMargin || PAGE_MARGIN;
+  const cWidth = 595.28 - margin * 2;
+  const accent = cust.accentColor || COLORS.accent;
+
+  drawSectionHeading(doc, section.title, layout, cust);
 
   const items = [...(section.paragraphs || []), ...(section.bullets || [])];
   if (!items.length) {
@@ -417,29 +451,29 @@ function drawSkillsSection(doc, section, layout) {
       const value = parts.slice(1).join(':').trim();
       const startY = doc.y;
 
-      doc.font('Helvetica-Bold')
+      doc.font(ff.bold)
         .fontSize(layout.bodySize)
-        .fillColor(COLORS.accent)
-        .text(label + ': ', PAGE_MARGIN + 6, startY, {
+        .fillColor(accent)
+        .text(label + ': ', margin + 6, startY, {
           continued: true,
-          width: CONTENT_WIDTH - 6
+          width: cWidth - 6
         });
 
-      doc.font('Helvetica')
+      doc.font(ff.regular)
         .fontSize(layout.bodySize)
         .fillColor(COLORS.text)
         .text(value, {
-          width: CONTENT_WIDTH - 6,
+          width: cWidth - 6,
           lineGap: layout.lineGap
         });
 
       doc.moveDown(0.08);
     } else {
-      doc.font('Helvetica')
+      doc.font(ff.regular)
         .fontSize(layout.bodySize)
         .fillColor(COLORS.text)
-        .text(item, PAGE_MARGIN + 6, doc.y, {
-          width: CONTENT_WIDTH - 6,
+        .text(item, margin + 6, doc.y, {
+          width: cWidth - 6,
           lineGap: layout.lineGap
         });
       doc.moveDown(0.08);
@@ -447,58 +481,64 @@ function drawSkillsSection(doc, section, layout) {
   }
 }
 
-function renderCvPdf(doc, cv, layout, showIcons = true) {
-  // Existing Harvard rendering remains here...
+function renderCvPdf(doc, cv, layout, showIcons = true, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const margin = cust.pageMargin || PAGE_MARGIN;
+  const cWidth = 595.28 - margin * 2;
+  const accent = cust.accentColor || COLORS.accent;
+
   doc.info.Title = `CV - ${cv.name}`;
   doc.info.Author = cv.name;
   doc.info.Subject = 'Curriculum Vitae';
 
-  // Nombre con más presencia visual
-  doc.font('Helvetica-Bold')
+  doc.font(ff.bold)
     .fontSize(layout.nameSize)
     .fillColor(COLORS.text)
-    .text(cv.name.toUpperCase(), PAGE_MARGIN, PAGE_MARGIN, {
-      width: CONTENT_WIDTH,
+    .text(cv.name.toUpperCase(), margin, margin, {
+      width: cWidth,
       align: 'center',
       characterSpacing: 1.2
     });
 
   doc.moveDown(0.2);
-  drawContactLines(doc, cv.contact, layout, showIcons);
+  drawContactLines(doc, cv.contact, layout, showIcons, cust);
 
-  const headerRuleY = doc.y + 12; // Añadido más margen antes de la raya
-  doc.moveTo(PAGE_MARGIN, headerRuleY)
-    .lineTo(PAGE_MARGIN + CONTENT_WIDTH, headerRuleY)
-    .strokeColor(COLORS.accent)
+  const headerRuleY = doc.y + 12;
+  doc.moveTo(margin, headerRuleY)
+    .lineTo(margin + cWidth, headerRuleY)
+    .strokeColor(accent)
     .lineWidth(0.8)
     .stroke();
 
-  doc.y = headerRuleY + 10; // Añadido más margen después de la raya
+  doc.y = headerRuleY + 10;
 
   for (const section of cv.sections) {
     if (section.title.toLowerCase() === 'skills' || section.title.toLowerCase() === 'habilidades') {
-      drawSkillsSection(doc, section, layout);
+      drawSkillsSection(doc, section, layout, cust);
     } else {
-      drawSectionHeading(doc, section.title, layout);
+      drawSectionHeading(doc, section.title, layout, cust);
 
       for (const paragraph of section.paragraphs || []) {
-        drawParagraph(doc, paragraph, layout);
+        drawParagraph(doc, paragraph, layout, {}, cust);
       }
 
       for (const entry of section.entries || []) {
-        drawEntry(doc, entry, layout);
+        drawEntry(doc, entry, layout, cust);
       }
 
       for (const bullet of section.bullets || []) {
-        drawBullet(doc, bullet, layout);
+        drawBullet(doc, bullet, layout, cust);
       }
     }
     doc.moveDown(layout.sectionGap);
   }
 }
 
-function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
-  const { sidebarWidth, sidebarColor, sidebarPadding, mainPadding, sidebarTextColor, sidebarMutedColor, accentColor, lineColor } = MODERN_CONFIG;
+function renderModernCvPdf(doc, cv, scale = 1, showIcons = true, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const customAccent = cust.accentColor || MODERN_CONFIG.accentColor;
+  const { sidebarWidth, sidebarColor, sidebarPadding, mainPadding, sidebarTextColor, sidebarMutedColor, lineColor } = MODERN_CONFIG;
+  const accentColor = customAccent;
   const pageHeight = doc.page.height;
   const pageWidth = doc.page.width;
 
@@ -524,7 +564,7 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
 
   // Category Title Helper for Sidebar
   const drawSidebarHeading = (title) => {
-    doc.font('Helvetica-Bold')
+    doc.font(ff.bold)
       .fontSize(11 * scale)
       .fillColor(sidebarTextColor)
       .text(title.toUpperCase(), sidebarPadding, currentY, { characterSpacing: 1 });
@@ -540,7 +580,7 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
   // Draw Contact in Sidebar first if available
     if (cv.contact && cv.contact.length > 0) {
     drawSidebarHeading('Contacto');
-    doc.font('Helvetica').fontSize(8.5 * scale).fillColor(sidebarTextColor);
+    doc.font(ff.regular).fontSize(8.5 * scale).fillColor(sidebarTextColor);
     for (const info of cv.contact) {
       const label = info.label || '';
       const value = info.value || '';
@@ -566,7 +606,7 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
   // Draw Sidebar Sections
   for (const section of sidebarSections) {
     drawSidebarHeading(section.title);
-    doc.font('Helvetica').fontSize(9 * scale).fillColor(sidebarTextColor);
+    doc.font(ff.regular).fontSize(9 * scale).fillColor(sidebarTextColor);
     
     const items = [...(section.paragraphs || []), ...(section.bullets || [])];
     for (const item of items) {
@@ -586,7 +626,7 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
   const fs = (size) => size * scale;
 
   // Draw Name Header
-  doc.font('Helvetica-Bold')
+  doc.font(ff.bold)
     .fontSize(fs(28))
     .fillColor('#333333')
     .text(cv.name, mainX, currentY);
@@ -595,7 +635,7 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
 
   // Main Category Title Helper
   const drawMainHeading = (title) => {
-    doc.font('Helvetica-Bold')
+    doc.font(ff.bold)
       .fontSize(fs(12))
       .fillColor(accentColor)
       .text(title.toUpperCase(), mainX, currentY, { characterSpacing: 0.5 });
@@ -614,7 +654,7 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
 
     // Draft Paragraphs
     for (const p of section.paragraphs || []) {
-      doc.font('Helvetica').fontSize(fs(9.5)).fillColor('#444444').text(p, mainX, currentY, {
+      doc.font(ff.regular).fontSize(fs(9.5)).fillColor('#444444').text(p, mainX, currentY, {
         width: mainWidth,
         lineGap: 2,
         align: 'justify'
@@ -627,30 +667,30 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
       const entryY = currentY;
       
       // Heading (Left)
-      doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor('#333333').text(entry.heading, mainX, entryY, { width: mainWidth - 80 });
+      doc.font(ff.bold).fontSize(fs(10)).fillColor('#333333').text(entry.heading, mainX, entryY, { width: mainWidth - 80 });
       
       // Date (Right)
       if (entry.date) {
-        doc.font('Helvetica-Bold').fontSize(fs(9)).fillColor('#666666').text(entry.date, mainX, entryY, { align: 'right', width: mainWidth });
+        doc.font(ff.bold).fontSize(fs(9)).fillColor('#666666').text(entry.date, mainX, entryY, { align: 'right', width: mainWidth });
       }
       
       currentY = doc.y + 2;
 
       // Subheading
       if (entry.subheading) {
-        doc.font('Helvetica-BoldOblique').fontSize(fs(9)).fillColor('#555555').text(entry.subheading, mainX, currentY);
+        doc.font(ff.boldItalic).fontSize(fs(9)).fillColor('#555555').text(entry.subheading, mainX, currentY);
         currentY = doc.y + 4;
       }
 
       // Entry Paragraphs
       for (const p of entry.paragraphs || []) {
-        doc.font('Helvetica').fontSize(fs(9)).fillColor('#444444').text(p, mainX, currentY, { width: mainWidth, lineGap: 1.5 });
+        doc.font(ff.regular).fontSize(fs(9)).fillColor('#444444').text(p, mainX, currentY, { width: mainWidth, lineGap: 1.5 });
         currentY = doc.y + 4;
       }
 
       // Entry Bullets
       for (const b of entry.bullets || []) {
-        doc.font('Helvetica').fontSize(fs(9)).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 1.5 });
+        doc.font(ff.regular).fontSize(fs(9)).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 1.5 });
         currentY = doc.y + 2;
       }
       
@@ -659,7 +699,7 @@ function renderModernCvPdf(doc, cv, scale = 1, showIcons = true) {
 
     // General Bullets
     for (const b of section.bullets || []) {
-      doc.font('Helvetica').fontSize(fs(9.5)).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 2 });
+      doc.font(ff.regular).fontSize(fs(9.5)).fillColor('#444444').text('• ' + b, mainX + 10, currentY, { width: mainWidth - 10, lineGap: 2 });
       currentY = doc.y + 4;
     }
 
@@ -681,8 +721,11 @@ const MINIMAL_CONFIG = {
   accentColor: '#555555'
 };
 
-function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
-  const cfg = MINIMAL_CONFIG;
+function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const customAccent = cust.accentColor || MINIMAL_CONFIG.accentColor;
+  const customMargin = cust.pageMargin || MINIMAL_CONFIG.marginSide;
+  const cfg = { ...MINIMAL_CONFIG, accentColor: customAccent, marginSide: customMargin };
   const pageWidth = doc.page.width;
   const contentWidth = pageWidth - cfg.marginSide * 2;
   const fs = (size) => size * scale;
@@ -692,13 +735,13 @@ function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
   doc.info.Author = cv.name;
 
   // ── Name ──
-  doc.font('Helvetica').fontSize(fs(22)).fillColor(cfg.nameColor)
+  doc.font(ff.regular).fontSize(fs(22)).fillColor(cfg.nameColor)
     .text(cv.name, cfg.marginSide, y, { width: contentWidth, align: 'center' });
   y = doc.y + 8;
 
   // ── Contact line ──
   if (cv.contact.length) {
-    doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.mutedColor);
+    doc.font(ff.regular).fontSize(fs(8.5)).fillColor(cfg.mutedColor);
     const parts = cv.contact.map(c => {
       const iconType = showIcons ? getIconType(c.label, c.value) : null;
       return `${c.label}: ${c.value}`;
@@ -709,7 +752,7 @@ function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
     // Icons row (drawn on top)
     if (showIcons) {
       const iconSize = fs(8);
-      doc.font('Helvetica').fontSize(fs(8.5));
+      doc.font(ff.regular).fontSize(fs(8.5));
       const fullText = parts.join('  |  ');
       const totalWidth = doc.widthOfString(fullText);
       let iconX = cfg.marginSide + (contentWidth - totalWidth) / 2;
@@ -735,7 +778,7 @@ function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
   // ── Sections ──
   for (const section of cv.sections) {
     // Section title
-    doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor(cfg.accentColor)
+    doc.font(ff.bold).fontSize(fs(10)).fillColor(cfg.accentColor)
       .text(section.title.toUpperCase(), cfg.marginSide, y, {
         width: contentWidth, characterSpacing: 1.5
       });
@@ -746,7 +789,7 @@ function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
 
     // Paragraphs
     for (const p of section.paragraphs || []) {
-      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.textColor)
+      doc.font(ff.regular).fontSize(fs(9)).fillColor(cfg.textColor)
         .text(p, cfg.marginSide, y, { width: contentWidth, lineGap: 2, align: 'justify' });
       y = doc.y + 5;
     }
@@ -754,25 +797,25 @@ function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
     // Entries
     for (const entry of section.entries || []) {
       const entryY = y;
-      doc.font('Helvetica-Bold').fontSize(fs(9.5)).fillColor(cfg.nameColor)
+      doc.font(ff.bold).fontSize(fs(9.5)).fillColor(cfg.nameColor)
         .text(entry.heading, cfg.marginSide, entryY, { width: contentWidth * 0.7 });
       if (entry.date) {
-        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.mutedColor)
+        doc.font(ff.regular).fontSize(fs(8.5)).fillColor(cfg.mutedColor)
           .text(entry.date, cfg.marginSide, entryY, { width: contentWidth, align: 'right' });
       }
       y = doc.y + 1;
       if (entry.subheading) {
-        doc.font('Helvetica-Oblique').fontSize(fs(8.5)).fillColor(cfg.textColor)
+        doc.font(ff.italic).fontSize(fs(8.5)).fillColor(cfg.textColor)
           .text(entry.subheading, cfg.marginSide, y);
         y = doc.y + 2;
       }
       for (const p of entry.paragraphs || []) {
-        doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.textColor)
+        doc.font(ff.regular).fontSize(fs(9)).fillColor(cfg.textColor)
           .text(p, cfg.marginSide, y, { width: contentWidth, lineGap: 1.5 });
         y = doc.y + 3;
       }
       for (const b of entry.bullets || []) {
-        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.textColor)
+        doc.font(ff.regular).fontSize(fs(8.5)).fillColor(cfg.textColor)
           .text('–  ' + b, cfg.marginSide + 12, y, { width: contentWidth - 12, lineGap: 1.5 });
         y = doc.y + 2;
       }
@@ -788,11 +831,11 @@ function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
         if (colonIdx !== -1) {
           const label = item.substring(0, colonIdx).trim();
           const value = item.substring(colonIdx + 1).trim();
-          doc.font('Helvetica-Bold').fontSize(fs(8.5)).fillColor(cfg.accentColor)
+          doc.font(ff.bold).fontSize(fs(8.5)).fillColor(cfg.accentColor)
             .text(label + ': ', cfg.marginSide, y, { continued: true, width: contentWidth });
-          doc.font('Helvetica').fillColor(cfg.textColor).text(value, { width: contentWidth, lineGap: 1.5 });
+          doc.font(ff.regular).fillColor(cfg.textColor).text(value, { width: contentWidth, lineGap: 1.5 });
         } else {
-          doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.textColor)
+          doc.font(ff.regular).fontSize(fs(8.5)).fillColor(cfg.textColor)
             .text(item, cfg.marginSide, y, { width: contentWidth, lineGap: 1.5 });
         }
         y = doc.y + 2;
@@ -802,7 +845,7 @@ function renderMinimalCvPdf(doc, cv, scale = 1, showIcons = true) {
     // General bullets
     if (!isSkills) {
       for (const b of section.bullets || []) {
-        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.textColor)
+        doc.font(ff.regular).fontSize(fs(8.5)).fillColor(cfg.textColor)
           .text('–  ' + b, cfg.marginSide + 12, y, { width: contentWidth - 12, lineGap: 1.5 });
         y = doc.y + 2;
       }
@@ -830,8 +873,10 @@ const CREATIVE_CONFIG = {
   lineColor: '#eeeeee'
 };
 
-function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
-  const cfg = CREATIVE_CONFIG;
+function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const customAccent = cust.accentColor || CREATIVE_CONFIG.accentColor;
+  const cfg = { ...CREATIVE_CONFIG, accentColor: customAccent };
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
   const mainX = cfg.mainPadding;
@@ -853,7 +898,7 @@ function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
   let sideY = 40;
 
   const drawSidebarHeading = (title) => {
-    doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor(cfg.sidebarTextColor)
+    doc.font(ff.bold).fontSize(fs(10)).fillColor(cfg.sidebarTextColor)
       .text(title.toUpperCase(), sideContentX, sideY, { width: sideContentWidth, characterSpacing: 0.8 });
     sideY = doc.y + 4;
     doc.moveTo(sideContentX, sideY)
@@ -865,7 +910,7 @@ function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
   // Contact in sidebar
   if (cv.contact && cv.contact.length) {
     drawSidebarHeading('Contacto');
-    doc.font('Helvetica').fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
+    doc.font(ff.regular).fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
     for (const info of cv.contact) {
       const iconType = showIcons ? getIconType(info.label, info.value) : null;
       const iconSize = fs(8);
@@ -896,10 +941,10 @@ function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
 
   for (const section of sidebarSections) {
     drawSidebarHeading(section.title);
-    doc.font('Helvetica').fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
+    doc.font(ff.regular).fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
     const items = [...(section.paragraphs || []), ...(section.bullets || [])];
     for (const item of items) {
-      doc.font('Helvetica').fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
+      doc.font(ff.regular).fontSize(fs(8)).fillColor(cfg.sidebarTextColor);
       doc.text('● ' + item, sideContentX + 2, sideY, {
         width: sideContentWidth - 4, lineGap: 2
       });
@@ -912,7 +957,7 @@ function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
   let y = 40;
 
   // Name with accent color
-  doc.font('Helvetica-Bold').fontSize(fs(26)).fillColor(cfg.accentColor)
+  doc.font(ff.bold).fontSize(fs(26)).fillColor(cfg.accentColor)
     .text(cv.name, mainX, y, { width: mainWidth });
   y = doc.y + 4;
 
@@ -924,7 +969,7 @@ function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
   for (const section of mainSections) {
     // Section title with colored bar
     doc.rect(mainX, y + 1, 4, fs(11)).fill(cfg.accentColor);
-    doc.font('Helvetica-Bold').fontSize(fs(11)).fillColor(cfg.mainTextColor)
+    doc.font(ff.bold).fontSize(fs(11)).fillColor(cfg.mainTextColor)
       .text(section.title.toUpperCase(), mainX + 12, y, { width: mainWidth - 12, characterSpacing: 0.5 });
     y = doc.y + 4;
     doc.moveTo(mainX, y).lineTo(mainX + mainWidth, y)
@@ -933,7 +978,7 @@ function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
 
     // Paragraphs
     for (const p of section.paragraphs || []) {
-      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+      doc.font(ff.regular).fontSize(fs(9)).fillColor(cfg.mainTextColor)
         .text(p, mainX, y, { width: mainWidth, lineGap: 2, align: 'justify' });
       y = doc.y + 6;
     }
@@ -941,25 +986,25 @@ function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
     // Entries
     for (const entry of section.entries || []) {
       const entryY = y;
-      doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor(cfg.mainTextColor)
+      doc.font(ff.bold).fontSize(fs(10)).fillColor(cfg.mainTextColor)
         .text(entry.heading, mainX, entryY, { width: mainWidth - 80 });
       if (entry.date) {
-        doc.font('Helvetica-Bold').fontSize(fs(8.5)).fillColor(cfg.accentColor)
+        doc.font(ff.bold).fontSize(fs(8.5)).fillColor(cfg.accentColor)
           .text(entry.date, mainX, entryY, { width: mainWidth, align: 'right' });
       }
       y = doc.y + 2;
       if (entry.subheading) {
-        doc.font('Helvetica-BoldOblique').fontSize(fs(8.5)).fillColor(cfg.mainMutedColor)
+        doc.font(ff.boldItalic).fontSize(fs(8.5)).fillColor(cfg.mainMutedColor)
           .text(entry.subheading, mainX, y);
         y = doc.y + 3;
       }
       for (const p of entry.paragraphs || []) {
-        doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+        doc.font(ff.regular).fontSize(fs(9)).fillColor(cfg.mainTextColor)
           .text(p, mainX, y, { width: mainWidth, lineGap: 1.5 });
         y = doc.y + 3;
       }
       for (const b of entry.bullets || []) {
-        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.mainTextColor)
+        doc.font(ff.regular).fontSize(fs(8.5)).fillColor(cfg.mainTextColor)
           .text('● ', mainX + 8, y, { continued: true });
         doc.fillColor(cfg.mainTextColor).text(b, { width: mainWidth - 20, lineGap: 1.5 });
         y = doc.y + 2;
@@ -969,7 +1014,7 @@ function renderCreativeCvPdf(doc, cv, scale = 1, showIcons = true) {
 
     // General bullets
     for (const b of section.bullets || []) {
-      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+      doc.font(ff.regular).fontSize(fs(9)).fillColor(cfg.mainTextColor)
         .text('● ' + b, mainX + 8, y, { width: mainWidth - 8, lineGap: 1.5 });
       y = doc.y + 3;
     }
@@ -995,8 +1040,10 @@ const SWISS_CONFIG = {
   lineColor: '#cccccc'
 };
 
-function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
-  const cfg = SWISS_CONFIG;
+function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true, cust = {}) {
+  const ff = cust.fontFamily || FONT_FAMILIES.helvetica;
+  const customAccent = cust.accentColor || SWISS_CONFIG.accentColor;
+  const cfg = { ...SWISS_CONFIG, accentColor: customAccent };
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
   const mainX = cfg.sidebarWidth + cfg.mainPadding;
@@ -1018,18 +1065,18 @@ function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
   let sideY = 30;
 
   // Name in sidebar
-  doc.font('Helvetica-Bold').fontSize(fs(13)).fillColor(cfg.sidebarTextColor)
+  doc.font(ff.bold).fontSize(fs(13)).fillColor(cfg.sidebarTextColor)
     .text(cv.name.split(' ')[0] || cv.name, sideContentX, sideY, { width: sideContentWidth });
   sideY = doc.y;
   if (cv.name.split(' ').length > 1) {
-    doc.font('Helvetica').fontSize(fs(13)).fillColor(cfg.accentColor)
+    doc.font(ff.regular).fontSize(fs(13)).fillColor(cfg.accentColor)
       .text(cv.name.split(' ').slice(1).join(' '), sideContentX, sideY, { width: sideContentWidth });
     sideY = doc.y;
   }
   sideY += 16;
 
   const drawSwissSidebarHeading = (title) => {
-    doc.font('Helvetica-Bold').fontSize(fs(8.5)).fillColor(cfg.accentColor)
+    doc.font(ff.bold).fontSize(fs(8.5)).fillColor(cfg.accentColor)
       .text(title.toUpperCase(), sideContentX, sideY, {
         width: sideContentWidth, characterSpacing: 1.5
       });
@@ -1051,10 +1098,10 @@ function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
         drawIcon(doc, iconType, sideContentX, sideY + 1, iconSize, cfg.sidebarTextColor);
         textX += iconSize + 4;
       }
-      doc.font('Helvetica').fontSize(fs(7.5)).fillColor(cfg.sidebarMutedColor)
+      doc.font(ff.regular).fontSize(fs(7.5)).fillColor(cfg.sidebarMutedColor)
         .text(info.label, textX, sideY, { width: sideContentWidth - (textX - sideContentX) });
       sideY = doc.y;
-      doc.font('Helvetica').fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
+      doc.font(ff.regular).fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
         .text(info.value, textX, sideY, { width: sideContentWidth - (textX - sideContentX), lineGap: 1.5 });
       sideY = doc.y + 6;
     }
@@ -1081,13 +1128,13 @@ function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
       if (colonIdx !== -1) {
         const label = item.substring(0, colonIdx).trim();
         const value = item.substring(colonIdx + 1).trim();
-        doc.font('Helvetica-Bold').fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
+        doc.font(ff.bold).fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
           .text(label, sideContentX, sideY, { width: sideContentWidth });
         sideY = doc.y;
-        doc.font('Helvetica').fontSize(fs(7)).fillColor(cfg.sidebarMutedColor)
+        doc.font(ff.regular).fontSize(fs(7)).fillColor(cfg.sidebarMutedColor)
           .text(value, sideContentX, sideY, { width: sideContentWidth, lineGap: 1.5 });
       } else {
-        doc.font('Helvetica').fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
+        doc.font(ff.regular).fontSize(fs(7.5)).fillColor(cfg.sidebarTextColor)
           .text('▸ ' + item, sideContentX, sideY, { width: sideContentWidth, lineGap: 1.5 });
       }
       sideY = doc.y + 4;
@@ -1099,7 +1146,7 @@ function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
   let y = 30;
 
   // Name in main area (large)
-  doc.font('Helvetica-Bold').fontSize(fs(28)).fillColor(cfg.mainTextColor)
+  doc.font(ff.bold).fontSize(fs(28)).fillColor(cfg.mainTextColor)
     .text(cv.name.toUpperCase(), mainX, y, { width: mainWidth, characterSpacing: 1.5 });
   y = doc.y + 2;
 
@@ -1110,7 +1157,7 @@ function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
   // Main sections
   for (const section of mainSections) {
     // Section title
-    doc.font('Helvetica-Bold').fontSize(fs(11)).fillColor(cfg.accentColor)
+    doc.font(ff.bold).fontSize(fs(11)).fillColor(cfg.accentColor)
       .text(section.title.toUpperCase(), mainX, y, {
         width: mainWidth, characterSpacing: 1
       });
@@ -1121,7 +1168,7 @@ function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
 
     // Paragraphs
     for (const p of section.paragraphs || []) {
-      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+      doc.font(ff.regular).fontSize(fs(9)).fillColor(cfg.mainTextColor)
         .text(p, mainX, y, { width: mainWidth, lineGap: 2, align: 'justify' });
       y = doc.y + 6;
     }
@@ -1129,25 +1176,25 @@ function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
     // Entries
     for (const entry of section.entries || []) {
       const entryY = y;
-      doc.font('Helvetica-Bold').fontSize(fs(10)).fillColor(cfg.mainTextColor)
+      doc.font(ff.bold).fontSize(fs(10)).fillColor(cfg.mainTextColor)
         .text(entry.heading, mainX, entryY, { width: mainWidth - 90 });
       if (entry.date) {
-        doc.font('Helvetica-Bold').fontSize(fs(8.5)).fillColor(cfg.accentColor)
+        doc.font(ff.bold).fontSize(fs(8.5)).fillColor(cfg.accentColor)
           .text(entry.date, mainX, entryY, { width: mainWidth, align: 'right' });
       }
       y = doc.y + 1;
       if (entry.subheading) {
-        doc.font('Helvetica-Oblique').fontSize(fs(9)).fillColor(cfg.mainMutedColor)
+        doc.font(ff.italic).fontSize(fs(9)).fillColor(cfg.mainMutedColor)
           .text(entry.subheading, mainX, y);
         y = doc.y + 3;
       }
       for (const p of entry.paragraphs || []) {
-        doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+        doc.font(ff.regular).fontSize(fs(9)).fillColor(cfg.mainTextColor)
           .text(p, mainX, y, { width: mainWidth, lineGap: 1.5 });
         y = doc.y + 3;
       }
       for (const b of entry.bullets || []) {
-        doc.font('Helvetica').fontSize(fs(8.5)).fillColor(cfg.mainTextColor)
+        doc.font(ff.regular).fontSize(fs(8.5)).fillColor(cfg.mainTextColor)
           .text('▸ ' + b, mainX + 8, y, { width: mainWidth - 8, lineGap: 1.5 });
         y = doc.y + 2;
       }
@@ -1156,7 +1203,7 @@ function renderSwissCvPdf(doc, cv, scale = 1, showIcons = true) {
 
     // General bullets
     for (const b of section.bullets || []) {
-      doc.font('Helvetica').fontSize(fs(9)).fillColor(cfg.mainTextColor)
+      doc.font(ff.regular).fontSize(fs(9)).fillColor(cfg.mainTextColor)
         .text('▸ ' + b, mainX + 8, y, { width: mainWidth - 8, lineGap: 1.5 });
       y = doc.y + 3;
     }
@@ -1190,6 +1237,7 @@ function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
   const templateType = options.template || 'harvard';
   const fontScale = getFontScale(options.fontSize);
   const layout = buildLayout(fontScale);
+  const customize = buildCustomize(options);
   const pdfName = options.fileName || `${slugifyFile(cv.name) || 'cv'}-${templateType}.pdf`;
   const contentDisposition = options.download ? 'attachment' : 'inline';
   const doc = new PDFDocument({
@@ -1214,15 +1262,15 @@ function createPdfDocumentFromMarkdown(markdown, response, options = {}) {
   doc.pipe(response);
   
   if (templateType === 'modern') {
-    renderModernCvPdf(doc, cv, fontScale, options.showIcons !== false);
+    renderModernCvPdf(doc, cv, fontScale, options.showIcons !== false, customize);
   } else if (templateType === 'minimal') {
-    renderMinimalCvPdf(doc, cv, fontScale, options.showIcons !== false);
+    renderMinimalCvPdf(doc, cv, fontScale, options.showIcons !== false, customize);
   } else if (templateType === 'creative') {
-    renderCreativeCvPdf(doc, cv, fontScale, options.showIcons !== false);
+    renderCreativeCvPdf(doc, cv, fontScale, options.showIcons !== false, customize);
   } else if (templateType === 'swiss') {
-    renderSwissCvPdf(doc, cv, fontScale, options.showIcons !== false);
+    renderSwissCvPdf(doc, cv, fontScale, options.showIcons !== false, customize);
   } else {
-    renderCvPdf(doc, cv, layout, options.showIcons !== false);
+    renderCvPdf(doc, cv, layout, options.showIcons !== false, customize);
   }
   doc.end();
 }
