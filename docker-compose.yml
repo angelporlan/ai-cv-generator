@@ -3,14 +3,51 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "3002:3002"
     environment:
       - PORT=3002
       - NODE_ENV=production
+      - DATABASE_URL=postgres://cvstudio:cvstudio@postgres:5432/cvstudio
+      - APP_SESSION_SECRET=cv-studio-local-secret
     env_file:
       - .env
     volumes:
       - .:/app
       - /app/node_modules
     restart: unless-stopped
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=cvstudio
+      - POSTGRES_USER=cvstudio
+      - POSTGRES_PASSWORD=cvstudio
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cvstudio -d cvstudio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  pgadmin:
+    image: dpage/pgadmin4:8
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@local.dev
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+      - PGADMIN_CONFIG_SERVER_MODE=True
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  pgadmin-data:
