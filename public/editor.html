@@ -32,6 +32,10 @@
         <span class="logo-text">CV Studio</span>
       </div>
       <div class="topbar-right">
+        <button id="auth-account-button" class="button-ghost auth-account-button" title="Cuenta" type="button">
+          <span class="auth-account-indicator"></span>
+          <span id="auth-account-label">Entrar</span>
+        </button>
         <button id="open-library-button" class="button-ghost" title="Mis CVs" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
@@ -587,6 +591,45 @@
 
         <div class="modal-footer">
           <button id="quality-close-btn" class="button button-primary" type="button">Entendido</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="auth-modal" class="modal-overlay">
+      <div class="modal modal-sm auth-modal-card">
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <h2 class="modal-title">Descarga protegida</h2>
+            <p class="modal-subtitle">Para exportar a PDF necesitas una cuenta. Tu trabajo seguira guardandose en local y, si entras, tambien en tu cuenta en segundo plano.</p>
+          </div>
+          <button id="close-auth-modal-button" class="modal-close" aria-label="Cerrar">&times;</button>
+        </div>
+
+        <div class="modal-content">
+          <div id="auth-tabs" class="auth-tabs" role="tablist" aria-label="Autenticacion">
+            <button type="button" class="mode-tab active" data-auth-mode="login" aria-selected="true">Entrar</button>
+            <button type="button" class="mode-tab" data-auth-mode="register" aria-selected="false">Crear cuenta</button>
+          </div>
+
+          <form id="auth-form" class="auth-form">
+            <label class="adapt-field" for="auth-email">
+              <span>Correo electronico</span>
+              <input id="auth-email" class="modal-input" type="email" autocomplete="email" placeholder="tu@correo.com" required>
+            </label>
+
+            <label class="adapt-field" for="auth-password">
+              <span>Contrasena</span>
+              <input id="auth-password" class="modal-input" type="password" autocomplete="current-password" placeholder="Minimo 8 caracteres" required>
+            </label>
+
+            <p id="auth-helper-copy" class="auth-helper-copy">En cuanto inicies sesion, sincronizaremos tu borrador y tus CVs guardados sin frenar el editor.</p>
+            <p id="auth-error" class="auth-error" hidden></p>
+          </form>
+        </div>
+
+        <div class="modal-footer auth-footer">
+          <button id="auth-logout-button" class="button button-secondary" type="button" hidden>Cerrar sesion</button>
+          <button id="auth-submit-button" class="button button-primary" type="submit" form="auth-form">Entrar y continuar</button>
         </div>
       </div>
     </div>

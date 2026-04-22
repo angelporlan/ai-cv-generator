@@ -36,6 +36,18 @@ const confirmTitle = document.getElementById('confirm-title');
 const confirmMessage = document.getElementById('confirm-message');
 const confirmOkBtn = document.getElementById('confirm-ok');
 const confirmCancelBtn = document.getElementById('confirm-cancel');
+const authAccountButton = document.getElementById('auth-account-button');
+const authAccountLabel = document.getElementById('auth-account-label');
+const authModal = document.getElementById('auth-modal');
+const authTabs = document.getElementById('auth-tabs');
+const authForm = document.getElementById('auth-form');
+const authEmailInput = document.getElementById('auth-email');
+const authPasswordInput = document.getElementById('auth-password');
+const authSubmitButton = document.getElementById('auth-submit-button');
+const authLogoutButton = document.getElementById('auth-logout-button');
+const closeAuthModalButton = document.getElementById('close-auth-modal-button');
+const authError = document.getElementById('auth-error');
+const authHelperCopy = document.getElementById('auth-helper-copy');
 
 const LIBRARY_STORAGE_KEY = 'cv-studio-library';
 const EDITOR_MODE_STORAGE_KEY = 'cv-studio-editor-mode';
@@ -59,6 +71,10 @@ const closeReferencePaneButton = document.getElementById('close-reference-pane')
 const REFERENCE_CV_STORAGE_KEY = 'cv-studio-reference-cv-id';
 const REFERENCE_MODE_STORAGE_KEY = 'cv-studio-reference-mode';
 const WORKSPACE_SPLIT_STORAGE_KEY = 'cv-studio-workspace-split';
+const AUTH_SYNC_UPDATED_AT_KEY = 'cv-studio-sync-updated-at';
+const AUTH_SYNC_PREFIX = 'cv-studio-';
+const AUTH_SYNC_DEBOUNCE_MS = 3000;
+const AUTH_SYNC_INTERVAL_MS = 12000;
 
 let currentReferenceMode = localStorage.getItem(REFERENCE_MODE_STORAGE_KEY) === 'visual' ? 'visual' : 'markdown';
 let showIcons = localStorage.getItem('cv-studio-show-icons') !== 'false';
@@ -87,6 +103,14 @@ let visualState = {
 
 let saveTimer = null;
 let lastSavedValue = '';
+let authMode = 'login';
+let pendingProtectedAction = null;
+let authSession = null;
+let authSyncTimer = null;
+let authPollingTimer = null;
+let authSyncInFlight = false;
+let authSyncQueued = false;
+let lastSyncedStateFingerprint = '';
 
 function setStatus(message) {
   saveStatus.textContent = message;
@@ -94,6 +118,320 @@ function setStatus(message) {
   saveStatus.style.animation = 'none';
   saveStatus.offsetHeight; // force reflow
   saveStatus.style.animation = '';
+}
+
+function getAppLocalState() {
+  const snapshot = {};
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key || !key.startsWith(AUTH_SYNC_PREFIX)) {
+      continue;
+    }
+
+    snapshot[key] = localStorage.getItem(key);
+  }
+
+  return snapshot;
+}
+
+function getStateFingerprint(state) {
+  return JSON.stringify(
+    Object.keys(state)
+      .sort()
+      .reduce((accumulator, key) => {
+        accumulator[key] = state[key];
+        return accumulator;
+      }, {})
+  );
+}
+
+function touchLocalStateTimestamp() {
+  localStorage.setItem(AUTH_SYNC_UPDATED_AT_KEY, new Date().toISOString());
+}
+
+function hasMeaningfulLocalState() {
+  const draft = localStorage.getItem(STORAGE_KEY);
+  if (draft && draft.trim()) {
+    return true;
+  }
+
+  const savedLibrary = localStorage.getItem(LIBRARY_STORAGE_KEY);
+  if (!savedLibrary) {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(savedLibrary);
+    return Array.isArray(parsed) && parsed.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function applyRemoteStateSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    return;
+  }
+
+  Object.entries(snapshot).forEach(([key, value]) => {
+    if (!key.startsWith(AUTH_SYNC_PREFIX)) {
+      return;
+    }
+
+    if (typeof value === 'string') {
+      localStorage.setItem(key, value);
+    }
+  });
+}
+
+function updateAuthUi() {
+  const isAuthenticated = Boolean(authSession?.authenticated);
+  const email = authSession?.user?.email || '';
+
+  if (authAccountButton) {
+    authAccountButton.classList.toggle('is-authenticated', isAuthenticated);
+    authAccountButton.title = isAuthenticated ? `Cuenta activa: ${email}` : 'Entrar o crear cuenta';
+  }
+
+  if (authAccountLabel) {
+    authAccountLabel.textContent = isAuthenticated
+      ? (email.length > 20 ? `${email.slice(0, 17)}...` : email)
+      : 'Entrar';
+  }
+
+  if (authLogoutButton) {
+    authLogoutButton.hidden = !isAuthenticated;
+  }
+
+  if (authSubmitButton) {
+    authSubmitButton.textContent = isAuthenticated
+      ? 'Continuar'
+      : authMode === 'register'
+        ? 'Crear cuenta y continuar'
+        : 'Entrar y continuar';
+  }
+
+  if (authHelperCopy) {
+    authHelperCopy.textContent = isAuthenticated
+      ? 'Tu cuenta ya esta activa. Si sigues trabajando, mantendremos el estado local y lo sincronizaremos de fondo.'
+      : 'En cuanto inicies sesion, sincronizaremos tu borrador y tus CVs guardados sin frenar el editor.';
+  }
+}
+
+function setAuthMode(mode) {
+  authMode = mode === 'register' ? 'register' : 'login';
+
+  if (authTabs) {
+    authTabs.querySelectorAll('.mode-tab').forEach((button) => {
+      const isActive = button.dataset.authMode === authMode;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', String(isActive));
+    });
+  }
+
+  if (authPasswordInput) {
+    authPasswordInput.setAttribute('autocomplete', authMode === 'register' ? 'new-password' : 'current-password');
+  }
+
+  updateAuthUi();
+}
+
+function setAuthError(message = '') {
+  if (!authError) {
+    return;
+  }
+
+  authError.textContent = message;
+  authError.hidden = !message;
+}
+
+function openAuthModal(mode = 'login', action = null) {
+  if (!authModal) {
+    return;
+  }
+
+  pendingProtectedAction = action;
+  setAuthMode(mode);
+  setAuthError('');
+  authModal.classList.add('active');
+
+  if (authEmailInput && !authEmailInput.value.trim()) {
+    authEmailInput.focus();
+  }
+}
+
+function closeAuthModal() {
+  if (!authModal) {
+    return;
+  }
+
+  authModal.classList.remove('active');
+  setAuthError('');
+}
+
+function startAuthPolling() {
+  if (authPollingTimer) {
+    clearInterval(authPollingTimer);
+  }
+
+  if (!authSession?.authenticated) {
+    authPollingTimer = null;
+    return;
+  }
+
+  authPollingTimer = setInterval(() => {
+    void syncStateToServer();
+  }, AUTH_SYNC_INTERVAL_MS);
+}
+
+async function refreshAuthSession() {
+  try {
+    const response = await fetch('/api/auth/session', {
+      credentials: 'include'
+    });
+    const payload = await response.json().catch(() => ({}));
+    authSession = payload?.authenticated ? payload : null;
+    updateAuthUi();
+
+    if (authSession?.authenticated) {
+      startAuthPolling();
+    } else if (authPollingTimer) {
+      clearInterval(authPollingTimer);
+      authPollingTimer = null;
+    }
+
+    return payload;
+  } catch (error) {
+    authSession = null;
+    updateAuthUi();
+    return { authenticated: false };
+  }
+}
+
+async function syncStateToServer(options = {}) {
+  if (!authSession?.authenticated) {
+    return;
+  }
+
+  const state = getAppLocalState();
+  const fingerprint = getStateFingerprint(state);
+
+  if (!options.force && fingerprint === lastSyncedStateFingerprint) {
+    return;
+  }
+
+  if (authSyncInFlight) {
+    authSyncQueued = true;
+    return;
+  }
+
+  authSyncInFlight = true;
+
+  try {
+    const response = await fetch('/api/auth/state', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      keepalive: Boolean(options.keepalive),
+      body: JSON.stringify({
+        state,
+        clientUpdatedAt: localStorage.getItem(AUTH_SYNC_UPDATED_AT_KEY) || new Date().toISOString()
+      })
+    });
+
+    if (response.status === 401) {
+      authSession = null;
+      updateAuthUi();
+      if (authPollingTimer) {
+        clearInterval(authPollingTimer);
+        authPollingTimer = null;
+      }
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error('sync-failed');
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    if (payload?.serverUpdatedAt) {
+      lastSyncedStateFingerprint = fingerprint;
+      setStatus(`Guardado local y en tu cuenta · ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`);
+    }
+  } catch (error) {
+    console.error('[auth-sync] Sync failed:', error);
+  } finally {
+    authSyncInFlight = false;
+
+    if (authSyncQueued) {
+      authSyncQueued = false;
+      void syncStateToServer();
+    }
+  }
+}
+
+function scheduleStateSync() {
+  if (!authSession?.authenticated) {
+    return;
+  }
+
+  clearTimeout(authSyncTimer);
+  authSyncTimer = setTimeout(() => {
+    void syncStateToServer();
+  }, AUTH_SYNC_DEBOUNCE_MS);
+}
+
+async function reconcileLocalStateWithSession(sessionPayload) {
+  if (!sessionPayload?.authenticated) {
+    return;
+  }
+
+  const remoteState = sessionPayload.state && typeof sessionPayload.state === 'object'
+    ? sessionPayload.state
+    : {};
+
+  if (hasMeaningfulLocalState()) {
+    touchLocalStateTimestamp();
+    await syncStateToServer({ force: true });
+    return;
+  }
+
+  if (Object.keys(remoteState).length > 0) {
+    applyRemoteStateSnapshot(remoteState);
+    lastSyncedStateFingerprint = getStateFingerprint(getAppLocalState());
+
+    const remoteTemplate = localStorage.getItem(VISUAL_TEMPLATE_STORAGE_KEY);
+    if (remoteTemplate && visualTemplateSelector) {
+      visualTemplateSelector.value = remoteTemplate;
+    }
+
+    const remoteMode = localStorage.getItem(EDITOR_MODE_STORAGE_KEY);
+    if (remoteMode === 'visual' || remoteMode === 'markdown') {
+      currentEditorMode = remoteMode;
+      switchEditorMode(currentEditorMode);
+    }
+
+    const remoteDraft = localStorage.getItem(STORAGE_KEY);
+    if (remoteDraft && remoteDraft.trim()) {
+      editor.value = remoteDraft;
+      lastSavedValue = remoteDraft;
+      visualNeedsRefreshFromMarkdown = true;
+      schedulePreviewUpdate();
+      setStatus('Borrador de tu cuenta cargado');
+    }
+  }
+}
+
+async function continuePendingProtectedAction() {
+  const action = pendingProtectedAction;
+  pendingProtectedAction = null;
+
+  if (action === 'download-pdf') {
+    await performPdfDownload();
+  }
 }
 
 /**
@@ -545,8 +883,10 @@ function saveToLocalStorage(force = false) {
   }
 
   localStorage.setItem(STORAGE_KEY, value);
+  touchLocalStateTimestamp();
   lastSavedValue = value;
   setStatus(`Guardado local · ${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`);
+  scheduleStateSync();
 }
 
 function scheduleSave() {
@@ -639,6 +979,8 @@ function getStatusClass(status) {
 
 function saveLibraryData() {
   localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(libraryData));
+  touchLocalStateTimestamp();
+  scheduleStateSync();
   renderLibrary();
 }
 
@@ -1772,11 +2114,12 @@ function downloadBlob(blob, fileName) {
   URL.revokeObjectURL(url);
 }
 
-async function downloadPdf() {
+async function performPdfDownload() {
   setStatus('Generando PDF...');
   const fontSize = Number(localStorage.getItem(EDITOR_FONT_SIZE_STORAGE_KEY) || '12.5');
   const response = await fetch('/api/preview.pdf', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
       markdown: editor.value,
@@ -1790,6 +2133,12 @@ async function downloadPdf() {
     })
   });
 
+  if (response.status === 401) {
+    setStatus('Necesitas una cuenta para descargar el PDF');
+    openAuthModal('login', 'download-pdf');
+    return;
+  }
+
   if (!response.ok) {
     setStatus('Error al generar PDF');
     return;
@@ -1798,6 +2147,18 @@ async function downloadPdf() {
   const blob = await response.blob();
   downloadBlob(blob, 'cv-preview.pdf');
   setStatus('PDF descargado');
+}
+
+async function downloadPdf() {
+  saveToLocalStorage(true);
+
+  if (!authSession?.authenticated) {
+    setStatus('Necesitas iniciar sesion para descargar el PDF');
+    openAuthModal('login', 'download-pdf');
+    return;
+  }
+
+  await performPdfDownload();
 }
 
 editor.addEventListener('input', () => {
@@ -2108,11 +2469,125 @@ window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && referencePane && !referencePane.hidden) {
     closeReferencePane();
   }
+
+  if (event.key === 'Escape' && authModal && authModal.classList.contains('active')) {
+    closeAuthModal();
+  }
 });
+
+if (authAccountButton) {
+  authAccountButton.addEventListener('click', () => {
+    openAuthModal(authSession?.authenticated ? 'login' : authMode, null);
+  });
+}
+
+if (authTabs) {
+  authTabs.addEventListener('click', (event) => {
+    const tab = event.target.closest('.mode-tab');
+    if (!tab || !tab.dataset.authMode) return;
+    setAuthMode(tab.dataset.authMode);
+    setAuthError('');
+  });
+}
+
+if (closeAuthModalButton) {
+  closeAuthModalButton.addEventListener('click', closeAuthModal);
+}
+
+if (authModal) {
+  authModal.addEventListener('click', (event) => {
+    if (event.target === authModal) {
+      closeAuthModal();
+    }
+  });
+}
+
+if (authForm) {
+  authForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (authSession?.authenticated) {
+      closeAuthModal();
+      await continuePendingProtectedAction();
+      return;
+    }
+
+    const email = authEmailInput ? authEmailInput.value.trim() : '';
+    const password = authPasswordInput ? authPasswordInput.value : '';
+
+    if (!email || !password) {
+      setAuthError('Introduce tu correo y tu contrasena.');
+      return;
+    }
+
+    setAuthError('');
+    authSubmitButton.disabled = true;
+    authSubmitButton.classList.add('is-processing');
+
+    try {
+      const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setAuthError(payload?.error || 'No se pudo completar la autenticacion.');
+        return;
+      }
+
+      authSession = payload;
+      updateAuthUi();
+      startAuthPolling();
+      await reconcileLocalStateWithSession(payload);
+      closeAuthModal();
+      await continuePendingProtectedAction();
+    } catch (error) {
+      setAuthError('No se pudo conectar con el servicio de autenticacion.');
+    } finally {
+      authSubmitButton.disabled = false;
+      authSubmitButton.classList.remove('is-processing');
+      updateAuthUi();
+    }
+  });
+}
+
+if (authLogoutButton) {
+  authLogoutButton.addEventListener('click', async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('[auth] Logout failed:', error);
+    } finally {
+      authSession = null;
+      pendingProtectedAction = null;
+      updateAuthUi();
+      closeAuthModal();
+      if (authPollingTimer) {
+        clearInterval(authPollingTimer);
+        authPollingTimer = null;
+      }
+      setStatus('Sesion cerrada. Tu trabajo sigue guardado en local.');
+    }
+  });
+}
 
 downloadPdfButton.addEventListener('click', downloadPdf);
 
-window.addEventListener('beforeunload', () => saveToLocalStorage(true));
+window.addEventListener('beforeunload', () => {
+  saveToLocalStorage(true);
+  if (authSession?.authenticated) {
+    void syncStateToServer({ force: true, keepalive: true });
+  }
+});
 
 window.addEventListener('cv-editor-font-size-changed', () => {
   schedulePreviewUpdate();
@@ -2123,6 +2598,9 @@ async function init() {
     initWorkspaceResizer();
     closeReferencePane();
     applyReferenceMode(currentReferenceMode);
+    setAuthMode('login');
+    const sessionPayload = await refreshAuthSession();
+    await reconcileLocalStateWithSession(sessionPayload);
 
     // Restaurar plantilla visual
     const savedTemplate = localStorage.getItem(VISUAL_TEMPLATE_STORAGE_KEY);
