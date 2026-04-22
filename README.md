@@ -99,8 +99,8 @@ Accepted query parameters:
 Examples:
 
 ```text
-http://localhost:3000/cv.pdf
-http://localhost:3000/cv.pdf?file=cv-example.md
+http://localhost:3002/cv.pdf
+http://localhost:3002/cv.pdf?file=cv-example.md
 ```
 
 The response is streamed directly as a PDF and can be opened in the browser or downloaded by the client.
@@ -132,7 +132,7 @@ npm start
 By default the server runs on:
 
 ```text
-http://localhost:3000
+http://localhost:3002
 ```
 
 You can change the port with an environment variable:
@@ -148,6 +148,59 @@ $env:PORT=8080
 npm start
 ```
 
+## Docker
+
+Build and start the service with Docker Compose:
+
+```bash
+docker compose up --build -d
+```
+
+Open the app at:
+
+```text
+http://localhost:3002/
+```
+
+Useful commands:
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+This Docker stack now includes:
+
+- the Node.js app on `http://localhost:3002`
+- a PostgreSQL database persisted in a Docker volume
+- a pgAdmin web UI on `http://localhost:5050`
+- email/password authentication for PDF downloads
+- background sync of the app local state while the user is logged in
+
+## Database UI
+
+Open pgAdmin at:
+
+```text
+http://localhost:5050
+```
+
+Use these credentials:
+
+```text
+Email: admin@local.dev
+Password: admin123
+```
+
+To connect to the database, create a new server with:
+
+- Host name/address: `postgres`
+- Port: `5432`
+- Maintenance database: `cvstudio`
+- Username: `cvstudio`
+- Password: `cvstudio`
+
 ## How To Use It
 
 ### 1. Check the service
@@ -155,7 +208,7 @@ npm start
 Open this URL in your browser:
 
 ```text
-http://localhost:3000/
+http://localhost:3002/
 ```
 
 You should see the markdown editor and the live CV preview.
@@ -165,13 +218,13 @@ You should see the markdown editor and the live CV preview.
 Example:
 
 ```text
-http://localhost:3000/ask?token=YOUR_OPENROUTER_TOKEN&prompt=Explain%20AI%20in%20one%20sentence
+http://localhost:3002/ask?token=YOUR_OPENROUTER_TOKEN&prompt=Explain%20AI%20in%20one%20sentence
 ```
 
 Example with a custom model:
 
 ```text
-http://localhost:3000/ask?token=YOUR_OPENROUTER_TOKEN&model=openai/gpt-4o-mini&prompt=Write%20a%20short%20welcome%20message
+http://localhost:3002/ask?token=YOUR_OPENROUTER_TOKEN&model=openai/gpt-4o-mini&prompt=Write%20a%20short%20welcome%20message
 ```
 
 ### 3. Read the response
@@ -193,13 +246,13 @@ Typical successful response:
 Open:
 
 ```text
-http://localhost:3000/cv.pdf
+http://localhost:3002/cv.pdf
 ```
 
 Or render the example markdown:
 
 ```text
-http://localhost:3000/cv.pdf?file=cv-example.md
+http://localhost:3002/cv.pdf?file=cv-example.md
 ```
 
 ## Error Cases
