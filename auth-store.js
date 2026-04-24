@@ -1,7 +1,9 @@
 const crypto = require('crypto');
+const { promisify } = require('util');
 const { Pool } = require('pg');
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const scryptAsync = promisify(crypto.scrypt);
 
 let pool;
 
@@ -43,20 +45,20 @@ function validateCredentials(email, password) {
   };
 }
 
-function hashPassword(password) {
+async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
-  const derivedKey = crypto.scryptSync(password, salt, 64).toString('hex');
+  const derivedKey = (await scryptAsync(password, salt, 64)).toString('hex');
   return `${salt}:${derivedKey}`;
 }
 
-function verifyPassword(password, storedHash) {
+async function verifyPassword(password, storedHash) {
   const [salt, originalKey] = String(storedHash || '').split(':');
 
   if (!salt || !originalKey) {
     return false;
   }
 
-  const derivedKey = crypto.scryptSync(password, salt, 64).toString('hex');
+  const derivedKey = (await scryptAsync(password, salt, 64)).toString('hex');
   const originalBuffer = Buffer.from(originalKey, 'hex');
   const derivedBuffer = Buffer.from(derivedKey, 'hex');
 
@@ -134,7 +136,7 @@ async function createSession(userId) {
 async function registerUser(email, password) {
   const db = getPool();
   const credentials = validateCredentials(email, password);
-  const passwordHash = hashPassword(credentials.password);
+  const passwordHash = await hashPassword(credentials.password);
 
   try {
     const { rows } = await db.query(
@@ -171,7 +173,7 @@ async function authenticateUser(email, password) {
 
   const user = rows[0];
 
-  if (!user || !verifyPassword(credentials.password, user.password_hash)) {
+  if (!user || !(await verifyPassword(credentials.password, user.password_hash))) {
     throw new Error('Incorrect email or password');
   }
 
