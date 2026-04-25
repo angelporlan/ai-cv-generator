@@ -3,6 +3,7 @@ const {
   createSession,
   destroySession,
   getUserState,
+  getUserUsageSummary,
   registerUser,
   saveUserState
 } = require('../../../auth-store');
@@ -14,7 +15,9 @@ const {
   serializeSessionCookie
 } = require('../http/session');
 
-function buildSessionPayload(user, statePayload = {}) {
+async function buildSessionPayload(user, statePayload = {}) {
+  const usage = await getUserUsageSummary(user.id);
+
   return {
     ok: true,
     authenticated: true,
@@ -24,7 +27,9 @@ function buildSessionPayload(user, statePayload = {}) {
     },
     state: statePayload.state || {},
     clientUpdatedAt: statePayload.clientUpdatedAt || null,
-    serverUpdatedAt: statePayload.serverUpdatedAt || null
+    serverUpdatedAt: statePayload.serverUpdatedAt || null,
+    usage,
+    billing: usage.billing
   };
 }
 
@@ -48,7 +53,7 @@ async function handleAuthRegister(request, response) {
     return sendJson(
       response,
       201,
-      buildSessionPayload(user, state),
+      await buildSessionPayload(user, state),
       { 'Set-Cookie': serializeSessionCookie(session.token, session.expiresAt) }
     );
   } catch (error) {
@@ -76,7 +81,7 @@ async function handleAuthLogin(request, response) {
     return sendJson(
       response,
       200,
-      buildSessionPayload(user, state),
+      await buildSessionPayload(user, state),
       { 'Set-Cookie': serializeSessionCookie(session.token, session.expiresAt) }
     );
   } catch (error) {
@@ -94,12 +99,14 @@ async function handleAuthSession(request, response) {
       user: null,
       state: {},
       clientUpdatedAt: null,
-      serverUpdatedAt: null
+      serverUpdatedAt: null,
+      usage: null,
+      billing: null
     });
   }
 
   const state = await getUserState(authSession.user.id);
-  return sendJson(response, 200, buildSessionPayload(authSession.user, state));
+  return sendJson(response, 200, await buildSessionPayload(authSession.user, state));
 }
 
 async function handleAuthLogout(request, response) {

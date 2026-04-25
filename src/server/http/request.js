@@ -15,6 +15,17 @@ function readRequestBody(request) {
   });
 }
 
+function readRawRequestBody(request) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+
+    request.on('data', (chunk) => chunks.push(chunk));
+    request.on('end', () => resolve(Buffer.concat(chunks)));
+    request.on('error', reject);
+  });
+}
+
 module.exports = {
+  readRawRequestBody,
   readRequestBody
 };

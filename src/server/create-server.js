@@ -1,6 +1,7 @@
 const http = require('http');
 const { URL } = require('url');
 const { handleAdaptCv, handleAsk, handleImportLinkedIn, handlePreviewPdf } = require('./routes/ai');
+const { handleBillingCheckout, handleBillingPortal } = require('./routes/billing');
 const {
   handleAuthLogin,
   handleAuthLogout,
@@ -10,6 +11,8 @@ const {
 } = require('./routes/auth');
 const { handleCvPdf, handleCvSource } = require('./routes/cv');
 const { handleStaticGet } = require('./routes/static');
+const { handleStripeWebhook } = require('./routes/stripe-webhook');
+const { handleUsage } = require('./routes/usage');
 const { sendJson } = require('./http/response');
 
 function createServer() {
@@ -44,8 +47,24 @@ function createServer() {
       return handleAuthState(request, response);
     }
 
+    if (request.method === 'GET' && requestUrl.pathname === '/api/usage') {
+      return handleUsage(request, response);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/api/billing/checkout') {
+      return handleBillingCheckout(request, response);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/api/billing/portal') {
+      return handleBillingPortal(request, response);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/api/stripe/webhook') {
+      return handleStripeWebhook(request, response);
+    }
+
     if (request.method === 'GET' && requestUrl.pathname === '/ask') {
-      return handleAsk(requestUrl, response);
+      return handleAsk(request, requestUrl, response);
     }
 
     if (request.method === 'POST' && requestUrl.pathname === '/api/preview.pdf') {

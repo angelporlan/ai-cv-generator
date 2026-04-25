@@ -23,11 +23,16 @@ function loadEnvFile() {
 loadEnvFile();
 
 const PORT = Number(process.env.PORT || 3002);
+const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const REQUEST_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 120000);
 const SESSION_COOKIE_NAME = 'cv_studio_session';
 const SESSION_SECRET = process.env.APP_SESSION_SECRET || 'change-me-in-production';
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
+const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID || '';
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const MODEL_FALLBACKS = [
   DEFAULT_MODEL,
   'openai/gpt-4o-mini',
@@ -41,13 +46,18 @@ const MODEL_FALLBACKS = [
 ];
 
 module.exports = {
+  APP_BASE_URL,
   DEFAULT_MODEL,
   MODEL_FALLBACKS,
+  OPENROUTER_API_KEY,
   OPENROUTER_URL,
   PORT,
   PUBLIC_DIR,
   REQUEST_TIMEOUT_MS,
   ROOT_DIR,
   SESSION_COOKIE_NAME,
-  SESSION_SECRET
+  SESSION_SECRET,
+  STRIPE_PRICE_ID,
+  STRIPE_SECRET_KEY,
+  STRIPE_WEBHOOK_SECRET
 };
