@@ -2,3 +2,9 @@ node_modules
 .env
 cv.md
 /cvs
+
+# IDEs and extensions
+.agents/
+.claude/
+.windsurf/
+skills-lock.json
