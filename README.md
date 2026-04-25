@@ -174,16 +174,25 @@ This Docker stack now includes:
 
 - the Node.js app on `http://localhost:3002`
 - a PostgreSQL database persisted in a Docker volume
+- an Adminer web UI on `http://localhost:8081`
 - email/password authentication for PDF downloads
 - background sync of the app local state while the user is logged in
+
+Adminer is preconfigured to point at `postgres`, so log in with the PostgreSQL values from your `.env`:
+
+- System: `PostgreSQL`
+- Server: `postgres`
+- Username: `POSTGRES_USER`
+- Password: `POSTGRES_PASSWORD`
+- Database: `POSTGRES_DB`
 
 To connect to the database, create a new server with:
 
 - Host name/address: `postgres`
 - Port: `5432`
-- Maintenance database: `cvstudio`
-- Username: `cvstudio`
-- Password: `cvstudio`
+- Maintenance database: `POSTGRES_DB`
+- Username: `POSTGRES_USER`
+- Password: `POSTGRES_PASSWORD`
 
 ## How To Use It
 
