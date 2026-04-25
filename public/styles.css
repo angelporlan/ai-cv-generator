@@ -2365,8 +2365,15 @@ body {
 }
 
 @keyframes slideDownCustom {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .customize-group {
@@ -2427,6 +2434,7 @@ body {
 .custom-hex-input::-webkit-color-swatch-wrapper {
   padding: 0;
 }
+
 .custom-hex-input::-webkit-color-swatch {
   border: 0.5px solid var(--border);
   border-radius: 4px;
@@ -2533,6 +2541,7 @@ body {
     opacity: 0;
     transform: translateY(18px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -2545,6 +2554,7 @@ body {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -2556,6 +2566,7 @@ body {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -2574,10 +2585,12 @@ body {
     opacity: 0;
     transform: scale(0.7);
   }
+
   60% {
     opacity: 1;
     transform: scale(1.06);
   }
+
   100% {
     transform: scale(1);
   }
@@ -2585,9 +2598,12 @@ body {
 
 /* Glow pulse for active processing */
 @keyframes glowPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
   }
+
   50% {
     box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
   }
@@ -2599,6 +2615,7 @@ body {
     opacity: 0;
     transform: translateY(-4px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -2610,13 +2627,33 @@ body {
   animation: cardEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.library-grid .cv-card:nth-child(1) { animation-delay: 0.03s; }
-.library-grid .cv-card:nth-child(2) { animation-delay: 0.07s; }
-.library-grid .cv-card:nth-child(3) { animation-delay: 0.11s; }
-.library-grid .cv-card:nth-child(4) { animation-delay: 0.15s; }
-.library-grid .cv-card:nth-child(5) { animation-delay: 0.19s; }
-.library-grid .cv-card:nth-child(6) { animation-delay: 0.23s; }
-.library-grid .cv-card:nth-child(n+7) { animation-delay: 0.27s; }
+.library-grid .cv-card:nth-child(1) {
+  animation-delay: 0.03s;
+}
+
+.library-grid .cv-card:nth-child(2) {
+  animation-delay: 0.07s;
+}
+
+.library-grid .cv-card:nth-child(3) {
+  animation-delay: 0.11s;
+}
+
+.library-grid .cv-card:nth-child(4) {
+  animation-delay: 0.15s;
+}
+
+.library-grid .cv-card:nth-child(5) {
+  animation-delay: 0.19s;
+}
+
+.library-grid .cv-card:nth-child(6) {
+  animation-delay: 0.23s;
+}
+
+.library-grid .cv-card:nth-child(n+7) {
+  animation-delay: 0.27s;
+}
 
 /* ── Button micro-interactions ──────────────────────────────── */
 .button,
@@ -2684,12 +2721,10 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in srgb, var(--accent-light) 60%, transparent) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--accent-light) 60%, transparent) 50%,
+      transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
   border-radius: inherit;
@@ -2734,13 +2769,33 @@ body {
   animation: cardEntrance 0.35s var(--ease) both;
 }
 
-.quality-item:nth-child(1) { animation-delay: 0.04s; }
-.quality-item:nth-child(2) { animation-delay: 0.08s; }
-.quality-item:nth-child(3) { animation-delay: 0.12s; }
-.quality-item:nth-child(4) { animation-delay: 0.16s; }
-.quality-item:nth-child(5) { animation-delay: 0.20s; }
-.quality-item:nth-child(6) { animation-delay: 0.24s; }
-.quality-item:nth-child(7) { animation-delay: 0.28s; }
+.quality-item:nth-child(1) {
+  animation-delay: 0.04s;
+}
+
+.quality-item:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.quality-item:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.quality-item:nth-child(4) {
+  animation-delay: 0.16s;
+}
+
+.quality-item:nth-child(5) {
+  animation-delay: 0.20s;
+}
+
+.quality-item:nth-child(6) {
+  animation-delay: 0.24s;
+}
+
+.quality-item:nth-child(7) {
+  animation-delay: 0.28s;
+}
 
 /* Quality score circle — animated entrance */
 .quality-score-circle {
@@ -2752,10 +2807,21 @@ body {
   animation: editorSlideIn 0.3s var(--ease) both;
 }
 
-.adapt-field:nth-child(1) { animation-delay: 0.05s; }
-.adapt-field:nth-child(2) { animation-delay: 0.10s; }
-.adapt-field:nth-child(3) { animation-delay: 0.15s; }
-.adapt-field:nth-child(4) { animation-delay: 0.20s; }
+.adapt-field:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.adapt-field:nth-child(2) {
+  animation-delay: 0.10s;
+}
+
+.adapt-field:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.adapt-field:nth-child(4) {
+  animation-delay: 0.20s;
+}
 
 /* ── Focus ring — animated glow ─────────────────────────────── */
 .modal-input:focus,
@@ -2810,6 +2876,7 @@ body {
 
 /* ── Reduce motion — accessibility ──────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -2880,4 +2947,96 @@ body {
 
 .auth-footer {
   justify-content: space-between;
+}
+
+.usage-account-button {
+  min-width: 74px;
+  justify-content: center;
+}
+
+.usage-account-button.is-pro {
+  color: #126b45;
+  background: rgba(18, 107, 69, 0.1);
+  border-color: rgba(18, 107, 69, 0.22);
+}
+
+.usage-account-button.is-blocked {
+  color: #9f1239;
+  background: rgba(159, 18, 57, 0.08);
+  border-color: rgba(159, 18, 57, 0.2);
+}
+
+.usage-inline-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.03);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.usage-inline-card strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.modal-saas {
+  max-width: 760px;
+}
+
+.saas-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.saas-panel {
+  min-height: 132px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.dark .saas-panel,
+.dark .usage-inline-card {
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.saas-panel h3 {
+  margin: 6px 0 8px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.saas-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.saas-panel-pro {
+  border-color: rgba(83, 74, 183, 0.32);
+  background: rgba(83, 74, 183, 0.07);
+}
+
+.button.is-disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .saas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .usage-account-button {
+    min-width: auto;
+  }
 }

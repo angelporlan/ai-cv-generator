@@ -36,6 +36,9 @@
           <span class="auth-account-indicator"></span>
           <span id="auth-account-label">Entrar</span>
         </button>
+        <button id="open-saas-button" class="button-ghost usage-account-button" title="Plan y uso" type="button">
+          <span id="ai-usage-label">IA: 0/3</span>
+        </button>
         <button id="open-library-button" class="button-ghost" title="Mis CVs" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
@@ -516,11 +519,10 @@
                 placeholder="Pega aquí la oferta de trabajo completa..."></textarea>
             </label>
 
-            <label class="adapt-field" for="adapt-openrouter-token">
-              <span>Token de OpenRouter</span>
-              <input id="adapt-openrouter-token" class="modal-input" type="password" placeholder="sk-or-v1-..."
-                autocomplete="off">
-            </label>
+            <div class="usage-inline-card">
+              <span>Uso de IA</span>
+              <strong id="adapt-usage-summary">3 usos gratis incluidos</strong>
+            </div>
           </div>
         </div>
 
@@ -550,11 +552,10 @@
                 placeholder="Pega aquí el contenido de tu perfil (selecciona todo en LinkedIn y copia, o pega el texto de un PDF exportado)..."></textarea>
             </label>
 
-            <label class="adapt-field" for="linkedin-openrouter-token">
-              <span>Token de OpenRouter</span>
-              <input id="linkedin-openrouter-token" class="modal-input" type="password" placeholder="sk-or-v1-..."
-                autocomplete="off">
-            </label>
+            <div class="usage-inline-card">
+              <span>Uso de IA</span>
+              <strong id="linkedin-usage-summary">3 usos gratis incluidos</strong>
+            </div>
           </div>
         </div>
 
@@ -630,6 +631,48 @@
         <div class="modal-footer auth-footer">
           <button id="auth-logout-button" class="button button-secondary" type="button" hidden>Cerrar sesion</button>
           <button id="auth-submit-button" class="button button-primary" type="submit" form="auth-form">Entrar y continuar</button>
+        </div>
+      </div>
+    </div>
+    <div id="saas-modal" class="modal-overlay">
+      <div class="modal modal-saas">
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <h2 class="modal-title">Plan, uso y billing</h2>
+            <p class="modal-subtitle">Gestiona tus usos de IA, tu cuenta y tu suscripcion Pro.</p>
+          </div>
+          <button id="close-saas-modal-button" class="modal-close" aria-label="Cerrar">&times;</button>
+        </div>
+
+        <div class="modal-content">
+          <div class="saas-grid">
+            <section class="saas-panel">
+              <p class="panel-kicker">Usage</p>
+              <h3 id="saas-usage-title">IA: 0/3</h3>
+              <p id="saas-usage-copy">Inicia sesion para activar tus 3 usos gratis.</p>
+            </section>
+            <section class="saas-panel">
+              <p class="panel-kicker">Pricing</p>
+              <h3>Gratis</h3>
+              <p>3 usos totales de IA para probar CV Studio.</p>
+            </section>
+            <section class="saas-panel saas-panel-pro">
+              <p class="panel-kicker">Pro</p>
+              <h3>IA ilimitada</h3>
+              <p>Adaptacion, LinkedIn, cartas, traduccion y analisis sin limite con suscripcion activa.</p>
+            </section>
+            <section class="saas-panel">
+              <p class="panel-kicker">Account</p>
+              <h3 id="saas-account-title">Sin sesion</h3>
+              <p id="saas-account-copy">Entra o crea cuenta para sincronizar y usar IA.</p>
+            </section>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="saas-login-button" class="button button-secondary" type="button">Entrar</button>
+          <button id="saas-portal-button" class="button button-secondary" type="button">Gestionar billing</button>
+          <button id="saas-upgrade-button" class="button button-primary" type="button">Actualizar a Pro</button>
         </div>
       </div>
     </div>
