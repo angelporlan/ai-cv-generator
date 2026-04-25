@@ -174,24 +174,8 @@ This Docker stack now includes:
 
 - the Node.js app on `http://localhost:3002`
 - a PostgreSQL database persisted in a Docker volume
-- a pgAdmin web UI on `http://localhost:5050`
 - email/password authentication for PDF downloads
 - background sync of the app local state while the user is logged in
-
-## Database UI
-
-Open pgAdmin at:
-
-```text
-http://localhost:5050
-```
-
-Use these credentials:
-
-```text
-Email: admin@local.dev
-Password: admin123
-```
 
 To connect to the database, create a new server with:
 
