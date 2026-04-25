@@ -194,6 +194,25 @@ To connect to the database, create a new server with:
 - Username: `POSTGRES_USER`
 - Password: `POSTGRES_PASSWORD`
 
+## Stripe CLI (Para Webhooks Locales)
+
+Para procesar los pagos y suscripciones de prueba en local, necesitas redirigir los webhooks de Stripe hacia tu contenedor de desarrollo.
+
+Pasa la clave `STRIPE_SECRET_KEY` que se encuentra en tu archivo `.env` directamente al contenedor de Stripe CLI:
+
+```bash
+docker run --rm stripe/stripe-cli:latest listen --api-key TU_STRIPE_SECRET_KEY --forward-to host.docker.internal:3002/api/stripe/webhook
+```
+
+Al iniciar, te mostrará un mensaje como:
+`Ready! ... Your webhook signing secret is whsec_...`
+
+Copia ese valor `whsec_...` y pégalo en la variable `STRIPE_WEBHOOK_SECRET` de tu archivo `.env`. Reinicia el contenedor de la aplicación para aplicar los cambios:
+
+```bash
+docker compose restart ia-microservice
+```
+
 ## How To Use It
 
 ### 1. Check the service
