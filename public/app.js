@@ -38,6 +38,17 @@ const confirmOkBtn = document.getElementById('confirm-ok');
 const confirmCancelBtn = document.getElementById('confirm-cancel');
 const authAccountButton = document.getElementById('auth-account-button');
 const authAccountLabel = document.getElementById('auth-account-label');
+const openSaasButton = document.getElementById('open-saas-button');
+const aiUsageLabel = document.getElementById('ai-usage-label');
+const saasModal = document.getElementById('saas-modal');
+const closeSaasModalButton = document.getElementById('close-saas-modal-button');
+const saasUsageTitle = document.getElementById('saas-usage-title');
+const saasUsageCopy = document.getElementById('saas-usage-copy');
+const saasAccountTitle = document.getElementById('saas-account-title');
+const saasAccountCopy = document.getElementById('saas-account-copy');
+const saasLoginButton = document.getElementById('saas-login-button');
+const saasPortalButton = document.getElementById('saas-portal-button');
+const saasUpgradeButton = document.getElementById('saas-upgrade-button');
 const authModal = document.getElementById('auth-modal');
 const authTabs = document.getElementById('auth-tabs');
 const authForm = document.getElementById('auth-form');
@@ -51,14 +62,13 @@ const authHelperCopy = document.getElementById('auth-helper-copy');
 
 const LIBRARY_STORAGE_KEY = 'cv-studio-library';
 const EDITOR_MODE_STORAGE_KEY = 'cv-studio-editor-mode';
-const ADAPT_TOKEN_STORAGE_KEY = 'cv-studio-openrouter-token';
 const ADAPT_MODEL_STORAGE_KEY = 'cv-studio-openrouter-model';
 const openAdaptModalButton = document.getElementById('open-adapt-modal-button');
 const adaptCvModal = document.getElementById('adapt-cv-modal');
 const closeAdaptModalButton = document.getElementById('close-adapt-modal-button');
 const adaptModelSelect = document.getElementById('adapt-model-select');
 const adaptJobDescription = document.getElementById('adapt-job-description');
-const adaptOpenRouterToken = document.getElementById('adapt-openrouter-token');
+const adaptUsageSummary = document.getElementById('adapt-usage-summary');
 const adaptSubmitButton = document.getElementById('adapt-submit-button');
 const adaptCancelButton = document.getElementById('adapt-cancel-button');
 const toggleReferenceButton = document.getElementById('toggle-reference-button');
@@ -106,6 +116,7 @@ let lastSavedValue = '';
 let authMode = 'login';
 let pendingProtectedAction = null;
 let authSession = null;
+let aiUsage = null;
 let authSyncTimer = null;
 let authPollingTimer = null;
 let authSyncInFlight = false;
@@ -114,10 +125,6 @@ let lastSyncedStateFingerprint = '';
 
 function setStatus(message) {
   saveStatus.textContent = message;
-  // Re-trigger the statusFade CSS animation
-  saveStatus.style.animation = 'none';
-  saveStatus.offsetHeight; // force reflow
-  saveStatus.style.animation = '';
 }
 
 function getAppLocalState() {
@@ -217,6 +224,183 @@ function updateAuthUi() {
       ? 'Tu cuenta ya esta activa. Si sigues trabajando, mantendremos el estado local y lo sincronizaremos de fondo.'
       : 'En cuanto inicies sesion, sincronizaremos tu borrador y tus CVs guardados sin frenar el editor.';
   }
+
+  updateSaasUi();
+}
+
+function getUsageLabel() {
+  if (!authSession?.authenticated) {
+    return 'IA: Entrar';
+  }
+
+  if (aiUsage?.billing?.isActive) {
+    return 'IA Pro';
+  }
+
+  const used = Number(aiUsage?.used || 0);
+  const limit = Number(aiUsage?.limit || 3);
+  return `IA: ${used}/${limit}`;
+}
+
+function getUsageSummaryText() {
+  if (!authSession?.authenticated) {
+    return 'Inicia sesion para usar tus 3 usos gratis.';
+  }
+
+  if (aiUsage?.billing?.isActive) {
+    return 'Plan Pro activo: IA ilimitada.';
+  }
+
+  const remaining = Number(aiUsage?.remaining ?? 0);
+  return remaining > 0
+    ? `${remaining} usos de IA restantes.`
+    : 'Has agotado tus 3 usos gratis.';
+}
+
+function updateSaasUi() {
+  const isAuthenticated = Boolean(authSession?.authenticated);
+  const isPro = Boolean(aiUsage?.billing?.isActive);
+  const canUseAi = Boolean(aiUsage?.canUseAi);
+  const label = getUsageLabel();
+  const summaryText = getUsageSummaryText();
+
+  if (aiUsageLabel) {
+    aiUsageLabel.textContent = label;
+  }
+
+  if (openSaasButton) {
+    openSaasButton.classList.toggle('is-blocked', isAuthenticated && !canUseAi);
+    openSaasButton.classList.toggle('is-pro', isPro);
+  }
+
+  if (adaptUsageSummary) {
+    adaptUsageSummary.textContent = summaryText;
+  }
+
+  const linkedinUsageSummary = document.getElementById('linkedin-usage-summary');
+  if (linkedinUsageSummary) {
+    linkedinUsageSummary.textContent = summaryText;
+  }
+
+  [openAdaptModalButton, importLinkedinButton].forEach((button) => {
+    if (!button) return;
+    button.disabled = isAuthenticated && !canUseAi;
+    button.classList.toggle('is-disabled', isAuthenticated && !canUseAi);
+  });
+
+  if (saasUsageTitle) {
+    saasUsageTitle.textContent = isPro ? 'IA Pro' : label;
+  }
+
+  if (saasUsageCopy) {
+    saasUsageCopy.textContent = summaryText;
+  }
+
+  if (saasAccountTitle) {
+    saasAccountTitle.textContent = isAuthenticated
+      ? (authSession.user?.email || 'Cuenta activa')
+      : 'Sin sesion';
+  }
+
+  if (saasAccountCopy) {
+    saasAccountCopy.textContent = isAuthenticated
+      ? `Suscripcion: ${aiUsage?.subscriptionStatus || 'free'}`
+      : 'Entra o crea cuenta para sincronizar y usar IA.';
+  }
+
+  if (saasLoginButton) {
+    saasLoginButton.hidden = isAuthenticated;
+  }
+
+  if (saasPortalButton) {
+    saasPortalButton.hidden = !isAuthenticated;
+  }
+
+  if (saasUpgradeButton) {
+    saasUpgradeButton.hidden = isPro;
+  }
+}
+
+async function refreshUsage() {
+  if (!authSession?.authenticated) {
+    aiUsage = null;
+    updateSaasUi();
+    return null;
+  }
+
+  try {
+    const response = await fetch('/api/usage', {
+      credentials: 'include'
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      authSession = null;
+      aiUsage = null;
+      updateAuthUi();
+      return null;
+    }
+
+    if (response.ok && payload?.ok) {
+      aiUsage = payload;
+      updateSaasUi();
+      return payload;
+    }
+  } catch (error) {
+    console.error('[usage] Could not refresh usage:', error);
+  }
+
+  updateSaasUi();
+  return null;
+}
+
+function applyUsageFromPayload(payload) {
+  if (payload?.usage && typeof payload.usage === 'object') {
+    aiUsage = payload.usage;
+    updateSaasUi();
+  }
+}
+
+function openSaasModal() {
+  updateSaasUi();
+  if (saasModal) {
+    saasModal.classList.add('active');
+  }
+}
+
+function closeSaasModal() {
+  if (saasModal) {
+    saasModal.classList.remove('active');
+  }
+}
+
+async function handleApiAccessError(response, payload) {
+  if (response.status === 401 || payload?.requiresAuth) {
+    setStatus('Necesitas iniciar sesion para usar IA');
+    openAuthModal('login', 'ai');
+    return true;
+  }
+
+  if (response.status === 402 || payload?.requiresSubscription) {
+    aiUsage = {
+      ...(aiUsage || {}),
+      used: payload.usage,
+      limit: payload.limit,
+      remaining: payload.remaining,
+      canUseAi: false,
+      subscriptionStatus: payload.subscriptionStatus || 'none',
+      billing: aiUsage?.billing || { isActive: false }
+    };
+    setStatus('Has agotado tus usos gratis de IA');
+    applyUsageFromPayload(payload);
+    closeAdaptModal();
+    closeLinkedinModal();
+    openSaasModal();
+    updateSaasUi();
+    return true;
+  }
+
+  return false;
 }
 
 function setAuthMode(mode) {
@@ -292,6 +476,7 @@ async function refreshAuthSession() {
     });
     const payload = await response.json().catch(() => ({}));
     authSession = payload?.authenticated ? payload : null;
+    aiUsage = payload?.authenticated ? payload.usage : null;
     updateAuthUi();
 
     if (authSession?.authenticated) {
@@ -304,6 +489,7 @@ async function refreshAuthSession() {
     return payload;
   } catch (error) {
     authSession = null;
+    aiUsage = null;
     updateAuthUi();
     return { authenticated: false };
   }
@@ -431,6 +617,11 @@ async function continuePendingProtectedAction() {
 
   if (action === 'download-pdf') {
     await performPdfDownload();
+    return;
+  }
+
+  if (action === 'ai') {
+    await refreshUsage();
   }
 }
 
@@ -528,14 +719,14 @@ const ICON_MAP = {
 function getIconForLabel(label, value = '') {
   const normalizedLabel = label.toLowerCase().trim();
   const normalizedValue = value.toLowerCase().trim();
-  
+
   // 1. Check by label
   for (const [key, icon] of Object.entries(ICON_MAP)) {
     if (normalizedLabel.includes(key.toLowerCase())) {
       return `<i class="${icon}"></i>`;
     }
   }
-  
+
   // 2. Check by value (URLs)
   if (normalizedValue.includes('linkedin.com')) return `<i class="${ICON_MAP.linkedIn}"></i>`;
   if (normalizedValue.includes('github.com')) return `<i class="${ICON_MAP.github}"></i>`;
@@ -543,11 +734,11 @@ function getIconForLabel(label, value = '') {
   if (normalizedValue.includes('x.com')) return `<i class="${ICON_MAP.x}"></i>`;
   if (normalizedValue.includes('instagram.com')) return `<i class="${ICON_MAP.instagram}"></i>`;
   if (normalizedValue.includes('facebook.com')) return `<i class="${ICON_MAP.facebook}"></i>`;
-  
+
   // 3. Guess by content
   if (normalizedValue.includes('@')) return `<i class="${ICON_MAP.email}"></i>`;
   if (/^\+?[0-9\s-]{7,}$/.test(normalizedValue)) return `<i class="${ICON_MAP.phone}"></i>`;
-  
+
   return '';
 }
 
@@ -802,9 +993,9 @@ function renderPreview(markdown) {
 
   const sectionsHtml = data.sections.map((section) => {
     const isSkills = section.title.toLowerCase() === 'skills' || section.title.toLowerCase() === 'habilidades';
-    
+
     let itemsHtml;
-    
+
     if (isSkills) {
       const items = section.items.flatMap(item => {
         if (item.type === 'list') return item.items;
@@ -909,8 +1100,8 @@ async function updatePdfPreview() {
     const response = await fetch('/api/preview.pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        markdown, 
+      body: JSON.stringify({
+        markdown,
         download: false,
         template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
         fontSize,
@@ -925,10 +1116,10 @@ async function updatePdfPreview() {
 
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
-    
+
     // Cleanup previous URL to avoid memory leaks
     if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
-    
+
     // Ocultar barras de herramientas y ajustar al ancho (FitH)
     currentPreviewUrl = url;
     pdfPreview.src = `${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
@@ -1011,16 +1202,16 @@ function renderKanban(sortedList) {
   if (!kanbanContainer) return;
 
   const statuses = ['Enviado', 'Entrevista', 'Prueba Técnica', 'Aceptado', 'Rechazado', 'Archivado'];
-  
+
   kanbanContainer.innerHTML = statuses.map(status => {
     const items = sortedList.filter(cv => (cv.status || 'Archivado') === status);
-    
+
     const itemsHtml = items.map(cv => {
       const statusOptionsHtml = statuses
         .map(s => `<option value="${s}"${cv.status === s ? ' selected' : ''}>${s}</option>`)
         .join('');
       const dateValue = cv.lastUsedDate ? new Date(cv.lastUsedDate).toISOString().split('T')[0] : '';
-      
+
       return `
       <div class="cv-card" data-cv-id="${cv.id}">
         <div class="cv-card-header">
@@ -1080,10 +1271,10 @@ let kanbanSortables = [];
 
 function initKanbanDragAndDrop() {
   if (!window.Sortable) return;
-  
+
   kanbanSortables.forEach(s => s.destroy());
   kanbanSortables = [];
-  
+
   const columns = document.querySelectorAll('.kanban-column-body');
   columns.forEach(col => {
     const sortable = new window.Sortable(col, {
@@ -1096,7 +1287,7 @@ function initKanbanDragAndDrop() {
         const cvId = itemEl.dataset.cvId;
         const newStatus = evt.to.dataset.status;
         const oldStatus = evt.from.dataset.status;
-        
+
         if (newStatus !== oldStatus) {
           const cv = libraryData.find(c => c.id === cvId);
           if (cv) {
@@ -1112,12 +1303,12 @@ function initKanbanDragAndDrop() {
 
 function renderLibrary() {
   if (!libraryCountTag || !libraryItemsContainer) return;
-  
+
   const filter = librarySearchTerm;
   const statusFilter = libraryStatusFilter;
-  
+
   libraryCountTag.textContent = `${libraryData.length} CV${libraryData.length !== 1 ? 's' : ''}`;
-  
+
   if (libraryData.length === 0) {
     libraryItemsContainer.innerHTML = `
       <div class="empty-library">
@@ -1130,12 +1321,12 @@ function renderLibrary() {
   // Filtrar
   const normalizedFilter = filter.toLowerCase().trim();
   const filtered = libraryData.filter(cv => {
-    const matchesText = !normalizedFilter || 
+    const matchesText = !normalizedFilter ||
       (cv.name || '').toLowerCase().includes(normalizedFilter) ||
       (cv.description || '').toLowerCase().includes(normalizedFilter);
-    
+
     const matchesStatus = statusFilter === 'all' || cv.status === statusFilter;
-    
+
     return matchesText && matchesStatus;
   });
 
@@ -1362,13 +1553,13 @@ function saveToLibrary() {
 
   libraryData.push(newCv);
   saveLibraryData();
-  
+
   // Limpiar campos
   newCvNameInput.value = '';
   newCvDescriptionInput.value = '';
   newCvUrlInput.value = '';
   newCvDateInput.value = new Date().toISOString().split('T')[0];
-  
+
   setStatus('Postulación guardada en la biblioteca');
 }
 
@@ -1644,9 +1835,15 @@ function initWorkspaceResizer() {
 
 function openAdaptModal() {
   if (!adaptCvModal) return;
-  const storedToken = localStorage.getItem(ADAPT_TOKEN_STORAGE_KEY);
-  if (storedToken && adaptOpenRouterToken && !adaptOpenRouterToken.value.trim()) {
-    adaptOpenRouterToken.value = storedToken;
+
+  if (!authSession?.authenticated) {
+    openAuthModal('login', 'ai');
+    return;
+  }
+
+  if (aiUsage && !aiUsage.canUseAi) {
+    openSaasModal();
+    return;
   }
 
   const storedModel = localStorage.getItem(ADAPT_MODEL_STORAGE_KEY);
@@ -1713,7 +1910,7 @@ if (customHexColor) {
 if (fontFamilySelector) {
   const savedFont = localStorage.getItem(EDITOR_FONT_FAMILY_KEY) || 'helvetica';
   fontFamilySelector.value = savedFont;
-  
+
   fontFamilySelector.addEventListener('change', (e) => {
     localStorage.setItem(EDITOR_FONT_FAMILY_KEY, e.target.value);
     schedulePreviewUpdate();
@@ -1760,7 +1957,6 @@ async function adaptCvWithAi() {
   const actionSelect = document.getElementById('adapt-action-select');
   const action = actionSelect ? actionSelect.value : 'adapt';
   const jobDescription = adaptJobDescription ? adaptJobDescription.value.trim() : '';
-  const token = adaptOpenRouterToken ? adaptOpenRouterToken.value.trim() : '';
 
   if (!markdown.trim()) {
     await showAlert('Primero escribe o carga un CV para poder usar la IA.', 'CV vacío');
@@ -1777,12 +1973,16 @@ async function adaptCvWithAi() {
     return;
   }
 
-  if (!token) {
+  if (!authSession?.authenticated) {
     await showAlert('Añade tu token de OpenRouter para usar la IA.', 'Falta token');
     return;
   }
 
-  localStorage.setItem(ADAPT_TOKEN_STORAGE_KEY, token);
+  if (aiUsage && !aiUsage.canUseAi) {
+    closeAdaptModal();
+    openSaasModal();
+    return;
+  }
   if (model) {
     localStorage.setItem(ADAPT_MODEL_STORAGE_KEY, model);
   }
@@ -1798,13 +1998,18 @@ async function adaptCvWithAi() {
   try {
     const response = await fetch('/api/adapt-cv', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown, jobDescription, token, model, action })
+      body: JSON.stringify({ markdown, jobDescription, model, action })
     });
 
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok || !payload?.ok) {
+      if (await handleApiAccessError(response, payload)) {
+        return;
+      }
+
       const apiError = new Error(payload?.error || 'No se pudo adaptar el CV con IA');
       if (payload?.metadata) {
         apiError.metadata = payload.metadata;
@@ -1830,6 +2035,98 @@ async function adaptCvWithAi() {
       adaptSubmitButton.disabled = false;
       adaptSubmitButton.classList.remove('is-processing');
       // Restore correct label based on current action
+      const currentAction = document.getElementById('adapt-action-select')?.value || 'adapt';
+      const labels = { cover_letter: 'Generar Carta', skill_gap: 'Analizar Gap', translate: 'Traducir CV', optimize_star: 'Optimizar Logros' };
+      adaptSubmitButton.textContent = labels[currentAction] || 'Generar CV ATS';
+    }
+  }
+}
+
+async function adaptCvWithAi() {
+  const markdown = editor.value;
+  const model = adaptModelSelect ? adaptModelSelect.value : '';
+  const actionSelect = document.getElementById('adapt-action-select');
+  const action = actionSelect ? actionSelect.value : 'adapt';
+  const jobDescription = adaptJobDescription ? adaptJobDescription.value.trim() : '';
+
+  if (!markdown.trim()) {
+    await showAlert('Primero escribe o carga un CV para poder usar la IA.', 'CV vacio');
+    return;
+  }
+
+  if (!jobDescription && action !== 'optimize_star' && action !== 'translate') {
+    await showAlert('Pega la descripcion de la oferta para continuar.', 'Falta informacion');
+    return;
+  }
+
+  if (!jobDescription && action === 'translate') {
+    await showAlert('Escribe a que idioma quieres traducir el curriculum.', 'Falta informacion');
+    return;
+  }
+
+  if (!authSession?.authenticated) {
+    openAuthModal('login', 'ai');
+    return;
+  }
+
+  if (aiUsage && !aiUsage.canUseAi) {
+    closeAdaptModal();
+    openSaasModal();
+    return;
+  }
+
+  if (model) {
+    localStorage.setItem(ADAPT_MODEL_STORAGE_KEY, model);
+  }
+
+  if (adaptSubmitButton) {
+    adaptSubmitButton.disabled = true;
+    adaptSubmitButton.classList.add('is-processing');
+    adaptSubmitButton.textContent = 'Generando...';
+  }
+
+  setStatus('Procesando con IA...');
+
+  try {
+    const response = await fetch('/api/adapt-cv', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown, jobDescription, model, action })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload?.ok) {
+      if (await handleApiAccessError(response, payload)) {
+        return;
+      }
+
+      const apiError = new Error(payload?.error || 'No se pudo adaptar el CV con IA');
+      if (payload?.metadata) {
+        apiError.metadata = payload.metadata;
+      }
+      throw apiError;
+    }
+
+    if (!payload?.markdown || !payload.markdown.trim()) {
+      throw new Error('La IA no devolvio contenido valido');
+    }
+
+    applyUsageFromPayload(payload);
+    updateEditor(payload.markdown, 'Operacion con IA completada (Usa Ctrl+Z para deshacer si lo necesitas)');
+    closeAdaptModal();
+  } catch (error) {
+    console.error('[adapt-cv] Error:', error);
+    setStatus('Error adaptando CV con IA');
+    closeAdaptModal();
+    const selectedModel = model ? ` (${model})` : '';
+    const rawDetails = error?.metadata?.raw ? `\n\nDetalle tecnico:\n${error.metadata.raw}` : '';
+    await showAlert(`${error.message || 'No se pudo adaptar el CV'}${selectedModel}${rawDetails}`, 'Error de IA');
+  } finally {
+    if (adaptSubmitButton) {
+      adaptSubmitButton.disabled = false;
+      adaptSubmitButton.classList.remove('is-processing');
       const currentAction = document.getElementById('adapt-action-select')?.value || 'adapt';
       const labels = { cover_letter: 'Generar Carta', skill_gap: 'Analizar Gap', translate: 'Traducir CV', optimize_star: 'Optimizar Logros' };
       adaptSubmitButton.textContent = labels[currentAction] || 'Generar CV ATS';
@@ -2121,7 +2418,7 @@ async function performPdfDownload() {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       markdown: editor.value,
       download: true,
       template: visualTemplateSelector ? visualTemplateSelector.value : 'harvard',
@@ -2390,7 +2687,7 @@ if (adaptActionSelect && adaptInputLabel && adaptJobDescription) {
       adaptInputLabel.textContent = 'Descripción de la oferta';
       adaptJobDescription.placeholder = 'Pega aquí la oferta de trabajo completa...';
     }
-    
+
     if (adaptSubmitButton) {
       if (val === 'cover_letter') adaptSubmitButton.textContent = 'Generar Carta';
       else if (val === 'skill_gap') adaptSubmitButton.textContent = 'Analizar Gap';
@@ -2406,13 +2703,13 @@ if (toggleIconsBtn) {
   // Sync initial state
   toggleIconsBtn.classList.toggle('active', showIcons);
   toggleIconsBtn.setAttribute('aria-checked', String(showIcons));
-  
+
   toggleIconsBtn.addEventListener('click', () => {
     showIcons = !showIcons;
     localStorage.setItem('cv-studio-show-icons', String(showIcons));
     toggleIconsBtn.classList.toggle('active', showIcons);
     toggleIconsBtn.setAttribute('aria-checked', String(showIcons));
-    
+
     // Actualizar el PDF inmediatamente al cambiar iconos
     setStatus(showIcons ? 'Iconos activados' : 'Iconos desactivados');
     updatePdfPreview();
@@ -2473,6 +2770,10 @@ window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && authModal && authModal.classList.contains('active')) {
     closeAuthModal();
   }
+
+  if (event.key === 'Escape' && saasModal && saasModal.classList.contains('active')) {
+    closeSaasModal();
+  }
 });
 
 if (authAccountButton) {
@@ -2498,6 +2799,89 @@ if (authModal) {
   authModal.addEventListener('click', (event) => {
     if (event.target === authModal) {
       closeAuthModal();
+    }
+  });
+}
+
+if (openSaasButton) {
+  openSaasButton.addEventListener('click', () => {
+    openSaasModal();
+  });
+}
+
+if (closeSaasModalButton) {
+  closeSaasModalButton.addEventListener('click', closeSaasModal);
+}
+
+if (saasModal) {
+  saasModal.addEventListener('click', (event) => {
+    if (event.target === saasModal) {
+      closeSaasModal();
+    }
+  });
+}
+
+if (saasLoginButton) {
+  saasLoginButton.addEventListener('click', () => {
+    closeSaasModal();
+    openAuthModal('login', null);
+  });
+}
+
+if (saasUpgradeButton) {
+  saasUpgradeButton.addEventListener('click', async () => {
+    if (!authSession?.authenticated) {
+      closeSaasModal();
+      openAuthModal('login', 'ai');
+      return;
+    }
+
+    saasUpgradeButton.disabled = true;
+    try {
+      const response = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || !payload?.url) {
+        throw new Error(payload?.error || 'No se pudo abrir Stripe Checkout.');
+      }
+
+      window.location.href = payload.url;
+    } catch (error) {
+      await showAlert(error.message || 'No se pudo abrir Stripe Checkout.', 'Billing');
+    } finally {
+      saasUpgradeButton.disabled = false;
+    }
+  });
+}
+
+if (saasPortalButton) {
+  saasPortalButton.addEventListener('click', async () => {
+    if (!authSession?.authenticated) {
+      closeSaasModal();
+      openAuthModal('login', null);
+      return;
+    }
+
+    saasPortalButton.disabled = true;
+    try {
+      const response = await fetch('/api/billing/portal', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || !payload?.url) {
+        throw new Error(payload?.error || 'No se pudo abrir el portal de billing.');
+      }
+
+      window.location.href = payload.url;
+    } catch (error) {
+      await showAlert(error.message || 'No se pudo abrir el portal de billing.', 'Billing');
+    } finally {
+      saasPortalButton.disabled = false;
     }
   });
 }
@@ -2542,6 +2926,7 @@ if (authForm) {
       }
 
       authSession = payload;
+      aiUsage = payload.usage || null;
       updateAuthUi();
       startAuthPolling();
       await reconcileLocalStateWithSession(payload);
@@ -2568,6 +2953,7 @@ if (authLogoutButton) {
       console.error('[auth] Logout failed:', error);
     } finally {
       authSession = null;
+      aiUsage = null;
       pendingProtectedAction = null;
       updateAuthUi();
       closeAuthModal();
@@ -2749,27 +3135,95 @@ const closeLinkedinModalBtn = document.getElementById('close-linkedin-modal-butt
 const linkedinCancelBtn = document.getElementById('linkedin-cancel-button');
 const linkedinSubmitBtn = document.getElementById('linkedin-submit-button');
 const linkedinText = document.getElementById('linkedin-text');
-const linkedinToken = document.getElementById('linkedin-openrouter-token');
+const linkedinUsageSummary = document.getElementById('linkedin-usage-summary');
+
+function closeLinkedinModal() {
+  if (linkedinModal) {
+    linkedinModal.classList.remove('active');
+  }
+}
 
 if (importLinkedinButton && linkedinModal) {
   importLinkedinButton.addEventListener('click', () => {
-    linkedinModal.classList.add('active');
-    const storedToken = localStorage.getItem(ADAPT_TOKEN_STORAGE_KEY);
-    if (storedToken && linkedinToken && !linkedinToken.value.trim()) {
-      linkedinToken.value = storedToken;
+    if (!authSession?.authenticated) {
+      openAuthModal('login', 'ai');
+      return;
     }
+
+    if (aiUsage && !aiUsage.canUseAi) {
+      openSaasModal();
+      return;
+    }
+
+    linkedinModal.classList.add('active');
     linkedinText.value = '';
     linkedinText.focus();
   });
 
-  const closeLinkedinModal = () => linkedinModal.classList.remove('active');
-  
   if (closeLinkedinModalBtn) closeLinkedinModalBtn.addEventListener('click', closeLinkedinModal);
   if (linkedinCancelBtn) linkedinCancelBtn.addEventListener('click', closeLinkedinModal);
 
   if (linkedinSubmitBtn) {
     linkedinSubmitBtn.addEventListener('click', async () => {
       const text = linkedinText.value.trim();
+      if (!text) {
+        alert('Por favor, pega el texto de tu perfil de LinkedIn.');
+        linkedinText.focus();
+        return;
+      }
+
+      if (!authSession?.authenticated) {
+        openAuthModal('login', 'ai');
+        return;
+      }
+
+      if (aiUsage && !aiUsage.canUseAi) {
+        closeLinkedinModal();
+        openSaasModal();
+        return;
+      }
+
+      const legacyOriginalBtnText = linkedinSubmitBtn.innerText;
+      linkedinSubmitBtn.innerText = 'Procesando perfil con IA...';
+      linkedinSubmitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/import-linkedin', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linkedInText: text })
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data?.markdown) {
+          if (await handleApiAccessError(response, data)) {
+            return;
+          }
+
+          throw new Error(data.error || 'Error desconocido');
+        }
+
+        applyUsageFromPayload(data);
+        editor.value = data.markdown;
+        if (!isSyncingFromVisual) {
+          visualNeedsRefreshFromMarkdown = true;
+        }
+        schedulePreviewUpdate();
+        scheduleSave();
+        closeLinkedinModal();
+        setStatus('Perfil de LinkedIn importado con exito');
+      } catch (error) {
+        console.error('LinkedIn Import Error:', error);
+        alert('Error de IA: ' + (error.message || 'Hubo un error de conexion al importar el perfil.'));
+      } finally {
+        linkedinSubmitBtn.innerText = legacyOriginalBtnText;
+        linkedinSubmitBtn.disabled = false;
+      }
+
+      return;
+
       const token = linkedinToken.value.trim();
 
       if (!text) {
@@ -2784,7 +3238,7 @@ if (importLinkedinButton && linkedinModal) {
       }
 
       localStorage.setItem(ADAPT_TOKEN_STORAGE_KEY, token);
-      
+
       const originalBtnText = linkedinSubmitBtn.innerText;
       linkedinSubmitBtn.innerText = 'Procesando perfil con IA...';
       linkedinSubmitBtn.disabled = true;
@@ -2836,7 +3290,7 @@ const qualityList = document.getElementById('quality-list');
 function analyzeCvQuality(markdown) {
   const checks = [];
   let score = 0;
-  
+
   // 1. Email
   const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(markdown);
   checks.push({
@@ -2909,7 +3363,7 @@ function analyzeCvQuality(markdown) {
 function renderQualityCheck() {
   const markdown = editor.value || '';
   const { checks, score } = analyzeCvQuality(markdown);
-  
+
   qualityScoreText.textContent = score;
   qualityScoreCircle.className = 'quality-score-circle';
   if (score >= 80) qualityScoreCircle.classList.add('score-high');
@@ -2929,7 +3383,7 @@ function renderQualityCheck() {
     `;
     qualityList.appendChild(item);
   });
-  
+
   qualityModal.classList.add('active');
 }
 

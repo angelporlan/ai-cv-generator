@@ -1,8 +1,15 @@
 const { createPdfDocumentFromMarkdown } = require('../../../cv-pdf');
-const { DEFAULT_MODEL } = require('../config');
+const {
+  DEFAULT_MODEL,
+  OPENROUTER_API_KEY
+} = require('../config');
 const { readRequestBody } = require('../http/request');
 const { sendJson } = require('../http/response');
 const { getAuthenticatedUser } = require('../http/session');
+const {
+  getUserUsageSummary,
+  recordAiUsage
+} = require('../../../auth-store');
 const {
   askOpenRouter,
   buildAiActionMessages,
@@ -10,6 +17,46 @@ const {
   callOpenRouterWithFallback,
   stripMarkdownFences
 } = require('../services/openrouter');
+
+async function requireAiAccess(request, response) {
+  if (!OPENROUTER_API_KEY) {
+    sendJson(response, 503, {
+      ok: false,
+      error: 'OpenRouter server token is not configured'
+    });
+    return null;
+  }
+
+  const authSession = await getAuthenticatedUser(request);
+  if (!authSession) {
+    sendJson(response, 401, {
+      ok: false,
+      requiresAuth: true,
+      error: 'Authentication required to use AI'
+    });
+    return null;
+  }
+
+  const usage = await getUserUsageSummary(authSession.user.id);
+  if (!usage.canUseAi) {
+    sendJson(response, 402, {
+      ok: false,
+      requiresSubscription: true,
+      error: 'Free AI usage limit reached',
+      usage: usage.used,
+      limit: usage.limit,
+      remaining: usage.remaining,
+      subscriptionStatus: usage.subscriptionStatus,
+      upgradeUrl: '/pricing'
+    });
+    return null;
+  }
+
+  return {
+    authSession,
+    usage
+  };
+}
 
 async function handlePreviewPdf(request, response) {
   let body;
@@ -62,6 +109,11 @@ async function handlePreviewPdf(request, response) {
 }
 
 async function handleAdaptCv(request, response) {
+  const aiAccess = await requireAiAccess(request, response);
+  if (!aiAccess) {
+    return;
+  }
+
   let body;
 
   try {
@@ -72,7 +124,6 @@ async function handleAdaptCv(request, response) {
 
   const markdown = typeof body?.markdown === 'string' ? body.markdown.trim() : '';
   const userInput = typeof body?.jobDescription === 'string' ? body.jobDescription.trim() : '';
-  const token = typeof body?.token === 'string' ? body.token.trim() : '';
   const model = typeof body?.model === 'string' && body.model.trim() ? body.model.trim() : DEFAULT_MODEL;
   const action = typeof body?.action === 'string' ? body.action.trim() : 'adapt';
 
@@ -84,13 +135,9 @@ async function handleAdaptCv(request, response) {
     return sendJson(response, 400, { ok: false, error: 'Missing userInput (jobDescription)' });
   }
 
-  if (!token) {
-    return sendJson(response, 400, { ok: false, error: 'Missing token' });
-  }
-
   try {
     const { responseText, usedModel } = await callOpenRouterWithFallback(
-      token,
+      OPENROUTER_API_KEY,
       model,
       buildAiActionMessages(action, markdown, userInput)
     );
@@ -100,10 +147,13 @@ async function handleAdaptCv(request, response) {
       return sendJson(response, 502, { ok: false, error: 'Empty response from AI model' });
     }
 
+    const usage = await recordAiUsage(aiAccess.authSession.user.id, action);
+
     return sendJson(response, 200, {
       ok: true,
       markdown: adaptedMarkdown,
-      model: usedModel
+      model: usedModel,
+      usage
     });
   } catch (error) {
     return sendJson(response, 500, {
@@ -115,6 +165,11 @@ async function handleAdaptCv(request, response) {
 }
 
 async function handleImportLinkedIn(request, response) {
+  const aiAccess = await requireAiAccess(request, response);
+  if (!aiAccess) {
+    return;
+  }
+
   let body;
 
   try {
@@ -124,20 +179,15 @@ async function handleImportLinkedIn(request, response) {
   }
 
   const linkedInText = typeof body?.linkedInText === 'string' ? body.linkedInText.trim() : '';
-  const token = typeof body?.token === 'string' ? body.token.trim() : '';
   const model = typeof body?.model === 'string' && body.model.trim() ? body.model.trim() : DEFAULT_MODEL;
 
   if (!linkedInText) {
     return sendJson(response, 400, { ok: false, error: 'Missing linkedInText' });
   }
 
-  if (!token) {
-    return sendJson(response, 400, { ok: false, error: 'Missing token' });
-  }
-
   try {
     const { responseText, usedModel } = await callOpenRouterWithFallback(
-      token,
+      OPENROUTER_API_KEY,
       model,
       buildLinkedInImportMessages(linkedInText)
     );
@@ -147,10 +197,13 @@ async function handleImportLinkedIn(request, response) {
       return sendJson(response, 502, { ok: false, error: 'Empty response from AI model' });
     }
 
+    const usage = await recordAiUsage(aiAccess.authSession.user.id, 'import_linkedin');
+
     return sendJson(response, 200, {
       ok: true,
       markdown: cvMarkdown,
-      model: usedModel
+      model: usedModel,
+      usage
     });
   } catch (error) {
     return sendJson(response, 500, {
@@ -161,20 +214,22 @@ async function handleImportLinkedIn(request, response) {
   }
 }
 
-async function handleAsk(requestUrl, response) {
-  const token = requestUrl.searchParams.get('token');
-  if (!token) {
-    return sendJson(response, 400, { ok: false, error: 'Token missing in query parameters' });
+async function handleAsk(request, requestUrl, response) {
+  const aiAccess = await requireAiAccess(request, response);
+  if (!aiAccess) {
+    return;
   }
 
   try {
     const result = await askOpenRouter(
-      token,
+      OPENROUTER_API_KEY,
       requestUrl.searchParams.get('model') || DEFAULT_MODEL,
       requestUrl.searchParams.get('prompt') || 'Hello'
     );
 
-    sendJson(response, 200, { ok: true, response: result });
+    const usage = await recordAiUsage(aiAccess.authSession.user.id, 'ask');
+
+    sendJson(response, 200, { ok: true, response: result, usage });
   } catch (error) {
     sendJson(response, 500, { ok: false, error: error.message });
   }
