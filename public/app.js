@@ -227,7 +227,7 @@ function updateAuthUi() {
   const email = authSession?.user?.email || '';
   const isOffline = authStatus === 'offline';
   const isChecking = authStatus === 'checking';
-  const savedCvCount = Array.isArray(libraryData) ? libraryData.length : 0;
+  const savedCvCount = getStoredLibraryEntries().length;
 
   if (authAccountButton) {
     authAccountButton.classList.toggle('is-authenticated', isAuthenticated);
@@ -1254,6 +1254,7 @@ function loadLibraryData() {
     libraryData = [];
   }
   renderLibrary();
+  updateAuthUi();
 }
 
 function formatDate(isoString) {
@@ -1282,6 +1283,7 @@ function saveLibraryData() {
   touchLocalStateTimestamp();
   scheduleStateSync();
   renderLibrary();
+  updateAuthUi();
 }
 
 let librarySearchTerm = '';
