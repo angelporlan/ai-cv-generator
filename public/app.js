@@ -1431,6 +1431,9 @@ function bindCardEvents(container) {
   container.querySelectorAll('.edit-cv').forEach(btn => {
     btn.addEventListener('click', () => toggleEditForm(btn.dataset.id));
   });
+  container.querySelectorAll('.update-cv-content').forEach(btn => {
+    btn.addEventListener('click', () => updateCvContentFromDraft(btn.dataset.id));
+  });
   container.querySelectorAll('.cancel-edit').forEach(btn => {
     btn.addEventListener('click', () => toggleEditForm(btn.dataset.id, false));
   });
@@ -1469,6 +1472,7 @@ function renderKanban(sortedList) {
         </div>
         <div class="cv-card-actions">
           <button class="button-ghost-sm load-cv" data-id="${cv.id}" title="Cargar este CV">Abrir</button>
+          <button class="button-ghost-sm update-cv-content" data-id="${cv.id}" title="Sustituir contenido por el borrador actual">Actualizar</button>
           <button class="button-ghost-sm edit-cv" data-id="${cv.id}" title="Editar datos">Editar</button>
           <button class="button-ghost-sm button-danger-ghost delete-cv" data-id="${cv.id}" title="Eliminar">Eliminar</button>
         </div>
@@ -1671,6 +1675,10 @@ function renderLibrary() {
         <button class="button-ghost-sm edit-cv" data-id="${cv.id}" title="Editar datos">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
           Editar
+        </button>
+        <button class="button-ghost-sm update-cv-content" data-id="${cv.id}" title="Sustituir contenido por el borrador actual">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.3"></path><path d="M3 12A9 9 0 0 1 18.5 5.7"></path><path d="M3 17v-5h5"></path><path d="M21 7v5h-5"></path></svg>
+          Actualizar
         </button>
         <button class="button-ghost-sm button-danger-ghost delete-cv" data-id="${cv.id}" title="Eliminar">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -1946,6 +1954,57 @@ async function loadCvFromLibrary(id) {
       closeLibrary();
     }
   }
+}
+
+async function updateCvContentFromDraft(id) {
+  const cv = libraryData.find(c => c.id === id);
+  if (!cv) return;
+
+  const content = editor.value;
+  const visualTemplate = visualTemplateSelector ? visualTemplateSelector.value : cv.visualTemplate || 'harvard';
+  const confirmed = await showConfirm({
+    title: `Actualizar "${cv.name}"`,
+    message: 'Se sustituira el contenido guardado por el borrador actual del editor.',
+    okText: 'Actualizar CV',
+    variant: 'primary'
+  });
+
+  if (!confirmed) {
+    return;
+  }
+
+  if (authSession?.authenticated) {
+    try {
+      const response = await fetch(`/api/cvs/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          visualTemplate,
+          lastUsedDate: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('cv-content-update-failed');
+      }
+
+      libraryPageCache.clear();
+      await fetchLibraryPage(libraryPage, { force: true });
+    } catch (error) {
+      console.error('[library] Content update failed:', error);
+      await showAlert('No se pudo actualizar el contenido de este CV.', 'Error al actualizar');
+      return;
+    }
+  } else {
+    cv.content = content;
+    cv.visualTemplate = visualTemplate;
+    cv.lastUsedDate = new Date().toISOString();
+    saveLibraryData();
+  }
+
+  setStatus(`"${cv.name}" actualizado con el borrador actual`);
 }
 
 async function deleteFromLibrary(id) {
