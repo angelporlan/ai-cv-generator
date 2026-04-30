@@ -778,5 +778,6 @@ module.exports = {
   saveUserState,
   touchSession,
   updateBillingForStripeCustomer,
-  updateBillingForUser
+  updateBillingForUser,
+  updateUserCv
 };
