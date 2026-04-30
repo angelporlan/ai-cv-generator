@@ -22,10 +22,37 @@ function loadEnvFile() {
 
 loadEnvFile();
 
+function isConfiguredSecret(value, placeholderHints = []) {
+  const normalized = String(value || '').trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  const lowerValue = normalized.toLowerCase();
+  return !placeholderHints.some((hint) => lowerValue.includes(hint));
+}
+
+function resolveOpenRouterApiKey() {
+  const primaryKey = process.env.OPENROUTER_API_KEY;
+  const legacyKey = process.env.API_AI_KEY || process.env['API-AI-KEY'];
+  const placeholderHints = ['your_openrouter_key', 'openrouter_key', 'replace_me'];
+
+  if (isConfiguredSecret(primaryKey, placeholderHints)) {
+    return primaryKey.trim();
+  }
+
+  if (isConfiguredSecret(legacyKey, placeholderHints)) {
+    return legacyKey.trim();
+  }
+
+  return String(primaryKey || legacyKey || '').trim();
+}
+
 const PORT = Number(process.env.PORT || 3002);
 const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_API_KEY = resolveOpenRouterApiKey();
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const REQUEST_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 120000);
 const SESSION_COOKIE_NAME = 'cv_studio_session';

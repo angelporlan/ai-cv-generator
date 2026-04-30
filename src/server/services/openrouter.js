@@ -12,6 +12,16 @@ function getTextFromOpenRouter(data) {
 function formatOpenRouterError(data, statusCode) {
   const message = data?.error?.message || `OpenRouter failed: ${statusCode}`;
   const raw = data?.error?.metadata?.raw;
+  const normalizedMessage = String(message || '').trim().toLowerCase();
+
+  if (statusCode === 401 && normalizedMessage === 'user not found.') {
+    return {
+      message: 'OpenRouter rechazó la API key: la cuenta no existe o la clave ha sido revocada',
+      metadata: {
+        raw: message
+      }
+    };
+  }
 
   if (raw && raw !== message) {
     return {
