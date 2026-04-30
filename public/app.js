@@ -91,8 +91,11 @@ const REFERENCE_MODE_STORAGE_KEY = 'cv-studio-reference-mode';
 const WORKSPACE_SPLIT_STORAGE_KEY = 'cv-studio-workspace-split';
 const AUTH_SYNC_UPDATED_AT_KEY = 'cv-studio-sync-updated-at';
 const AUTH_SYNC_PREFIX = 'cv-studio-';
+const AUTH_SYNC_EXCLUDED_KEYS = new Set([LIBRARY_STORAGE_KEY]);
 const AUTH_SYNC_DEBOUNCE_MS = 3000;
 const AUTH_SYNC_INTERVAL_MS = 12000;
+const LIBRARY_PAGE_SIZE = 50;
+const LIBRARY_SEARCH_DEBOUNCE_MS = 300;
 
 let currentReferenceMode = localStorage.getItem(REFERENCE_MODE_STORAGE_KEY) === 'visual' ? 'visual' : 'markdown';
 let showIcons = localStorage.getItem('cv-studio-show-icons') !== 'false';
@@ -109,6 +112,13 @@ function setReferenceToggleButton(isOpen) {
 }
 
 let libraryData = [];
+let libraryTotal = 0;
+let libraryPage = 1;
+let libraryHasMore = false;
+let libraryIsLoading = false;
+let librarySearchTimer = null;
+let hasMigratedLocalLibrary = false;
+const libraryPageCache = new Map();
 let currentEditorMode = 'visual';
 let visualNeedsRefreshFromMarkdown = true;
 let isSyncingFromVisual = false;
@@ -166,6 +176,10 @@ function getAppLocalState() {
       continue;
     }
 
+    if (AUTH_SYNC_EXCLUDED_KEYS.has(key)) {
+      continue;
+    }
+
     snapshot[key] = localStorage.getItem(key);
   }
 
@@ -193,17 +207,7 @@ function hasMeaningfulLocalState() {
     return true;
   }
 
-  const savedLibrary = localStorage.getItem(LIBRARY_STORAGE_KEY);
-  if (!savedLibrary) {
-    return false;
-  }
-
-  try {
-    const parsed = JSON.parse(savedLibrary);
-    return Array.isArray(parsed) && parsed.length > 0;
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 function applyRemoteStateSnapshot(snapshot) {
@@ -213,6 +217,10 @@ function applyRemoteStateSnapshot(snapshot) {
 
   Object.entries(snapshot).forEach(([key, value]) => {
     if (!key.startsWith(AUTH_SYNC_PREFIX)) {
+      return;
+    }
+
+    if (AUTH_SYNC_EXCLUDED_KEYS.has(key)) {
       return;
     }
 
@@ -227,7 +235,7 @@ function updateAuthUi() {
   const email = authSession?.user?.email || '';
   const isOffline = authStatus === 'offline';
   const isChecking = authStatus === 'checking';
-  const savedCvCount = getStoredLibraryEntries().length;
+  const savedCvCount = authSession?.authenticated ? libraryTotal : getStoredLibraryEntries().length;
 
   if (authAccountButton) {
     authAccountButton.classList.toggle('is-authenticated', isAuthenticated);
@@ -580,6 +588,7 @@ function startAuthPolling() {
 
   if (!authSession?.authenticated) {
     authPollingTimer = null;
+    renderLibraryPagination();
     return;
   }
 
@@ -691,6 +700,8 @@ async function reconcileLocalStateWithSession(sessionPayload) {
   if (hasMeaningfulLocalState()) {
     touchLocalStateTimestamp();
     await syncStateToServer({ force: true });
+    await migrateLocalLibraryToServer();
+    await fetchLibraryPage(1, { force: true });
     return;
   }
 
@@ -718,6 +729,9 @@ async function reconcileLocalStateWithSession(sessionPayload) {
       setStatus('Borrador de tu cuenta cargado');
     }
   }
+
+  await migrateLocalLibraryToServer();
+  await fetchLibraryPage(1, { force: true });
 }
 
 async function continuePendingProtectedAction() {
@@ -1238,23 +1252,107 @@ async function updatePdfPreview() {
 }
 
 /* ── Library Management ────────────────────────────────────────── */
-function loadLibraryData() {
+function normalizeLibraryEntry(cv) {
+  return {
+    ...cv,
+    id: String(cv.id),
+    status: cv.status || (cv.space === 'Trabajo' ? 'Enviado' : 'Archivado'),
+    description: cv.description || cv.space || '',
+    jobUrl: cv.jobUrl || '',
+    lastUsedDate: cv.lastUsedDate || cv.date || new Date().toISOString(),
+    visualTemplate: cv.visualTemplate || cv.template || 'harvard',
+    content: cv.content || ''
+  };
+}
+
+function getLibraryCacheKey(page = libraryPage) {
+  return JSON.stringify({
+    page,
+    search: librarySearchTerm.trim(),
+    status: libraryStatusFilter
+  });
+}
+
+function loadLocalLibraryData() {
   const saved = localStorage.getItem(LIBRARY_STORAGE_KEY);
   try {
     libraryData = saved ? JSON.parse(saved) : [];
     // Migración básica y saneamiento
-    libraryData = libraryData.map(cv => ({
-      ...cv,
-      status: cv.status || (cv.space === 'Trabajo' ? 'Enviado' : 'Archivado'),
-      description: cv.description || cv.space || '',
-      jobUrl: cv.jobUrl || '',
-      lastUsedDate: cv.lastUsedDate || cv.date || new Date().toISOString()
-    }));
+    libraryData = libraryData.map(normalizeLibraryEntry);
   } catch (e) {
     libraryData = [];
   }
+  libraryTotal = libraryData.length;
+  libraryPage = 1;
+  libraryHasMore = false;
   renderLibrary();
   updateAuthUi();
+}
+
+async function fetchLibraryPage(page = 1, options = {}) {
+  if (!authSession?.authenticated) {
+    loadLocalLibraryData();
+    return;
+  }
+
+  const cacheKey = getLibraryCacheKey(page);
+  if (!options.force && libraryPageCache.has(cacheKey)) {
+    const cached = libraryPageCache.get(cacheKey);
+    libraryData = cached.items;
+    libraryTotal = cached.total;
+    libraryHasMore = cached.hasMore;
+    libraryPage = cached.page;
+    renderLibrary();
+    updateAuthUi();
+    return;
+  }
+
+  libraryIsLoading = true;
+  renderLibrary();
+
+  try {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(LIBRARY_PAGE_SIZE),
+      status: libraryStatusFilter,
+      search: librarySearchTerm.trim()
+    });
+    const response = await fetch(`/api/cvs?${params.toString()}`, { credentials: 'include' });
+
+    if (response.status === 401) {
+      applyAuthState('guest');
+      loadLocalLibraryData();
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error('library-fetch-failed');
+    }
+
+    const payload = await response.json();
+    libraryData = Array.isArray(payload.items) ? payload.items.map(normalizeLibraryEntry) : [];
+    libraryTotal = Number(payload.total || libraryData.length);
+    libraryHasMore = Boolean(payload.hasMore);
+    libraryPage = Number(payload.page || page);
+    libraryPageCache.set(cacheKey, {
+      items: libraryData,
+      total: libraryTotal,
+      hasMore: libraryHasMore,
+      page: libraryPage
+    });
+  } catch (error) {
+    console.error('[library] Load failed:', error);
+    setStatus('No se pudo cargar la biblioteca');
+  } finally {
+    libraryIsLoading = false;
+    renderLibrary();
+    updateAuthUi();
+  }
+}
+
+async function loadLibraryData() {
+  await migrateLocalLibraryToServer();
+  await fetchLibraryPage(1);
 }
 
 function formatDate(isoString) {
@@ -1280,10 +1378,43 @@ function getStatusClass(status) {
 
 function saveLibraryData() {
   localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(libraryData));
-  touchLocalStateTimestamp();
-  scheduleStateSync();
   renderLibrary();
   updateAuthUi();
+}
+
+async function migrateLocalLibraryToServer() {
+  if (hasMigratedLocalLibrary || !authSession?.authenticated) {
+    return;
+  }
+
+  const localEntries = getStoredLibraryEntries();
+  if (localEntries.length === 0) {
+    hasMigratedLocalLibrary = true;
+    return;
+  }
+
+  hasMigratedLocalLibrary = true;
+  setStatus('Migrando biblioteca local a tu cuenta...');
+
+  try {
+    for (const entry of localEntries) {
+      const cv = normalizeLibraryEntry(entry);
+      await fetch('/api/cvs', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cv)
+      });
+    }
+
+    localStorage.removeItem(LIBRARY_STORAGE_KEY);
+    libraryPageCache.clear();
+    setStatus(`${localEntries.length} CVs migrados a PostgreSQL`);
+  } catch (error) {
+    console.error('[library] Migration failed:', error);
+    hasMigratedLocalLibrary = false;
+    setStatus('No se pudo migrar la biblioteca local');
+  }
 }
 
 let librarySearchTerm = '';
@@ -1403,7 +1534,17 @@ function initKanbanDragAndDrop() {
           const cv = libraryData.find(c => c.id === cvId);
           if (cv) {
             cv.status = newStatus;
-            saveLibraryData(); // This will re-render everything
+            if (authSession?.authenticated) {
+              libraryPageCache.clear();
+              void fetch(`/api/cvs/${encodeURIComponent(cv.id)}`, {
+                method: 'PATCH',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+              }).then(() => fetchLibraryPage(libraryPage, { force: true }));
+            } else {
+              saveLibraryData();
+            }
           }
         }
       }
@@ -1418,9 +1559,19 @@ function renderLibrary() {
   const filter = librarySearchTerm;
   const statusFilter = libraryStatusFilter;
 
-  libraryCountTag.textContent = `${libraryData.length} CV${libraryData.length !== 1 ? 's' : ''}`;
+  libraryCountTag.textContent = `${libraryTotal} CV${libraryTotal !== 1 ? 's' : ''}`;
 
-  if (libraryData.length === 0) {
+  if (libraryIsLoading && libraryData.length === 0) {
+    libraryItemsContainer.innerHTML = `
+      <div class="empty-library">
+        <p>Cargando biblioteca...</p>
+      </div>
+    `;
+    renderLibraryPagination();
+    return;
+  }
+
+  if (libraryTotal === 0) {
     libraryItemsContainer.innerHTML = `
       <div class="empty-library">
         <p>Aún no tienes CVs guardados. ¡Guarda el actual para empezar!</p>
@@ -1431,15 +1582,17 @@ function renderLibrary() {
 
   // Filtrar
   const normalizedFilter = filter.toLowerCase().trim();
-  const filtered = libraryData.filter(cv => {
-    const matchesText = !normalizedFilter ||
-      (cv.name || '').toLowerCase().includes(normalizedFilter) ||
-      (cv.description || '').toLowerCase().includes(normalizedFilter);
+  const filtered = authSession?.authenticated
+    ? libraryData
+    : libraryData.filter(cv => {
+      const matchesText = !normalizedFilter ||
+        (cv.name || '').toLowerCase().includes(normalizedFilter) ||
+        (cv.description || '').toLowerCase().includes(normalizedFilter);
 
-    const matchesStatus = statusFilter === 'all' || cv.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || cv.status === statusFilter;
 
-    return matchesText && matchesStatus;
-  });
+      return matchesText && matchesStatus;
+    });
 
   // Set active toggle button
   const toggleButtons = document.querySelectorAll('#library-view-toggle .mode-tab');
@@ -1567,6 +1720,42 @@ function renderLibrary() {
   } else {
     renderKanban(sorted);
   }
+
+  renderLibraryPagination();
+}
+
+function renderLibraryPagination() {
+  const listSection = document.querySelector('.library-list-section');
+  if (!listSection) return;
+
+  let controls = document.getElementById('library-pagination');
+  if (!controls) {
+    controls = document.createElement('div');
+    controls.id = 'library-pagination';
+    controls.className = 'library-pagination';
+    listSection.appendChild(controls);
+  }
+
+  if (!authSession?.authenticated || libraryTotal <= LIBRARY_PAGE_SIZE) {
+    controls.innerHTML = '';
+    controls.hidden = true;
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(libraryTotal / LIBRARY_PAGE_SIZE));
+  controls.hidden = false;
+  controls.innerHTML = `
+    <button class="button-ghost-sm" id="library-prev-page" type="button" ${libraryPage <= 1 || libraryIsLoading ? 'disabled' : ''}>Anterior</button>
+    <span class="library-pagination-label">Pagina ${libraryPage} de ${totalPages}</span>
+    <button class="button-ghost-sm" id="library-next-page" type="button" ${!libraryHasMore || libraryIsLoading ? 'disabled' : ''}>Siguiente</button>
+  `;
+
+  document.getElementById('library-prev-page')?.addEventListener('click', () => {
+    void fetchLibraryPage(Math.max(1, libraryPage - 1));
+  });
+  document.getElementById('library-next-page')?.addEventListener('click', () => {
+    void fetchLibraryPage(libraryPage + 1);
+  });
 }
 
 // Add event listener for view toggle
@@ -1606,7 +1795,7 @@ function toggleEditForm(id, forceOpen) {
   }
 }
 
-function saveEditForm(id) {
+async function saveEditForm(id) {
   const form = document.querySelector(`.cv-card-edit-form[data-edit-id="${id}"]`);
   if (!form) return;
 
@@ -1633,11 +1822,39 @@ function saveEditForm(id) {
   cv.description = descInput ? descInput.value.trim() : cv.description;
   cv.jobUrl = urlInput ? urlInput.value.trim() : cv.jobUrl;
 
-  saveLibraryData();
+  if (authSession?.authenticated) {
+    try {
+      const response = await fetch(`/api/cvs/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: cv.name,
+          status: cv.status,
+          lastUsedDate: cv.lastUsedDate,
+          description: cv.description,
+          jobUrl: cv.jobUrl
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('cv-update-failed');
+      }
+
+      libraryPageCache.clear();
+      await fetchLibraryPage(libraryPage, { force: true });
+    } catch (error) {
+      console.error('[library] Update failed:', error);
+      await showAlert('No se pudo actualizar este CV.', 'Error al guardar');
+      return;
+    }
+  } else {
+    saveLibraryData();
+  }
   setStatus(`"${cv.name}" actualizado`);
 }
 
-function saveToLibrary() {
+async function saveToLibrary() {
   const name = newCvNameInput.value.trim();
   const status = newCvStatusSelect.value;
   const description = newCvDescriptionInput.value.trim();
@@ -1662,8 +1879,30 @@ function saveToLibrary() {
     date: new Date().toISOString()
   };
 
-  libraryData.push(newCv);
-  saveLibraryData();
+  if (authSession?.authenticated) {
+    try {
+      const response = await fetch('/api/cvs', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCv)
+      });
+
+      if (!response.ok) {
+        throw new Error('cv-create-failed');
+      }
+
+      libraryPageCache.clear();
+      await fetchLibraryPage(1, { force: true });
+    } catch (error) {
+      console.error('[library] Create failed:', error);
+      await showAlert('No se pudo guardar este CV en tu biblioteca.', 'Error al guardar');
+      return;
+    }
+  } else {
+    libraryData.push(newCv);
+    saveLibraryData();
+  }
 
   // Limpiar campos
   newCvNameInput.value = '';
@@ -1675,7 +1914,21 @@ function saveToLibrary() {
 }
 
 async function loadCvFromLibrary(id) {
-  const cv = libraryData.find(c => c.id === id);
+  let cv = libraryData.find(c => c.id === id);
+  if (authSession?.authenticated) {
+    try {
+      const response = await fetch(`/api/cvs/${encodeURIComponent(id)}`, { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('cv-load-failed');
+      }
+      const payload = await response.json();
+      cv = payload.cv ? normalizeLibraryEntry(payload.cv) : cv;
+    } catch (error) {
+      console.error('[library] Open failed:', error);
+      await showAlert('No se pudo abrir este CV.', 'Error al abrir');
+      return;
+    }
+  }
   if (cv) {
     const confirmed = await showConfirm({
       title: `Cargar "${cv.name}"`,
@@ -1706,14 +1959,31 @@ async function deleteFromLibrary(id) {
     });
 
     if (confirmed) {
-      libraryData = libraryData.filter(c => c.id !== id);
-      saveLibraryData();
+      if (authSession?.authenticated) {
+        try {
+          const response = await fetch(`/api/cvs/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          });
+          if (!response.ok) {
+            throw new Error('cv-delete-failed');
+          }
+          libraryPageCache.clear();
+          await fetchLibraryPage(libraryPage, { force: true });
+        } catch (error) {
+          console.error('[library] Delete failed:', error);
+          await showAlert('No se pudo eliminar este CV.', 'Error al eliminar');
+        }
+      } else {
+        libraryData = libraryData.filter(c => c.id !== id);
+        saveLibraryData();
+      }
     }
   }
 }
 
 function openLibrary() {
-  loadLibraryData();
+  void loadLibraryData();
   if (newCvDateInput && !newCvDateInput.value) {
     newCvDateInput.value = new Date().toISOString().split('T')[0];
   }
@@ -2745,7 +3015,15 @@ const librarySearchInput = document.getElementById('library-search');
 if (librarySearchInput) {
   librarySearchInput.addEventListener('input', () => {
     librarySearchTerm = librarySearchInput.value;
-    renderLibrary();
+    clearTimeout(librarySearchTimer);
+    librarySearchTimer = setTimeout(() => {
+      libraryPageCache.clear();
+      if (authSession?.authenticated) {
+        void fetchLibraryPage(1, { force: true });
+      } else {
+        renderLibrary();
+      }
+    }, LIBRARY_SEARCH_DEBOUNCE_MS);
   });
 }
 
@@ -2753,7 +3031,12 @@ const libraryStatusFilterSelect = document.getElementById('library-status-filter
 if (libraryStatusFilterSelect) {
   libraryStatusFilterSelect.addEventListener('change', () => {
     libraryStatusFilter = libraryStatusFilterSelect.value;
-    renderLibrary();
+    libraryPageCache.clear();
+    if (authSession?.authenticated) {
+      void fetchLibraryPage(1, { force: true });
+    } else {
+      renderLibrary();
+    }
   });
 }
 

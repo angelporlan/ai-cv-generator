@@ -134,6 +134,42 @@ async function initAuthStore() {
   `);
 
   await db.query(`
+    CREATE TABLE IF NOT EXISTS user_cvs (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Archivado',
+      description TEXT NOT NULL DEFAULT '',
+      job_url TEXT NOT NULL DEFAULT '',
+      last_used_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      template TEXT NOT NULL DEFAULT 'harvard',
+      content TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS user_cvs_user_id_idx
+    ON user_cvs (user_id);
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS user_cvs_user_id_status_idx
+    ON user_cvs (user_id, status);
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS user_cvs_user_id_last_used_date_idx
+    ON user_cvs (user_id, last_used_date DESC);
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS user_cvs_user_id_lower_name_idx
+    ON user_cvs (user_id, lower(name));
+  `);
+
+  await db.query(`
     CREATE TABLE IF NOT EXISTS sessions (
       token TEXT PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -544,16 +580,197 @@ async function saveUserState(userId, state, clientUpdatedAt) {
   };
 }
 
+function normalizeCvRow(row = {}, includeContent = false) {
+  const cv = {
+    id: String(row.id),
+    name: row.name || '',
+    status: row.status || 'Archivado',
+    description: row.description || '',
+    jobUrl: row.job_url || '',
+    lastUsedDate: toIsoDate(row.last_used_date) || toIsoDate(row.updated_at) || new Date().toISOString(),
+    visualTemplate: row.template || 'harvard',
+    date: toIsoDate(row.created_at),
+    createdAt: toIsoDate(row.created_at),
+    updatedAt: toIsoDate(row.updated_at)
+  };
+
+  if (includeContent) {
+    cv.content = row.content || '';
+  }
+
+  return cv;
+}
+
+function normalizeCvInput(input = {}, current = {}) {
+  const name = typeof input.name === 'string' ? input.name.trim() : current.name;
+  if (!name) {
+    throw new Error('CV name is required');
+  }
+
+  const parsedLastUsedDate = input.lastUsedDate ? new Date(input.lastUsedDate) : null;
+  const safeLastUsedDate = parsedLastUsedDate && !Number.isNaN(parsedLastUsedDate.getTime())
+    ? parsedLastUsedDate
+    : current.last_used_date || new Date();
+
+  return {
+    name: name.slice(0, 240),
+    status: typeof input.status === 'string' && input.status.trim()
+      ? input.status.trim().slice(0, 80)
+      : current.status || 'Archivado',
+    description: typeof input.description === 'string'
+      ? input.description.trim().slice(0, 1000)
+      : current.description || '',
+    jobUrl: typeof input.jobUrl === 'string'
+      ? input.jobUrl.trim().slice(0, 2000)
+      : current.job_url || '',
+    lastUsedDate: safeLastUsedDate,
+    template: typeof input.visualTemplate === 'string' && input.visualTemplate.trim()
+      ? input.visualTemplate.trim().slice(0, 80)
+      : typeof input.template === 'string' && input.template.trim()
+        ? input.template.trim().slice(0, 80)
+        : current.template || 'harvard',
+    content: typeof input.content === 'string' ? input.content : current.content || ''
+  };
+}
+
+async function listUserCvs(userId, options = {}) {
+  const db = getPool();
+  const limit = Math.min(Math.max(Number(options.limit) || 50, 1), 100);
+  const offset = Math.max(Number(options.offset) || 0, 0);
+  const status = typeof options.status === 'string' && options.status !== 'all' ? options.status.trim() : '';
+  const search = typeof options.search === 'string' ? options.search.trim() : '';
+  const values = [userId];
+  const where = ['user_id = $1'];
+
+  if (status) {
+    values.push(status);
+    where.push(`status = $${values.length}`);
+  }
+
+  if (search) {
+    values.push(`%${search.toLowerCase()}%`);
+    where.push(`(lower(name) LIKE $${values.length} OR lower(description) LIKE $${values.length})`);
+  }
+
+  const whereSql = where.join(' AND ');
+  values.push(limit, offset);
+
+  const { rows } = await db.query(
+    `
+      SELECT id, name, status, description, job_url, last_used_date, template, created_at, updated_at,
+        COUNT(*) OVER() AS total_count
+      FROM user_cvs
+      WHERE ${whereSql}
+      ORDER BY last_used_date DESC, id DESC
+      LIMIT $${values.length - 1}
+      OFFSET $${values.length}
+    `,
+    values
+  );
+
+  return {
+    items: rows.map(row => normalizeCvRow(row)),
+    total: rows[0] ? Number(rows[0].total_count || 0) : 0,
+    limit,
+    offset
+  };
+}
+
+async function getUserCv(userId, cvId) {
+  const db = getPool();
+  const { rows } = await db.query(
+    `
+      SELECT id, name, status, description, job_url, last_used_date, template, content, created_at, updated_at
+      FROM user_cvs
+      WHERE user_id = $1 AND id = $2
+      LIMIT 1
+    `,
+    [userId, cvId]
+  );
+
+  return rows[0] ? normalizeCvRow(rows[0], true) : null;
+}
+
+async function createUserCv(userId, input = {}) {
+  const db = getPool();
+  const cv = normalizeCvInput(input);
+  const { rows } = await db.query(
+    `
+      INSERT INTO user_cvs (user_id, name, status, description, job_url, last_used_date, template, content)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, name, status, description, job_url, last_used_date, template, content, created_at, updated_at
+    `,
+    [userId, cv.name, cv.status, cv.description, cv.jobUrl, cv.lastUsedDate, cv.template, cv.content]
+  );
+
+  return normalizeCvRow(rows[0], true);
+}
+
+async function updateUserCv(userId, cvId, input = {}) {
+  const db = getPool();
+  const { rows: currentRows } = await db.query(
+    `
+      SELECT name, status, description, job_url, last_used_date, template, content
+      FROM user_cvs
+      WHERE user_id = $1 AND id = $2
+      LIMIT 1
+    `,
+    [userId, cvId]
+  );
+
+  if (!currentRows[0]) {
+    return null;
+  }
+
+  const cv = normalizeCvInput(input, currentRows[0]);
+  const { rows } = await db.query(
+    `
+      UPDATE user_cvs
+      SET
+        name = $3,
+        status = $4,
+        description = $5,
+        job_url = $6,
+        last_used_date = $7,
+        template = $8,
+        content = $9,
+        updated_at = NOW()
+      WHERE user_id = $1 AND id = $2
+      RETURNING id, name, status, description, job_url, last_used_date, template, content, created_at, updated_at
+    `,
+    [userId, cvId, cv.name, cv.status, cv.description, cv.jobUrl, cv.lastUsedDate, cv.template, cv.content]
+  );
+
+  return rows[0] ? normalizeCvRow(rows[0], true) : null;
+}
+
+async function deleteUserCv(userId, cvId) {
+  const db = getPool();
+  const { rowCount } = await db.query(
+    `
+      DELETE FROM user_cvs
+      WHERE user_id = $1 AND id = $2
+    `,
+    [userId, cvId]
+  );
+
+  return rowCount > 0;
+}
+
 module.exports = {
   FREE_AI_USAGE_LIMIT,
   SESSION_TTL_MS,
   authenticateUser,
   createSession,
+  createUserCv,
+  deleteUserCv,
   destroySession,
+  getUserCv,
   getUserBilling,
   getUserState,
   getUserUsageSummary,
   initAuthStore,
+  listUserCvs,
   recordAiUsage,
   registerUser,
   resolveSession,

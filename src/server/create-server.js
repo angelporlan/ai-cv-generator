@@ -9,7 +9,16 @@ const {
   handleAuthSession,
   handleAuthState
 } = require('./routes/auth');
-const { handleCvPdf, handleCvSource } = require('./routes/cv');
+const {
+  handleCvCreate,
+  handleCvDelete,
+  handleCvGet,
+  handleCvPdf,
+  handleCvSource,
+  handleCvUpdate,
+  handleCvsList,
+  parseCvId
+} = require('./routes/cv');
 const { handleStaticGet } = require('./routes/static');
 const { handleStripeWebhook } = require('./routes/stripe-webhook');
 const { handleUsage } = require('./routes/usage');
@@ -25,6 +34,27 @@ function createServer() {
 
     if (request.method === 'GET' && requestUrl.pathname === '/api/cv') {
       return handleCvSource(requestUrl, response);
+    }
+
+    if (request.method === 'GET' && requestUrl.pathname === '/api/cvs') {
+      return handleCvsList(request, requestUrl, response);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/api/cvs') {
+      return handleCvCreate(request, response);
+    }
+
+    const cvId = parseCvId(requestUrl.pathname);
+    if (cvId && request.method === 'GET') {
+      return handleCvGet(request, cvId, response);
+    }
+
+    if (cvId && request.method === 'PATCH') {
+      return handleCvUpdate(request, cvId, response);
+    }
+
+    if (cvId && request.method === 'DELETE') {
+      return handleCvDelete(request, cvId, response);
     }
 
     if (request.method === 'POST' && requestUrl.pathname === '/api/auth/register') {

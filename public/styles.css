@@ -3244,3 +3244,20 @@ body {
     min-width: auto;
   }
 }
+/* Library pagination */
+.library-pagination {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.library-pagination[hidden] {
+  display: none;
+}
+
+.library-pagination-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
