@@ -39,6 +39,9 @@
         <button id="open-saas-button" class="button-ghost usage-account-button" title="Plan y uso" type="button">
           <span id="ai-usage-label">IA: 0/3</span>
         </button>
+        <button id="open-plan-button" class="button button-primary upgrade-plan-button" title="Mejorar plan" type="button">
+          Mejorar plan
+        </button>
         <button id="open-library-button" class="button-ghost" title="Mis CVs" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
@@ -624,7 +627,7 @@
             <button type="button" class="mode-tab" data-auth-mode="register" aria-selected="false">Crear cuenta</button>
           </div>
 
-          <button id="auth-google-button" class="auth-social-button" type="button" aria-label="Continuar con Google (proximamente)">
+          <button id="auth-google-button" class="auth-social-button" type="button" aria-label="Continuar con Google">
             <span class="auth-social-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M21.8 12.23c0-.68-.06-1.33-.18-1.95H12v3.69h5.5a4.7 4.7 0 0 1-2.04 3.08v2.56h3.29c1.93-1.78 3.05-4.41 3.05-7.38Z" fill="#4285F4"/>
@@ -634,7 +637,6 @@
               </svg>
             </span>
             <span class="auth-social-label">Continuar con Google</span>
-            <span class="auth-social-tag">Proximamente</span>
           </button>
 
           <div class="auth-divider" aria-hidden="true">
@@ -668,33 +670,59 @@
       <div class="modal modal-saas">
         <div class="modal-header">
           <div class="modal-header-info">
-            <h2 class="modal-title">Plan, uso y billing</h2>
-            <p class="modal-subtitle">Gestiona tus usos de IA, tu cuenta y tu suscripcion Pro.</p>
+            <h2 class="modal-title">Mejorar plan</h2>
+            <p class="modal-subtitle">Compara el plan gratis y el plan Pro antes de activar la suscripcion.</p>
           </div>
           <button id="close-saas-modal-button" class="modal-close" aria-label="Cerrar">&times;</button>
         </div>
 
         <div class="modal-content">
-          <div class="saas-grid">
-            <section class="saas-panel">
-              <p class="panel-kicker">Usage</p>
+          <section class="saas-summary-panel">
+            <div>
+              <p class="panel-kicker">Uso actual</p>
               <h3 id="saas-usage-title">IA: 0/3</h3>
               <p id="saas-usage-copy">Inicia sesion para activar tus 3 usos gratis.</p>
-            </section>
-            <section class="saas-panel">
-              <p class="panel-kicker">Pricing</p>
-              <h3>Gratis</h3>
-              <p>3 usos totales de IA para probar CV Studio.</p>
-            </section>
-            <section class="saas-panel saas-panel-pro">
-              <p class="panel-kicker">Pro</p>
-              <h3>IA ilimitada</h3>
-              <p>Adaptacion, LinkedIn, cartas, traduccion y analisis sin limite con suscripcion activa.</p>
-            </section>
-            <section class="saas-panel">
-              <p class="panel-kicker">Account</p>
+            </div>
+            <div>
+              <p class="panel-kicker">Cuenta</p>
               <h3 id="saas-account-title">Sin sesion</h3>
               <p id="saas-account-copy">Entra o crea cuenta para sincronizar y usar IA.</p>
+            </div>
+          </section>
+
+          <div class="plan-comparison">
+            <section class="plan-card" id="free-plan-card">
+              <div class="plan-card-head">
+                <div>
+                  <p class="panel-kicker">Plan gratis</p>
+                  <h3>Gratis</h3>
+                </div>
+                <span id="free-plan-status" class="plan-status">Plan actual</span>
+              </div>
+              <p class="plan-copy">Perfecto para probar CV Studio y crear tu primer curriculum con ayuda puntual.</p>
+              <ul class="plan-benefits">
+                <li>3 usos totales de IA incluidos.</li>
+                <li>Editor visual y Markdown para crear tu CV.</li>
+                <li>Vista previa en vivo y exportacion a PDF.</li>
+                <li>Biblioteca de CVs guardados en tu cuenta.</li>
+              </ul>
+            </section>
+
+            <section class="plan-card plan-card-pro" id="pro-plan-card">
+              <div class="plan-card-head">
+                <div>
+                  <p class="panel-kicker">Plan Pro</p>
+                  <h3>Pro</h3>
+                </div>
+                <span id="pro-plan-status" class="plan-status plan-status-pro">Recomendado</span>
+              </div>
+              <p class="plan-copy">Pensado para preparar candidaturas sin limite y adaptar tu CV a cada oferta.</p>
+              <ul class="plan-benefits">
+                <li>IA ilimitada con suscripcion activa.</li>
+                <li>Adaptacion del CV a ofertas de trabajo.</li>
+                <li>Importacion de perfil de LinkedIn con IA.</li>
+                <li>Cartas, traduccion y analisis del CV sin limite.</li>
+              </ul>
             </section>
           </div>
         </div>
@@ -702,7 +730,7 @@
         <div class="modal-footer">
           <button id="saas-login-button" class="button button-secondary" type="button">Entrar</button>
           <button id="saas-portal-button" class="button button-secondary" type="button">Gestionar billing</button>
-          <button id="saas-upgrade-button" class="button button-primary" type="button">Actualizar a Pro</button>
+          <button id="saas-upgrade-button" class="button button-primary" type="button">Mejorar plan</button>
         </div>
       </div>
     </div>
