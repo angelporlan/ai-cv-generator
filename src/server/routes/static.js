@@ -25,7 +25,7 @@ async function handleStaticGet(requestUrl, response) {
     streamFile(response, resolvedPath, getMimeType(resolvedPath), {
       'Cache-Control': safePathname.startsWith('favicon/') || safePathname.startsWith('svg/')
         ? 'public, max-age=86400'
-        : 'no-cache'
+        : 'no-store, no-cache, must-revalidate'
     });
     return true;
   } catch {

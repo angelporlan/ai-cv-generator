@@ -56,9 +56,17 @@ const authEmailInput = document.getElementById('auth-email');
 const authPasswordInput = document.getElementById('auth-password');
 const authSubmitButton = document.getElementById('auth-submit-button');
 const authLogoutButton = document.getElementById('auth-logout-button');
+const authGoogleButton = document.getElementById('auth-google-button');
 const closeAuthModalButton = document.getElementById('close-auth-modal-button');
 const authError = document.getElementById('auth-error');
 const authHelperCopy = document.getElementById('auth-helper-copy');
+const authSwitchCopy = document.getElementById('auth-switch-copy');
+const authModalTitle = document.getElementById('auth-modal-title');
+const authModalSubtitle = document.getElementById('auth-modal-subtitle');
+const authStatusBadge = document.getElementById('auth-status-badge');
+const authSummaryEmail = document.getElementById('auth-summary-email');
+const authSummaryCvCount = document.getElementById('auth-summary-cv-count');
+const authDivider = document.querySelector('.auth-divider');
 
 const LIBRARY_STORAGE_KEY = 'cv-studio-library';
 const EDITOR_MODE_STORAGE_KEY = 'cv-studio-editor-mode';
@@ -117,11 +125,33 @@ let authMode = 'login';
 let pendingProtectedAction = null;
 let authSession = null;
 let aiUsage = null;
+let authStatus = 'checking';
 let authSyncTimer = null;
 let authPollingTimer = null;
 let authSyncInFlight = false;
 let authSyncQueued = false;
 let lastSyncedStateFingerprint = '';
+
+function stopAuthPolling() {
+  if (authPollingTimer) {
+    clearInterval(authPollingTimer);
+    authPollingTimer = null;
+  }
+}
+
+function applyAuthState(status, payload = null) {
+  authStatus = status;
+  authSession = status === 'authenticated' ? payload : null;
+  aiUsage = status === 'authenticated' ? payload?.usage || null : null;
+
+  if (status === 'authenticated') {
+    startAuthPolling();
+  } else {
+    stopAuthPolling();
+  }
+
+  updateAuthUi();
+}
 
 function setStatus(message) {
   saveStatus.textContent = message;
@@ -195,16 +225,27 @@ function applyRemoteStateSnapshot(snapshot) {
 function updateAuthUi() {
   const isAuthenticated = Boolean(authSession?.authenticated);
   const email = authSession?.user?.email || '';
+  const isOffline = authStatus === 'offline';
+  const isChecking = authStatus === 'checking';
+  const savedCvCount = Array.isArray(libraryData) ? libraryData.length : 0;
 
   if (authAccountButton) {
     authAccountButton.classList.toggle('is-authenticated', isAuthenticated);
+    authAccountButton.classList.toggle('is-offline', isOffline);
+    authAccountButton.classList.toggle('is-checking', isChecking);
     authAccountButton.title = isAuthenticated ? `Cuenta activa: ${email}` : 'Entrar o crear cuenta';
   }
 
   if (authAccountLabel) {
-    authAccountLabel.textContent = isAuthenticated
-      ? (email.length > 20 ? `${email.slice(0, 17)}...` : email)
-      : 'Entrar';
+    if (isChecking) {
+      authAccountLabel.textContent = 'Verificando';
+    } else if (isOffline) {
+      authAccountLabel.textContent = 'Sin conexion';
+    } else {
+      authAccountLabel.textContent = isAuthenticated
+        ? (email.length > 20 ? `${email.slice(0, 17)}...` : email)
+        : 'Entrar';
+    }
   }
 
   if (authLogoutButton) {
@@ -212,6 +253,7 @@ function updateAuthUi() {
   }
 
   if (authSubmitButton) {
+    authSubmitButton.hidden = isAuthenticated;
     authSubmitButton.textContent = isAuthenticated
       ? 'Continuar'
       : authMode === 'register'
@@ -219,10 +261,89 @@ function updateAuthUi() {
         : 'Entrar y continuar';
   }
 
+  if (authTabs) {
+    authTabs.hidden = isAuthenticated;
+  }
+
+  if (authGoogleButton) {
+    authGoogleButton.hidden = isAuthenticated;
+  }
+
+  if (authDivider) {
+    authDivider.hidden = isAuthenticated;
+  }
+
+  if (authForm) {
+    authForm.hidden = isAuthenticated;
+  }
+
   if (authHelperCopy) {
-    authHelperCopy.textContent = isAuthenticated
-      ? 'Tu cuenta ya esta activa. Si sigues trabajando, mantendremos el estado local y lo sincronizaremos de fondo.'
-      : 'En cuanto inicies sesion, sincronizaremos tu borrador y tus CVs guardados sin frenar el editor.';
+    if (isChecking) {
+      authHelperCopy.textContent = 'Estamos verificando tu sesion con el servidor antes de darte acceso.';
+    } else if (isOffline) {
+      authHelperCopy.textContent = 'No hemos podido verificar la sesion. Tu trabajo local sigue intacto, pero el acceso protegido queda pausado hasta reconectar.';
+    } else {
+      authHelperCopy.textContent = isAuthenticated
+        ? 'Tu cuenta ya esta activa. Si sigues trabajando, renovaremos la sesion y sincronizaremos el estado de fondo.'
+        : 'En cuanto inicies sesion, sincronizaremos tu borrador y tus CVs guardados sin frenar el editor.';
+    }
+  }
+
+  if (authSwitchCopy) {
+    authSwitchCopy.textContent = isAuthenticated
+      ? 'Sigues dentro mientras la sesion pueda validarse con el servidor.'
+      : authMode === 'register'
+        ? 'Crea una cuenta para guardar tu trabajo y volver sin empezar de cero.'
+        : 'Entra para recuperar tu trabajo, tus CVs y el uso de IA asociado a tu cuenta.';
+  }
+
+  if (authModalTitle) {
+    authModalTitle.textContent = isAuthenticated
+      ? 'Tu sesion esta activa'
+      : authMode === 'register'
+        ? 'Crea tu cuenta'
+        : 'Accede a tu espacio';
+  }
+
+  if (authModalSubtitle) {
+    if (isOffline) {
+      authModalSubtitle.textContent = 'La interfaz local sigue disponible, pero ahora mismo no podemos confirmar tu cuenta en el servidor.';
+    } else if (isChecking) {
+      authModalSubtitle.textContent = 'Un momento: estamos validando tu sesion antes de mostrar el acceso protegido.';
+    } else if (isAuthenticated) {
+      authModalSubtitle.textContent = 'Tu sesion se renueva mientras uses la app para que no tengas que entrar cada vez.';
+    } else if (authMode === 'register') {
+      authModalSubtitle.textContent = 'Crea una cuenta para mantener el editor sincronizado entre visitas y desbloquear el flujo protegido.';
+    } else {
+      authModalSubtitle.textContent = 'Inicia sesion para mantener tu trabajo sincronizado de forma segura y volver sin repetir login en cada visita.';
+    }
+  }
+
+  if (authStatusBadge) {
+    authStatusBadge.classList.toggle('is-offline', isOffline);
+    authStatusBadge.classList.toggle('is-checking', isChecking);
+    authStatusBadge.classList.toggle('is-authenticated', isAuthenticated);
+    authStatusBadge.textContent = isChecking
+      ? 'Verificando'
+      : isOffline
+        ? 'Sin conexion'
+        : isAuthenticated
+          ? 'Sesion activa'
+          : 'Sesion segura';
+  }
+
+  if (authSummaryEmail) {
+    authSummaryEmail.textContent = isAuthenticated
+      ? email
+      : isOffline
+        ? 'Sin conexion'
+        : isChecking
+          ? 'Verificando...'
+          : 'Invitado';
+  }
+
+  if (authSummaryCvCount) {
+    authSummaryCvCount.textContent = String(savedCvCount);
   }
 
   updateSaasUi();
@@ -455,9 +576,7 @@ function closeAuthModal() {
 }
 
 function startAuthPolling() {
-  if (authPollingTimer) {
-    clearInterval(authPollingTimer);
-  }
+  stopAuthPolling();
 
   if (!authSession?.authenticated) {
     authPollingTimer = null;
@@ -465,32 +584,26 @@ function startAuthPolling() {
   }
 
   authPollingTimer = setInterval(() => {
-    void syncStateToServer();
+    void refreshAuthSession({ quiet: true });
   }, AUTH_SYNC_INTERVAL_MS);
 }
 
-async function refreshAuthSession() {
+async function refreshAuthSession(options = {}) {
+  if (!options.quiet) {
+    authStatus = 'checking';
+    updateAuthUi();
+  }
+
   try {
     const response = await fetch('/api/auth/session', {
       credentials: 'include'
     });
     const payload = await response.json().catch(() => ({}));
-    authSession = payload?.authenticated ? payload : null;
-    aiUsage = payload?.authenticated ? payload.usage : null;
-    updateAuthUi();
-
-    if (authSession?.authenticated) {
-      startAuthPolling();
-    } else if (authPollingTimer) {
-      clearInterval(authPollingTimer);
-      authPollingTimer = null;
-    }
+    applyAuthState(payload?.authenticated ? 'authenticated' : 'guest', payload);
 
     return payload;
   } catch (error) {
-    authSession = null;
-    aiUsage = null;
-    updateAuthUi();
+    applyAuthState('offline');
     return { authenticated: false };
   }
 }
@@ -529,12 +642,7 @@ async function syncStateToServer(options = {}) {
     });
 
     if (response.status === 401) {
-      authSession = null;
-      updateAuthUi();
-      if (authPollingTimer) {
-        clearInterval(authPollingTimer);
-        authPollingTimer = null;
-      }
+      applyAuthState('guest');
       return;
     }
 
@@ -549,6 +657,7 @@ async function syncStateToServer(options = {}) {
     }
   } catch (error) {
     console.error('[auth-sync] Sync failed:', error);
+    applyAuthState('offline');
   } finally {
     authSyncInFlight = false;
 
@@ -2925,10 +3034,7 @@ if (authForm) {
         return;
       }
 
-      authSession = payload;
-      aiUsage = payload.usage || null;
-      updateAuthUi();
-      startAuthPolling();
+      applyAuthState('authenticated', payload);
       await reconcileLocalStateWithSession(payload);
       closeAuthModal();
       await continuePendingProtectedAction();
@@ -2954,15 +3060,19 @@ if (authLogoutButton) {
     } finally {
       authSession = null;
       aiUsage = null;
+      authStatus = 'guest';
       pendingProtectedAction = null;
       updateAuthUi();
       closeAuthModal();
-      if (authPollingTimer) {
-        clearInterval(authPollingTimer);
-        authPollingTimer = null;
-      }
+      stopAuthPolling();
       setStatus('Sesion cerrada. Tu trabajo sigue guardado en local.');
     }
+  });
+}
+
+if (authGoogleButton) {
+  authGoogleButton.addEventListener('click', () => {
+    setAuthError('El acceso con Google aun no esta conectado. He dejado el boton listo a nivel visual.');
   });
 }
 
@@ -2977,6 +3087,23 @@ window.addEventListener('beforeunload', () => {
 
 window.addEventListener('cv-editor-font-size-changed', () => {
   schedulePreviewUpdate();
+});
+
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) {
+    return;
+  }
+
+  applyAuthState('checking');
+  void refreshAuthSession();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') {
+    return;
+  }
+
+  void refreshAuthSession({ quiet: true });
 });
 
 async function init() {

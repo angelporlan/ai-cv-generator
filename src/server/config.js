@@ -57,6 +57,8 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const REQUEST_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 120000);
 const SESSION_COOKIE_NAME = 'cv_studio_session';
 const SESSION_SECRET = process.env.APP_SESSION_SECRET || 'change-me-in-production';
+const SESSION_COOKIE_SECURE = process.env.APP_SECURE_COOKIES === 'true'
+  || APP_BASE_URL.startsWith('https://');
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID || '';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -83,6 +85,7 @@ module.exports = {
   REQUEST_TIMEOUT_MS,
   ROOT_DIR,
   SESSION_COOKIE_NAME,
+  SESSION_COOKIE_SECURE,
   SESSION_SECRET,
   STRIPE_PRICE_ID,
   STRIPE_SECRET_KEY,

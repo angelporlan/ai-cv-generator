@@ -600,16 +600,45 @@
       <div class="modal modal-sm auth-modal-card">
         <div class="modal-header">
           <div class="modal-header-info">
-            <h2 class="modal-title">Descarga protegida</h2>
-            <p class="modal-subtitle">Para exportar a PDF necesitas una cuenta. Tu trabajo seguira guardandose en local y, si entras, tambien en tu cuenta en segundo plano.</p>
+            <span id="auth-status-badge" class="auth-status-badge">Sesion segura</span>
+            <h2 id="auth-modal-title" class="modal-title">Acceso a tu espacio</h2>
+            <p id="auth-modal-subtitle" class="modal-subtitle">Inicia sesion para mantener tu trabajo sincronizado de forma segura y seguir entrando sin repetir login en cada visita.</p>
           </div>
           <button id="close-auth-modal-button" class="modal-close" aria-label="Cerrar">&times;</button>
         </div>
 
         <div class="modal-content">
+          <div class="auth-summary-card">
+            <div class="auth-summary-item">
+              <span class="auth-summary-label">Usuario</span>
+              <strong id="auth-summary-email" class="auth-summary-value">Invitado</strong>
+            </div>
+            <div class="auth-summary-item">
+              <span class="auth-summary-label">CVs guardados</span>
+              <strong id="auth-summary-cv-count" class="auth-summary-value">0</strong>
+            </div>
+          </div>
+
           <div id="auth-tabs" class="auth-tabs" role="tablist" aria-label="Autenticacion">
             <button type="button" class="mode-tab active" data-auth-mode="login" aria-selected="true">Entrar</button>
             <button type="button" class="mode-tab" data-auth-mode="register" aria-selected="false">Crear cuenta</button>
+          </div>
+
+          <button id="auth-google-button" class="auth-social-button" type="button" aria-label="Continuar con Google (proximamente)">
+            <span class="auth-social-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M21.8 12.23c0-.68-.06-1.33-.18-1.95H12v3.69h5.5a4.7 4.7 0 0 1-2.04 3.08v2.56h3.29c1.93-1.78 3.05-4.41 3.05-7.38Z" fill="#4285F4"/>
+                <path d="M12 22c2.76 0 5.07-.91 6.76-2.47l-3.29-2.56c-.91.61-2.08.97-3.47.97-2.67 0-4.94-1.8-5.75-4.22H2.85v2.64A10 10 0 0 0 12 22Z" fill="#34A853"/>
+                <path d="M6.25 13.72a6.03 6.03 0 0 1 0-3.44V7.64H2.85a10 10 0 0 0 0 8.72l3.4-2.64Z" fill="#FBBC05"/>
+                <path d="M12 6.06c1.5 0 2.84.52 3.89 1.53l2.91-2.91C17.06 3.06 14.75 2 12 2a10 10 0 0 0-9.15 5.64l3.4 2.64c.81-2.42 3.08-4.22 5.75-4.22Z" fill="#EA4335"/>
+              </svg>
+            </span>
+            <span class="auth-social-label">Continuar con Google</span>
+            <span class="auth-social-tag">Proximamente</span>
+          </button>
+
+          <div class="auth-divider" aria-hidden="true">
+            <span>o usa tu email</span>
           </div>
 
           <form id="auth-form" class="auth-form">
@@ -624,6 +653,7 @@
             </label>
 
             <p id="auth-helper-copy" class="auth-helper-copy">En cuanto inicies sesion, sincronizaremos tu borrador y tus CVs guardados sin frenar el editor.</p>
+            <p id="auth-switch-copy" class="auth-switch-copy">Usa tu cuenta para entrar en cualquier momento sin perder el estado de trabajo.</p>
             <p id="auth-error" class="auth-error" hidden></p>
           </form>
         </div>

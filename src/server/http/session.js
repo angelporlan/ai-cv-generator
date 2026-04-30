@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const {
   SESSION_COOKIE_NAME,
+  SESSION_COOKIE_SECURE,
   SESSION_SECRET
 } = require('../config');
 const { resolveSession } = require('../../../auth-store');
@@ -59,24 +60,39 @@ function verifySessionValue(signedValue) {
 
 function serializeSessionCookie(token, expiresAt) {
   const maxAge = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
-
-  return [
+  const parts = [
     `${SESSION_COOKIE_NAME}=${encodeURIComponent(signSessionValue(token))}`,
     'Path=/',
     'HttpOnly',
     'SameSite=Lax',
-    `Max-Age=${maxAge}`
-  ].join('; ');
+    `Max-Age=${maxAge}`,
+    `Expires=${expiresAt.toUTCString()}`,
+    'Priority=High'
+  ];
+
+  if (SESSION_COOKIE_SECURE) {
+    parts.push('Secure');
+  }
+
+  return parts.join('; ');
 }
 
 function serializeExpiredSessionCookie() {
-  return [
+  const parts = [
     `${SESSION_COOKIE_NAME}=`,
     'Path=/',
     'HttpOnly',
     'SameSite=Lax',
-    'Max-Age=0'
-  ].join('; ');
+    'Max-Age=0',
+    'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    'Priority=High'
+  ];
+
+  if (SESSION_COOKIE_SECURE) {
+    parts.push('Secure');
+  }
+
+  return parts.join('; ');
 }
 
 async function getAuthenticatedUser(request) {

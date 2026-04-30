@@ -293,6 +293,33 @@ async function resolveSession(token) {
   return rows[0] || null;
 }
 
+async function touchSession(token) {
+  if (!token) {
+    return null;
+  }
+
+  const db = getPool();
+  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  const { rows } = await db.query(
+    `
+      UPDATE sessions
+      SET expires_at = $2
+      WHERE token = $1
+        AND expires_at > NOW()
+      RETURNING expires_at
+    `,
+    [token, expiresAt]
+  );
+
+  if (!rows[0]?.expires_at) {
+    return null;
+  }
+
+  return {
+    expiresAt: rows[0].expires_at
+  };
+}
+
 async function destroySession(token) {
   if (!token) {
     return;
@@ -531,7 +558,8 @@ module.exports = {
   registerUser,
   resolveSession,
   saveStripeCustomerId,
-  saveUserState
-  ,updateBillingForStripeCustomer,
+  saveUserState,
+  touchSession,
+  updateBillingForStripeCustomer,
   updateBillingForUser
 };

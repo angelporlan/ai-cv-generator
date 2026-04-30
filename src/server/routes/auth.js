@@ -5,7 +5,8 @@ const {
   getUserState,
   getUserUsageSummary,
   registerUser,
-  saveUserState
+  saveUserState,
+  touchSession
 } = require('../../../auth-store');
 const { readRequestBody } = require('../http/request');
 const { sendJson } = require('../http/response');
@@ -33,6 +34,15 @@ async function buildSessionPayload(user, statePayload = {}) {
   };
 }
 
+function getAuthResponseHeaders(extraHeaders = {}) {
+  return {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    Pragma: 'no-cache',
+    Expires: '0',
+    ...extraHeaders
+  };
+}
+
 async function handleAuthRegister(request, response) {
   let body;
 
@@ -54,10 +64,15 @@ async function handleAuthRegister(request, response) {
       response,
       201,
       await buildSessionPayload(user, state),
-      { 'Set-Cookie': serializeSessionCookie(session.token, session.expiresAt) }
+      getAuthResponseHeaders({ 'Set-Cookie': serializeSessionCookie(session.token, session.expiresAt) })
     );
   } catch (error) {
-    return sendJson(response, 400, { ok: false, error: error.message || 'Could not register user' });
+    return sendJson(
+      response,
+      400,
+      { ok: false, error: error.message || 'Could not register user' },
+      getAuthResponseHeaders()
+    );
   }
 }
 
@@ -82,10 +97,15 @@ async function handleAuthLogin(request, response) {
       response,
       200,
       await buildSessionPayload(user, state),
-      { 'Set-Cookie': serializeSessionCookie(session.token, session.expiresAt) }
+      getAuthResponseHeaders({ 'Set-Cookie': serializeSessionCookie(session.token, session.expiresAt) })
     );
   } catch (error) {
-    return sendJson(response, 401, { ok: false, error: error.message || 'Invalid login' });
+    return sendJson(
+      response,
+      401,
+      { ok: false, error: error.message || 'Invalid login' },
+      getAuthResponseHeaders()
+    );
   }
 }
 
@@ -93,20 +113,52 @@ async function handleAuthSession(request, response) {
   const authSession = await getAuthenticatedUser(request);
 
   if (!authSession) {
-    return sendJson(response, 200, {
-      ok: true,
-      authenticated: false,
-      user: null,
-      state: {},
-      clientUpdatedAt: null,
-      serverUpdatedAt: null,
-      usage: null,
-      billing: null
-    });
+    return sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        authenticated: false,
+        user: null,
+        state: {},
+        clientUpdatedAt: null,
+        serverUpdatedAt: null,
+        usage: null,
+        billing: null
+      },
+      getAuthResponseHeaders({ 'Set-Cookie': serializeExpiredSessionCookie() })
+    );
   }
 
   const state = await getUserState(authSession.user.id);
-  return sendJson(response, 200, await buildSessionPayload(authSession.user, state));
+  const renewedSession = await touchSession(authSession.token);
+
+  if (!renewedSession?.expiresAt) {
+    return sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        authenticated: false,
+        user: null,
+        state: {},
+        clientUpdatedAt: null,
+        serverUpdatedAt: null,
+        usage: null,
+        billing: null
+      },
+      getAuthResponseHeaders({ 'Set-Cookie': serializeExpiredSessionCookie() })
+    );
+  }
+
+  return sendJson(
+    response,
+    200,
+    await buildSessionPayload(authSession.user, state),
+    getAuthResponseHeaders({
+      'Set-Cookie': serializeSessionCookie(authSession.token, new Date(renewedSession.expiresAt))
+    })
+  );
 }
 
 async function handleAuthLogout(request, response) {
@@ -120,7 +172,7 @@ async function handleAuthLogout(request, response) {
     response,
     200,
     { ok: true, authenticated: false },
-    { 'Set-Cookie': serializeExpiredSessionCookie() }
+    getAuthResponseHeaders({ 'Set-Cookie': serializeExpiredSessionCookie() })
   );
 }
 
@@ -128,7 +180,7 @@ async function handleAuthState(request, response) {
   const authSession = await getAuthenticatedUser(request);
 
   if (!authSession) {
-    return sendJson(response, 401, { ok: false, error: 'Authentication required' });
+    return sendJson(response, 401, { ok: false, error: 'Authentication required' }, getAuthResponseHeaders());
   }
 
   let body;
@@ -136,21 +188,39 @@ async function handleAuthState(request, response) {
   try {
     body = await readRequestBody(request);
   } catch {
-    return sendJson(response, 400, { ok: false, error: 'Invalid JSON' });
+    return sendJson(response, 400, { ok: false, error: 'Invalid JSON' }, getAuthResponseHeaders());
   }
 
   const state = body?.state;
   const clientUpdatedAt = typeof body?.clientUpdatedAt === 'string' ? body.clientUpdatedAt : null;
 
   if (!state || typeof state !== 'object' || Array.isArray(state)) {
-    return sendJson(response, 400, { ok: false, error: 'Invalid state payload' });
+    return sendJson(response, 400, { ok: false, error: 'Invalid state payload' }, getAuthResponseHeaders());
   }
 
   const saved = await saveUserState(authSession.user.id, state, clientUpdatedAt);
-  return sendJson(response, 200, {
-    ok: true,
-    serverUpdatedAt: saved.serverUpdatedAt
-  });
+  const renewedSession = await touchSession(authSession.token);
+
+  if (!renewedSession?.expiresAt) {
+    return sendJson(
+      response,
+      401,
+      { ok: false, error: 'Authentication required' },
+      getAuthResponseHeaders({ 'Set-Cookie': serializeExpiredSessionCookie() })
+    );
+  }
+
+  return sendJson(
+    response,
+    200,
+    {
+      ok: true,
+      serverUpdatedAt: saved.serverUpdatedAt
+    },
+    getAuthResponseHeaders({
+      'Set-Cookie': serializeSessionCookie(authSession.token, new Date(renewedSession.expiresAt))
+    })
+  );
 }
 
 module.exports = {
