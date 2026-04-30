@@ -3158,6 +3158,12 @@ body {
   justify-content: center;
 }
 
+.upgrade-plan-button {
+  min-height: 34px;
+  padding-inline: 14px;
+  white-space: nowrap;
+}
+
 .usage-account-button.is-pro {
   color: #126b45;
   background: rgba(18, 107, 69, 0.1);
@@ -3191,43 +3197,142 @@ body {
 }
 
 .modal-saas {
-  max-width: 760px;
+  max-width: 880px;
 }
 
-.saas-grid {
+.saas-summary-panel {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.03);
 }
 
-.saas-panel {
-  min-height: 132px;
-  padding: 16px;
+.saas-summary-panel h3 {
+  margin: 6px 0 6px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.saas-summary-panel p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.plan-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.plan-card {
+  display: flex;
+  min-height: 340px;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.68);
 }
 
-.dark .saas-panel,
+.dark .saas-summary-panel,
+.dark .plan-card,
 .dark .usage-inline-card {
   background: rgba(15, 23, 42, 0.46);
 }
 
-.saas-panel h3 {
-  margin: 6px 0 8px;
-  font-size: 18px;
-  line-height: 1.2;
+.plan-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.saas-panel p {
+.plan-card h3 {
+  margin-top: 6px;
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.plan-copy {
   margin: 0;
-  color: var(--muted);
+  color: var(--text-secondary);
   line-height: 1.45;
 }
 
-.saas-panel-pro {
+.plan-benefits {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-benefits li {
+  position: relative;
+  padding-left: 24px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.plan-benefits li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.34em;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #126b45;
+}
+
+.plan-benefits li::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: calc(0.34em + 3px);
+  width: 4px;
+  height: 7px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.plan-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.plan-status-pro {
+  color: #3c3489;
+  border-color: rgba(83, 74, 183, 0.28);
+  background: rgba(83, 74, 183, 0.1);
+}
+
+.plan-card-pro {
   border-color: rgba(83, 74, 183, 0.32);
   background: rgba(83, 74, 183, 0.07);
+}
+
+.plan-card.is-current {
+  border-color: rgba(18, 107, 69, 0.38);
+  box-shadow: 0 0 0 3px rgba(18, 107, 69, 0.08);
 }
 
 .button.is-disabled {
@@ -3236,12 +3341,21 @@ body {
 }
 
 @media (max-width: 720px) {
-  .saas-grid {
+  .saas-summary-panel,
+  .plan-comparison {
     grid-template-columns: 1fr;
   }
 
   .usage-account-button {
     min-width: auto;
+  }
+
+  .upgrade-plan-button {
+    padding-inline: 10px;
+  }
+
+  .plan-card {
+    min-height: auto;
   }
 }
 /* Library pagination */
