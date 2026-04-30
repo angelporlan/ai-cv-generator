@@ -59,6 +59,8 @@ const SESSION_COOKIE_NAME = 'cv_studio_session';
 const SESSION_SECRET = process.env.APP_SESSION_SECRET || 'change-me-in-production';
 const SESSION_COOKIE_SECURE = process.env.APP_SECURE_COOKIES === 'true'
   || APP_BASE_URL.startsWith('https://');
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID || '';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -84,6 +86,8 @@ module.exports = {
   PUBLIC_DIR,
   REQUEST_TIMEOUT_MS,
   ROOT_DIR,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_SECURE,
   SESSION_SECRET,
