@@ -39,6 +39,7 @@ const confirmCancelBtn = document.getElementById('confirm-cancel');
 const authAccountButton = document.getElementById('auth-account-button');
 const authAccountLabel = document.getElementById('auth-account-label');
 const openSaasButton = document.getElementById('open-saas-button');
+const openPlanButton = document.getElementById('open-plan-button');
 const aiUsageLabel = document.getElementById('ai-usage-label');
 const saasModal = document.getElementById('saas-modal');
 const closeSaasModalButton = document.getElementById('close-saas-modal-button');
@@ -49,6 +50,10 @@ const saasAccountCopy = document.getElementById('saas-account-copy');
 const saasLoginButton = document.getElementById('saas-login-button');
 const saasPortalButton = document.getElementById('saas-portal-button');
 const saasUpgradeButton = document.getElementById('saas-upgrade-button');
+const freePlanCard = document.getElementById('free-plan-card');
+const proPlanCard = document.getElementById('pro-plan-card');
+const freePlanStatus = document.getElementById('free-plan-status');
+const proPlanStatus = document.getElementById('pro-plan-status');
 const authModal = document.getElementById('auth-modal');
 const authTabs = document.getElementById('auth-tabs');
 const authForm = document.getElementById('auth-form');
@@ -94,6 +99,7 @@ const AUTH_SYNC_PREFIX = 'cv-studio-';
 const AUTH_SYNC_EXCLUDED_KEYS = new Set([LIBRARY_STORAGE_KEY]);
 const AUTH_SYNC_DEBOUNCE_MS = 3000;
 const AUTH_SYNC_INTERVAL_MS = 12000;
+const AUTH_PENDING_ACTION_STORAGE_KEY = 'cv-studio-auth-pending-action';
 const LIBRARY_PAGE_SIZE = 50;
 const LIBRARY_SEARCH_DEBOUNCE_MS = 300;
 
@@ -402,6 +408,10 @@ function updateSaasUi() {
     openSaasButton.classList.toggle('is-pro', isPro);
   }
 
+  if (openPlanButton) {
+    openPlanButton.hidden = isPro;
+  }
+
   if (adaptUsageSummary) {
     adaptUsageSummary.textContent = summaryText;
   }
@@ -447,6 +457,22 @@ function updateSaasUi() {
 
   if (saasUpgradeButton) {
     saasUpgradeButton.hidden = isPro;
+  }
+
+  if (freePlanCard) {
+    freePlanCard.classList.toggle('is-current', isAuthenticated && !isPro);
+  }
+
+  if (proPlanCard) {
+    proPlanCard.classList.toggle('is-current', isPro);
+  }
+
+  if (freePlanStatus) {
+    freePlanStatus.textContent = isPro ? 'Incluido' : 'Plan actual';
+  }
+
+  if (proPlanStatus) {
+    proPlanStatus.textContent = isPro ? 'Plan actual' : 'Recomendado';
   }
 }
 
@@ -3262,6 +3288,12 @@ if (openSaasButton) {
   });
 }
 
+if (openPlanButton) {
+  openPlanButton.addEventListener('click', () => {
+    openSaasModal();
+  });
+}
+
 if (closeSaasModalButton) {
   closeSaasModalButton.addEventListener('click', closeSaasModal);
 }
@@ -3416,7 +3448,13 @@ if (authLogoutButton) {
 
 if (authGoogleButton) {
   authGoogleButton.addEventListener('click', () => {
-    setAuthError('El acceso con Google aun no esta conectado. He dejado el boton listo a nivel visual.');
+    setAuthError('');
+    authGoogleButton.disabled = true;
+    if (pendingProtectedAction) {
+      localStorage.setItem(AUTH_PENDING_ACTION_STORAGE_KEY, pendingProtectedAction);
+    }
+    saveToLocalStorage(true);
+    window.location.href = '/auth/google';
   });
 }
 
@@ -3458,6 +3496,17 @@ async function init() {
     setAuthMode('login');
     const sessionPayload = await refreshAuthSession();
     await reconcileLocalStateWithSession(sessionPayload);
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth') === 'google_success' && sessionPayload?.authenticated) {
+      pendingProtectedAction = localStorage.getItem(AUTH_PENDING_ACTION_STORAGE_KEY) || null;
+      localStorage.removeItem(AUTH_PENDING_ACTION_STORAGE_KEY);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      await continuePendingProtectedAction();
+    } else if (urlParams.get('auth') === 'google_error') {
+      localStorage.removeItem(AUTH_PENDING_ACTION_STORAGE_KEY);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setStatus('No se pudo iniciar sesion con Google');
+    }
 
     // Restaurar plantilla visual
     const savedTemplate = localStorage.getItem(VISUAL_TEMPLATE_STORAGE_KEY);
