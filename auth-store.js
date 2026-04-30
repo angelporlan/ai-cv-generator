@@ -125,6 +125,17 @@ async function initAuthStore() {
   `);
 
   await db.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS google_id TEXT;
+  `);
+
+  await db.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_idx
+    ON users (google_id)
+    WHERE google_id IS NOT NULL;
+  `);
+
+  await db.query(`
     CREATE TABLE IF NOT EXISTS user_states (
       user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       state JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -303,6 +314,36 @@ async function authenticateUser(email, password) {
     email: user.email,
     created_at: user.created_at
   };
+}
+
+async function findOrCreateGoogleUser(profile = {}) {
+  const db = getPool();
+  const googleId = String(profile.sub || profile.id || '').trim();
+  const email = normalizeEmail(profile.email);
+  const emailVerified = profile.email_verified === true || profile.verified_email === true;
+
+  if (!googleId) {
+    throw new Error('Google account did not include an id');
+  }
+
+  if (!email || !emailVerified) {
+    throw new Error('Google account email must be verified');
+  }
+
+  const googlePasswordHash = `google:${crypto.createHash('sha256').update(googleId).digest('hex')}`;
+
+  const { rows } = await db.query(
+    `
+      INSERT INTO users (email, password_hash, google_id)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (email) DO UPDATE
+      SET google_id = COALESCE(users.google_id, EXCLUDED.google_id)
+      RETURNING id, email, created_at
+    `,
+    [email, googlePasswordHash, googleId]
+  );
+
+  return rows[0];
 }
 
 async function resolveSession(token) {
@@ -765,6 +806,7 @@ module.exports = {
   createUserCv,
   deleteUserCv,
   destroySession,
+  findOrCreateGoogleUser,
   getUserCv,
   getUserBilling,
   getUserState,

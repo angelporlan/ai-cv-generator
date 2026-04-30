@@ -7,7 +7,9 @@ const {
   handleAuthLogout,
   handleAuthRegister,
   handleAuthSession,
-  handleAuthState
+  handleAuthState,
+  handleGoogleAuthCallback,
+  handleGoogleAuthStart
 } = require('./routes/auth');
 const {
   handleCvCreate,
@@ -55,6 +57,14 @@ function createServer() {
 
     if (cvId && request.method === 'DELETE') {
       return handleCvDelete(request, cvId, response);
+    }
+
+    if (request.method === 'GET' && requestUrl.pathname === '/auth/google') {
+      return handleGoogleAuthStart(request, response);
+    }
+
+    if (request.method === 'GET' && requestUrl.pathname === '/auth/google/callback') {
+      return handleGoogleAuthCallback(request, requestUrl, response);
     }
 
     if (request.method === 'POST' && requestUrl.pathname === '/api/auth/register') {
