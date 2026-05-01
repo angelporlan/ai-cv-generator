@@ -109,11 +109,12 @@ let showIcons = localStorage.getItem('cv-studio-show-icons') !== 'false';
 function setReferenceToggleButton(isOpen) {
   if (!toggleReferenceButton) return;
   const label = isOpen ? 'Ocultar comparación' : 'Comparar CV';
+  toggleReferenceButton.title = label;
+  toggleReferenceButton.setAttribute('aria-label', label);
   toggleReferenceButton.innerHTML = `
     <svg viewBox="0 0 12 12" fill="none">
       <path d="M1.5 2.2h3.8v7.6H1.5V2.2zm5.2 0h3.8v7.6H6.7V2.2z" stroke="currentColor" stroke-width="1.1" />
     </svg>
-    ${label}
   `;
 }
 
