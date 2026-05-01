@@ -20,6 +20,17 @@ const workspace = document.querySelector('.workspace');
 const editorPanel = document.querySelector('.editor-panel');
 const previewPanel = document.querySelector('.preview-panel');
 const workspaceResizer = document.getElementById('workspace-resizer');
+const sectionNavigatorList = document.getElementById('section-navigator-list');
+const saveCurrentButton = document.getElementById('save-current-button');
+const downloadMenuToggle = document.querySelector('.download-menu-toggle');
+const downloadMenu = document.querySelector('.download-menu');
+const userMenuTrigger = document.querySelector('.user-menu-trigger');
+const userMenu = document.querySelector('.user-menu');
+const designSuggestions = document.querySelector('.design-suggestions');
+const designCloseButton = document.querySelector('.design-close');
+const previewPageLabel = document.getElementById('preview-page-label');
+const previewPagePrev = document.getElementById('preview-page-prev');
+const previewPageNext = document.getElementById('preview-page-next');
 const libraryModal = document.getElementById('library-modal');
 const openLibraryBtn = document.getElementById('open-library-button');
 const closeLibraryBtn = document.getElementById('close-library-button');
@@ -1240,6 +1251,15 @@ const PREVIEW_DEBOUNCE_MS = 600;
 const pdfPreview = document.getElementById('pdf-preview');
 let previewTimer = null;
 let currentPreviewUrl = null;
+let currentPreviewPage = 1;
+
+function setPreviewFrameSource() {
+  if (!pdfPreview || !currentPreviewUrl) return;
+  pdfPreview.src = `${currentPreviewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&page=${currentPreviewPage}`;
+  if (previewPageLabel) {
+    previewPageLabel.textContent = `Page ${currentPreviewPage}`;
+  }
+}
 
 async function updatePdfPreview() {
   const markdown = editor.value;
@@ -1272,7 +1292,8 @@ async function updatePdfPreview() {
 
     // Ocultar barras de herramientas y ajustar al ancho (FitH)
     currentPreviewUrl = url;
-    pdfPreview.src = `${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
+    currentPreviewPage = 1;
+    setPreviewFrameSource();
   } catch (error) {
     console.error('[preview] Error updating PDF:', error);
   }
@@ -2315,8 +2336,8 @@ function applyWorkspaceSplit(editorPercent) {
 
   const safeEditor = Math.max(28, Math.min(72, editorPercent));
   const safePreview = 100 - safeEditor;
-  editorPanel.style.flex = `0 0 ${safeEditor}%`;
-  previewPanel.style.flex = `0 0 ${safePreview}%`;
+  editorPanel.style.flex = `${safeEditor} ${safeEditor} 0`;
+  previewPanel.style.flex = `${safePreview} ${safePreview} 0`;
 }
 
 function initWorkspaceResizer() {
@@ -2685,6 +2706,22 @@ function blockTypeLabel(type) {
   return 'Párrafo';
 }
 
+function renderSectionNavigator() {
+  if (!sectionNavigatorList) return;
+
+  const sections = visualState.sections || [];
+  sectionNavigatorList.innerHTML = sections.map((section, index) => {
+    const title = toSafeText(section.title) || `Seccion ${index + 1}`;
+    const count = Array.isArray(section.blocks) ? section.blocks.length : 0;
+    return `
+      <button type="button" class="section-nav-item" data-section-jump="${index}">
+        <span>${escapeHtml(title)}</span>
+        <small>${count}</small>
+      </button>
+    `;
+  }).join('') || '<p class="section-nav-empty">Sin secciones</p>';
+}
+
 function buildVisualEditorHtml() {
   const contactRows = visualState.contacts.map((contact, contactIndex) => `
     <div class="visual-contact-row">
@@ -2730,13 +2767,16 @@ function buildVisualEditorHtml() {
             </svg>
           </button>
           <input class="visual-input" data-bind="section-title" data-section-index="${sectionIndex}" placeholder="Título de sección" value="${escapeHtml(toSafeText(section.title))}">
+          <button type="button" class="button-mini visual-collapse-toggle" data-action="toggle-section" data-section-index="${sectionIndex}" aria-expanded="true">Plegar</button>
           <button type="button" class="button-mini button-mini-danger" data-action="remove-section" data-section-index="${sectionIndex}">Quitar sección</button>
         </div>
-        ${blocksHtml || '<div class="visual-empty">No hay bloques en esta sección.</div>'}
-        <div class="visual-actions">
-          <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="entry">+ Experiencia</button>
-          <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="paragraph">+ Párrafo</button>
-          <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="list">+ Lista</button>
+        <div class="visual-section-body">
+          ${blocksHtml || '<div class="visual-empty">No hay bloques en esta sección.</div>'}
+          <div class="visual-actions">
+            <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="entry">+ Experiencia</button>
+            <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="paragraph">+ Párrafo</button>
+            <button type="button" class="button-mini" data-action="add-block" data-section-index="${sectionIndex}" data-block-type="list">+ Lista</button>
+          </div>
         </div>
       </div>
     `;
@@ -2850,6 +2890,7 @@ function initVisualTextareaAutoResize() {
 function renderVisualEditor() {
   if (!visualEditor) return;
   visualEditor.innerHTML = buildVisualEditorHtml();
+  renderSectionNavigator();
   initVisualTextareaAutoResize();
   initSectionsDragAndDrop();
 }
@@ -3024,6 +3065,14 @@ if (visualEditor) {
     const blockIndex = Number(trigger.dataset.blockIndex);
     const contactIndex = Number(trigger.dataset.contactIndex);
 
+    if (action === 'toggle-section' && Number.isInteger(sectionIndex)) {
+      const sectionEl = trigger.closest('.visual-section');
+      const isCollapsed = sectionEl?.classList.toggle('is-collapsed');
+      trigger.textContent = isCollapsed ? 'Abrir' : 'Plegar';
+      trigger.setAttribute('aria-expanded', String(!isCollapsed));
+      return;
+    }
+
     if (action === 'add-contact') {
       visualState.contacts.push({ label: '', value: '' });
     }
@@ -3101,6 +3150,7 @@ if (visualEditor) {
       }
     }
 
+    renderSectionNavigator();
     syncMarkdownFromVisual();
   });
 }
@@ -3108,7 +3158,48 @@ if (visualEditor) {
 if (visualTemplateSelector) {
   visualTemplateSelector.addEventListener('change', () => {
     localStorage.setItem(VISUAL_TEMPLATE_STORAGE_KEY, visualTemplateSelector.value);
+    syncDesignSuggestionCards();
     updatePdfPreview();
+  });
+}
+
+function syncDesignSuggestionCards() {
+  const selected = visualTemplateSelector ? visualTemplateSelector.value : 'harvard';
+  document.querySelectorAll('.design-template-card').forEach((card) => {
+    card.classList.toggle('active', card.dataset.template === selected);
+  });
+}
+
+document.querySelectorAll('.design-template-card').forEach((card) => {
+  card.addEventListener('click', () => {
+    const template = card.dataset.template;
+    if (!template || !visualTemplateSelector) return;
+    visualTemplateSelector.value = template;
+    localStorage.setItem(VISUAL_TEMPLATE_STORAGE_KEY, template);
+    syncDesignSuggestionCards();
+    updatePdfPreview();
+  });
+});
+
+if (designCloseButton && designSuggestions) {
+  designCloseButton.addEventListener('click', () => {
+    designSuggestions.classList.add('is-hidden');
+  });
+}
+
+syncDesignSuggestionCards();
+
+if (previewPagePrev) {
+  previewPagePrev.addEventListener('click', () => {
+    currentPreviewPage = Math.max(1, currentPreviewPage - 1);
+    setPreviewFrameSource();
+  });
+}
+
+if (previewPageNext) {
+  previewPageNext.addEventListener('click', () => {
+    currentPreviewPage += 1;
+    setPreviewFrameSource();
   });
 }
 
@@ -3185,6 +3276,55 @@ if (librarySearchInput) {
     }, LIBRARY_SEARCH_DEBOUNCE_MS);
   });
 }
+
+if (sectionNavigatorList) {
+  sectionNavigatorList.addEventListener('click', (event) => {
+    const item = event.target.closest('[data-section-jump]');
+    if (!item) return;
+
+    if (currentEditorMode !== 'visual') {
+      switchEditorMode('visual');
+    }
+
+    const sectionIndex = Number(item.dataset.sectionJump);
+    const target = visualEditor?.querySelector(`.visual-section[data-section-index="${sectionIndex}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      sectionNavigatorList.querySelectorAll('.section-nav-item').forEach((button) => {
+        button.classList.toggle('active', button === item);
+      });
+    }
+  });
+}
+
+if (saveCurrentButton) {
+  saveCurrentButton.addEventListener('click', () => {
+    saveToLocalStorage(true);
+  });
+}
+
+if (downloadMenuToggle && downloadMenu) {
+  downloadMenuToggle.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = downloadMenu.classList.toggle('is-open');
+    downloadMenuToggle.setAttribute('aria-expanded', String(isOpen));
+  });
+}
+
+if (userMenuTrigger && userMenu) {
+  userMenuTrigger.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = userMenu.classList.toggle('is-open');
+    userMenuTrigger.setAttribute('aria-expanded', String(isOpen));
+  });
+}
+
+document.addEventListener('click', () => {
+  downloadMenu?.classList.remove('is-open');
+  downloadMenuToggle?.setAttribute('aria-expanded', 'false');
+  userMenu?.classList.remove('is-open');
+  userMenuTrigger?.setAttribute('aria-expanded', 'false');
+});
 
 const libraryStatusFilterSelect = document.getElementById('library-status-filter');
 if (libraryStatusFilterSelect) {
@@ -3331,9 +3471,16 @@ window.addEventListener('keydown', (event) => {
 
 if (authAccountButton) {
   authAccountButton.addEventListener('click', () => {
+    if (authAccountButton.classList.contains('user-menu-trigger')) {
+      return;
+    }
     openAuthModal(authSession?.authenticated ? 'login' : authMode, null);
   });
 }
+
+document.getElementById('user-settings-button')?.addEventListener('click', () => {
+  openAuthModal(authSession?.authenticated ? 'login' : authMode, null);
+});
 
 if (authTabs) {
   authTabs.addEventListener('click', (event) => {
@@ -3586,6 +3733,7 @@ async function init() {
     const savedTemplate = localStorage.getItem(VISUAL_TEMPLATE_STORAGE_KEY);
     if (savedTemplate && visualTemplateSelector) {
       visualTemplateSelector.value = savedTemplate;
+      syncDesignSuggestionCards();
     }
 
     const localDraft = localStorage.getItem(STORAGE_KEY);
