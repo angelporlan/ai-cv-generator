@@ -1,20 +1,37 @@
-import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
-import { api } from '../../api/client';
-import { getTrackerSummary, groupCvsByStatus } from '../../domain/tracker';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { api, type CvStatus } from '../../api/client';
+import { getJobTrackerSummary, groupJobsByStatus, statusLabels, statusOrder } from '../../domain/tracker';
 import { EmptyState, LoadingColumns, SideMetric } from '../components/common';
-import { useSession } from '../hooks';
+import { getErrorMessage, useSession } from '../hooks';
 
 export function TrackerPage() {
   const session = useSession();
   const authenticated = Boolean(session.data?.authenticated);
+  const queryClient = useQueryClient();
+  const [company, setCompany] = useState('');
+  const [role, setRole] = useState('');
+  const [status, setStatus] = useState<CvStatus>('draft');
+  const [notice, setNotice] = useState('');
   const query = useQuery({
-    queryKey: ['cvs', 'tracker'],
-    queryFn: () => api.listCvs({}),
+    queryKey: ['jobs'],
+    queryFn: () => api.listJobs({}),
     enabled: authenticated
   });
-  const columns = useMemo(() => groupCvsByStatus(query.data?.items || []), [query.data]);
-  const summary = useMemo(() => getTrackerSummary(query.data?.items || []), [query.data]);
+  const columns = useMemo(() => groupJobsByStatus(query.data?.items || []), [query.data]);
+  const summary = useMemo(() => getJobTrackerSummary(query.data?.items || []), [query.data]);
+  const createJob = useMutation({
+    mutationFn: () => api.createJob({ company, role, status }),
+    onSuccess: () => {
+      setCompany('');
+      setRole('');
+      setStatus('draft');
+      setNotice('Candidatura creada');
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+    onError: (error) => setNotice(getErrorMessage(error))
+  });
 
   return (
     <section className="panel">
@@ -30,6 +47,20 @@ export function TrackerPage() {
         />
       ) : (
         <>
+          <div className="mt-4 rounded-lg border border-line bg-slate-50 p-3">
+            <div className="grid gap-2 md:grid-cols-[1fr_1fr_150px_auto]">
+              <input className="field h-10" value={company} onChange={(event) => setCompany(event.target.value)} placeholder="Empresa" />
+              <input className="field h-10" value={role} onChange={(event) => setRole(event.target.value)} placeholder="Rol" />
+              <select className="field h-10" value={status} onChange={(event) => setStatus(event.target.value as CvStatus)}>
+                {statusOrder.map((item) => <option value={item} key={item}>{statusLabels[item]}</option>)}
+              </select>
+              <button className="button-primary" type="button" disabled={!company.trim() || !role.trim() || createJob.isPending} onClick={() => createJob.mutate()}>
+                <Plus size={16} /> Añadir
+              </button>
+            </div>
+            {notice ? <p className="mt-2 text-sm text-slate-600">{notice}</p> : null}
+          </div>
+
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <SideMetric label="Total" value={String(summary.total)} />
             <SideMetric label="Activas" value={String(summary.active)} tone="good" />
@@ -47,8 +78,9 @@ export function TrackerPage() {
                 <div className="space-y-2">
                   {column.items.map((cv) => (
                     <div className="rounded-lg border border-line bg-white p-3" key={cv.id}>
-                      <p className="text-sm font-semibold">{cv.name}</p>
-                      <p className="mt-1 text-xs text-slate-500">{cv.description || cv.jobUrl || 'Candidatura sin notas'}</p>
+                      <p className="text-sm font-semibold">{cv.company}</p>
+                      <p className="mt-1 text-xs font-medium text-slate-600">{cv.role}</p>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">{cv.notes || cv.jobUrl || cv.contact || 'Candidatura sin notas'}</p>
                     </div>
                   ))}
                   {!column.items.length ? <p className="rounded-lg border border-dashed border-line bg-white p-3 text-xs text-slate-400">Sin candidaturas</p> : null}

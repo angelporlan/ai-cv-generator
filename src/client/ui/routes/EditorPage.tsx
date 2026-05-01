@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, BriefcaseBusiness, Check, ChevronRight, Download, Gauge, Library, Loader2, Save, Trash2, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, type CvStatus } from '../../api/client';
+import { fromArtifactDto } from '../../domain/aiArtifacts';
 import { getUsageCopy } from '../../domain/aiActions';
 import { accentColors, fontFamilies, pageMargins, visualTemplates, type DesignSettings } from '../../domain/design';
 import { getQualitySignals, parseMarkdown, serializeParsedCv } from '../../domain/editor';
@@ -27,6 +29,12 @@ export function EditorPage() {
   const [status, setStatus] = useState<CvStatus>('draft');
   const usage = session.data?.usage;
   const authenticated = Boolean(session.data?.authenticated);
+  const remoteArtifacts = useQuery({
+    queryKey: ['ai-artifacts'],
+    queryFn: api.listAiArtifacts,
+    enabled: authenticated
+  });
+  const visibleArtifacts = remoteArtifacts.data?.items.map(fromArtifactDto) || aiArtifacts;
 
   const saveCv = useMutation({
     mutationFn: async () => {
@@ -184,7 +192,18 @@ export function EditorPage() {
         {rightPanel === 'ai' ? (
           <div>
             <AiPanel inline markdown={markdown} usage={usage} authenticated={authenticated} onApply={setMarkdown} />
-            <AiArtifactsPanel artifacts={aiArtifacts} onApply={setMarkdown} onClear={clearAiArtifacts} />
+            <AiArtifactsPanel
+              artifacts={visibleArtifacts}
+              onApply={setMarkdown}
+              onClear={() => {
+                clearAiArtifacts();
+                if (authenticated) {
+                  api.clearAiArtifacts()
+                    .then(() => queryClient.invalidateQueries({ queryKey: ['ai-artifacts'] }))
+                    .catch(() => undefined);
+                }
+              }}
+            />
           </div>
         ) : null}
       </aside>

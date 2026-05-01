@@ -1,6 +1,13 @@
 const http = require('http');
 const { URL } = require('url');
 const { handleAdaptCv, handleAsk, handleImportLinkedIn, handlePreviewPdf } = require('./routes/ai');
+const {
+  handleAiArtifactCreate,
+  handleAiArtifactDelete,
+  handleAiArtifactsClear,
+  handleAiArtifactsList,
+  parseArtifactId
+} = require('./routes/ai-artifacts');
 const { handleBillingCheckout, handleBillingPortal } = require('./routes/billing');
 const {
   handleAuthLogin,
@@ -23,6 +30,13 @@ const {
 } = require('./routes/cv');
 const { handleStaticGet } = require('./routes/static');
 const { handleStripeWebhook } = require('./routes/stripe-webhook');
+const {
+  handleJobCreate,
+  handleJobDelete,
+  handleJobUpdate,
+  handleJobsList,
+  parseJobId
+} = require('./routes/jobs');
 const { handleUsage } = require('./routes/usage');
 const { sendJson } = require('./http/response');
 
@@ -89,6 +103,40 @@ function createServer() {
 
     if (request.method === 'GET' && requestUrl.pathname === '/api/usage') {
       return handleUsage(request, response);
+    }
+
+    if (request.method === 'GET' && requestUrl.pathname === '/api/jobs') {
+      return handleJobsList(request, requestUrl, response);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/api/jobs') {
+      return handleJobCreate(request, response);
+    }
+
+    const jobId = parseJobId(requestUrl.pathname);
+    if (jobId && request.method === 'PATCH') {
+      return handleJobUpdate(request, jobId, response);
+    }
+
+    if (jobId && request.method === 'DELETE') {
+      return handleJobDelete(request, jobId, response);
+    }
+
+    if (request.method === 'GET' && requestUrl.pathname === '/api/ai-artifacts') {
+      return handleAiArtifactsList(request, requestUrl, response);
+    }
+
+    if (request.method === 'POST' && requestUrl.pathname === '/api/ai-artifacts') {
+      return handleAiArtifactCreate(request, response);
+    }
+
+    if (request.method === 'DELETE' && requestUrl.pathname === '/api/ai-artifacts') {
+      return handleAiArtifactsClear(request, response);
+    }
+
+    const artifactId = parseArtifactId(requestUrl.pathname);
+    if (artifactId && request.method === 'DELETE') {
+      return handleAiArtifactDelete(request, artifactId, response);
     }
 
     if (request.method === 'POST' && requestUrl.pathname === '/api/billing/checkout') {

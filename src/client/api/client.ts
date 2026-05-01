@@ -86,6 +86,30 @@ export type AiActionResponse = {
   usage: Usage;
 };
 
+export type AiArtifactDto = {
+  id: string;
+  action: string;
+  title: string;
+  content: string;
+  model: string;
+  createdAt: string;
+};
+
+export type JobApplication = {
+  id: string;
+  cvId: string | null;
+  company: string;
+  role: string;
+  status: CvStatus;
+  jobUrl: string;
+  salary: string;
+  contact: string;
+  notes: string;
+  deadlineDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
@@ -175,6 +199,28 @@ export const api = {
     '/api/import-linkedin',
     { method: 'POST', body: { linkedInText } }
   ),
+  listAiArtifacts: () => request<{ ok: true; items: AiArtifactDto[] }>('/api/ai-artifacts'),
+  createAiArtifact: (input: Omit<AiArtifactDto, 'id' | 'createdAt'>) => request<{ ok: true; artifact: AiArtifactDto }>('/api/ai-artifacts', {
+    method: 'POST',
+    body: input
+  }),
+  clearAiArtifacts: () => request<{ ok: true }>('/api/ai-artifacts', { method: 'DELETE' }),
+  listJobs: (params: { search?: string; status?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.search) query.set('search', params.search);
+    if (params.status && params.status !== 'all') query.set('status', params.status);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return request<{ ok: true; items: JobApplication[] }>(`/api/jobs${suffix}`);
+  },
+  createJob: (input: Partial<JobApplication>) => request<{ ok: true; job: JobApplication }>('/api/jobs', {
+    method: 'POST',
+    body: input
+  }),
+  updateJob: (id: string, input: Partial<JobApplication>) => request<{ ok: true; job: JobApplication }>(`/api/jobs/${id}`, {
+    method: 'PATCH',
+    body: input
+  }),
+  deleteJob: (id: string) => request<{ ok: true }>(`/api/jobs/${id}`, { method: 'DELETE' }),
   previewPdf: (input: {
     markdown: string;
     download?: boolean;

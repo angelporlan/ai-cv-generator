@@ -1,3 +1,4 @@
+import type { AiArtifactDto } from '../api/client';
 import type { AiActionId } from './aiActions';
 
 export type AiArtifact = {
@@ -32,4 +33,15 @@ export function loadAiArtifacts(): AiArtifact[] {
 
 export function saveAiArtifacts(items: AiArtifact[]) {
   localStorage.setItem(storageKey, JSON.stringify(items.slice(0, 25)));
+}
+
+export function fromArtifactDto(dto: AiArtifactDto): AiArtifact {
+  return {
+    id: dto.id,
+    action: dto.action as AiActionId,
+    title: dto.title,
+    content: dto.content,
+    model: dto.model,
+    createdAt: dto.createdAt
+  };
 }

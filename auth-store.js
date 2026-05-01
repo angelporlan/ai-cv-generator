@@ -219,6 +219,46 @@ async function initAuthStore() {
   `);
 
   await db.query(`
+    CREATE TABLE IF NOT EXISTS user_ai_artifacts (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      action TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      model TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS user_ai_artifacts_user_id_created_at_idx
+    ON user_ai_artifacts (user_id, created_at DESC);
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS user_job_applications (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      cv_id BIGINT REFERENCES user_cvs(id) ON DELETE SET NULL,
+      company TEXT NOT NULL,
+      role TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'draft',
+      job_url TEXT NOT NULL DEFAULT '',
+      salary TEXT NOT NULL DEFAULT '',
+      contact TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      deadline_date TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS user_job_applications_user_id_status_idx
+    ON user_job_applications (user_id, status);
+  `);
+
+  await db.query(`
     DELETE FROM sessions
     WHERE expires_at <= NOW();
   `);
@@ -674,6 +714,87 @@ function normalizeCvInput(input = {}, current = {}) {
   };
 }
 
+function normalizeAiArtifactRow(row = {}) {
+  return {
+    id: String(row.id),
+    action: row.action || 'adapt',
+    title: row.title || '',
+    content: row.content || '',
+    model: row.model || '',
+    createdAt: toIsoDate(row.created_at)
+  };
+}
+
+function normalizeAiArtifactInput(input = {}) {
+  const action = typeof input.action === 'string' && input.action.trim()
+    ? input.action.trim().slice(0, 80)
+    : 'adapt';
+  const title = typeof input.title === 'string' && input.title.trim()
+    ? input.title.trim().slice(0, 240)
+    : action;
+  const content = typeof input.content === 'string' ? input.content.trim() : '';
+
+  if (!content) {
+    throw new Error('Artifact content is required');
+  }
+
+  return {
+    action,
+    title,
+    content: content.slice(0, 30000),
+    model: typeof input.model === 'string' ? input.model.trim().slice(0, 240) : ''
+  };
+}
+
+function normalizeJobApplicationRow(row = {}) {
+  return {
+    id: String(row.id),
+    cvId: row.cv_id ? String(row.cv_id) : null,
+    company: row.company || '',
+    role: row.role || '',
+    status: row.status || 'draft',
+    jobUrl: row.job_url || '',
+    salary: row.salary || '',
+    contact: row.contact || '',
+    notes: row.notes || '',
+    deadlineDate: toIsoDate(row.deadline_date),
+    createdAt: toIsoDate(row.created_at),
+    updatedAt: toIsoDate(row.updated_at)
+  };
+}
+
+function normalizeJobApplicationInput(input = {}, current = {}) {
+  const company = typeof input.company === 'string' ? input.company.trim() : current.company;
+  const role = typeof input.role === 'string' ? input.role.trim() : current.role;
+
+  if (!company) {
+    throw new Error('Company is required');
+  }
+
+  if (!role) {
+    throw new Error('Role is required');
+  }
+
+  const parsedDeadline = input.deadlineDate ? new Date(input.deadlineDate) : null;
+  const safeDeadline = parsedDeadline && !Number.isNaN(parsedDeadline.getTime())
+    ? parsedDeadline
+    : current.deadline_date || null;
+
+  return {
+    cvId: input.cvId || current.cv_id || null,
+    company: company.slice(0, 240),
+    role: role.slice(0, 240),
+    status: typeof input.status === 'string' && input.status.trim()
+      ? input.status.trim().slice(0, 80)
+      : current.status || 'draft',
+    jobUrl: typeof input.jobUrl === 'string' ? input.jobUrl.trim().slice(0, 2000) : current.job_url || '',
+    salary: typeof input.salary === 'string' ? input.salary.trim().slice(0, 240) : current.salary || '',
+    contact: typeof input.contact === 'string' ? input.contact.trim().slice(0, 500) : current.contact || '',
+    notes: typeof input.notes === 'string' ? input.notes.trim().slice(0, 5000) : current.notes || '',
+    deadlineDate: safeDeadline
+  };
+}
+
 async function listUserCvs(userId, options = {}) {
   const db = getPool();
   const limit = Math.min(Math.max(Number(options.limit) || 50, 1), 100);
@@ -798,13 +919,173 @@ async function deleteUserCv(userId, cvId) {
   return rowCount > 0;
 }
 
+async function listUserAiArtifacts(userId, options = {}) {
+  const db = getPool();
+  const limit = Math.min(Math.max(Number(options.limit) || 25, 1), 100);
+  const { rows } = await db.query(
+    `
+      SELECT id, action, title, content, model, created_at
+      FROM user_ai_artifacts
+      WHERE user_id = $1
+      ORDER BY created_at DESC, id DESC
+      LIMIT $2
+    `,
+    [userId, limit]
+  );
+
+  return rows.map(row => normalizeAiArtifactRow(row));
+}
+
+async function createUserAiArtifact(userId, input = {}) {
+  const db = getPool();
+  const artifact = normalizeAiArtifactInput(input);
+  const { rows } = await db.query(
+    `
+      INSERT INTO user_ai_artifacts (user_id, action, title, content, model)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, action, title, content, model, created_at
+    `,
+    [userId, artifact.action, artifact.title, artifact.content, artifact.model]
+  );
+
+  return normalizeAiArtifactRow(rows[0]);
+}
+
+async function deleteUserAiArtifact(userId, artifactId) {
+  const db = getPool();
+  const { rowCount } = await db.query(
+    `
+      DELETE FROM user_ai_artifacts
+      WHERE user_id = $1 AND id = $2
+    `,
+    [userId, artifactId]
+  );
+
+  return rowCount > 0;
+}
+
+async function deleteUserAiArtifacts(userId) {
+  const db = getPool();
+  await db.query(
+    `
+      DELETE FROM user_ai_artifacts
+      WHERE user_id = $1
+    `,
+    [userId]
+  );
+}
+
+async function listUserJobApplications(userId, options = {}) {
+  const db = getPool();
+  const status = typeof options.status === 'string' && options.status !== 'all' ? options.status.trim() : '';
+  const search = typeof options.search === 'string' ? options.search.trim() : '';
+  const values = [userId];
+  const where = ['user_id = $1'];
+
+  if (status) {
+    values.push(status);
+    where.push(`status = $${values.length}`);
+  }
+
+  if (search) {
+    values.push(`%${search.toLowerCase()}%`);
+    where.push(`(lower(company) LIKE $${values.length} OR lower(role) LIKE $${values.length} OR lower(notes) LIKE $${values.length})`);
+  }
+
+  const { rows } = await db.query(
+    `
+      SELECT id, cv_id, company, role, status, job_url, salary, contact, notes, deadline_date, created_at, updated_at
+      FROM user_job_applications
+      WHERE ${where.join(' AND ')}
+      ORDER BY updated_at DESC, id DESC
+      LIMIT 200
+    `,
+    values
+  );
+
+  return rows.map(row => normalizeJobApplicationRow(row));
+}
+
+async function createUserJobApplication(userId, input = {}) {
+  const db = getPool();
+  const job = normalizeJobApplicationInput(input);
+  const { rows } = await db.query(
+    `
+      INSERT INTO user_job_applications (user_id, cv_id, company, role, status, job_url, salary, contact, notes, deadline_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id, cv_id, company, role, status, job_url, salary, contact, notes, deadline_date, created_at, updated_at
+    `,
+    [userId, job.cvId, job.company, job.role, job.status, job.jobUrl, job.salary, job.contact, job.notes, job.deadlineDate]
+  );
+
+  return normalizeJobApplicationRow(rows[0]);
+}
+
+async function updateUserJobApplication(userId, jobId, input = {}) {
+  const db = getPool();
+  const { rows: currentRows } = await db.query(
+    `
+      SELECT cv_id, company, role, status, job_url, salary, contact, notes, deadline_date
+      FROM user_job_applications
+      WHERE user_id = $1 AND id = $2
+      LIMIT 1
+    `,
+    [userId, jobId]
+  );
+
+  if (!currentRows[0]) {
+    return null;
+  }
+
+  const job = normalizeJobApplicationInput(input, currentRows[0]);
+  const { rows } = await db.query(
+    `
+      UPDATE user_job_applications
+      SET
+        cv_id = $3,
+        company = $4,
+        role = $5,
+        status = $6,
+        job_url = $7,
+        salary = $8,
+        contact = $9,
+        notes = $10,
+        deadline_date = $11,
+        updated_at = NOW()
+      WHERE user_id = $1 AND id = $2
+      RETURNING id, cv_id, company, role, status, job_url, salary, contact, notes, deadline_date, created_at, updated_at
+    `,
+    [userId, jobId, job.cvId, job.company, job.role, job.status, job.jobUrl, job.salary, job.contact, job.notes, job.deadlineDate]
+  );
+
+  return rows[0] ? normalizeJobApplicationRow(rows[0]) : null;
+}
+
+async function deleteUserJobApplication(userId, jobId) {
+  const db = getPool();
+  const { rowCount } = await db.query(
+    `
+      DELETE FROM user_job_applications
+      WHERE user_id = $1 AND id = $2
+    `,
+    [userId, jobId]
+  );
+
+  return rowCount > 0;
+}
+
 module.exports = {
   FREE_AI_USAGE_LIMIT,
   SESSION_TTL_MS,
   authenticateUser,
+  createUserAiArtifact,
+  createUserJobApplication,
   createSession,
   createUserCv,
   deleteUserCv,
+  deleteUserAiArtifact,
+  deleteUserAiArtifacts,
+  deleteUserJobApplication,
   destroySession,
   findOrCreateGoogleUser,
   getUserCv,
@@ -813,6 +1094,8 @@ module.exports = {
   getUserUsageSummary,
   initAuthStore,
   listUserCvs,
+  listUserAiArtifacts,
+  listUserJobApplications,
   recordAiUsage,
   registerUser,
   resolveSession,
@@ -821,5 +1104,6 @@ module.exports = {
   touchSession,
   updateBillingForStripeCustomer,
   updateBillingForUser,
-  updateUserCv
+  updateUserCv,
+  updateUserJobApplication
 };

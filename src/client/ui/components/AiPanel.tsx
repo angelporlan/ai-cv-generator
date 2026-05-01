@@ -23,12 +23,16 @@ export function AiPanel({ markdown, usage, authenticated, onApply, inline = fals
   const mutation = useMutation({
     mutationFn: () => api.adaptCv({ markdown, action: actionId, jobDescription: input }),
     onSuccess: (payload) => {
-      addAiArtifact({
+      const artifactInput = {
         action: actionId,
         title: action.label,
         content: payload.markdown,
         model: payload.model
-      });
+      };
+      addAiArtifact(artifactInput);
+      api.createAiArtifact(artifactInput)
+        .then(() => queryClient.invalidateQueries({ queryKey: ['ai-artifacts'] }))
+        .catch(() => undefined);
       onApply(payload.markdown);
       queryClient.invalidateQueries({ queryKey: ['session'] });
       setMessage('Resultado aplicado al editor');

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getTrackerSummary, groupCvsByStatus, statusOrder } from './tracker';
-import type { CvSummary } from '../api/client';
+import { getJobTrackerSummary, getTrackerSummary, groupCvsByStatus, groupJobsByStatus, statusOrder } from './tracker';
+import type { CvSummary, JobApplication } from '../api/client';
 
 function cv(id: number, status: CvSummary['status']): CvSummary {
   return {
@@ -11,6 +11,23 @@ function cv(id: number, status: CvSummary['status']): CvSummary {
     jobUrl: '',
     lastUsedDate: null,
     template: 'harvard'
+  };
+}
+
+function job(id: number, status: JobApplication['status']): JobApplication {
+  return {
+    id: String(id),
+    cvId: null,
+    status,
+    company: `Company ${id}`,
+    role: `Role ${id}`,
+    jobUrl: '',
+    salary: '',
+    contact: '',
+    notes: '',
+    deadlineDate: null,
+    createdAt: '',
+    updatedAt: ''
   };
 }
 
@@ -37,6 +54,25 @@ describe('tracker domain', () => {
       active: 3,
       interviews: 1,
       offers: 1
+    });
+  });
+
+  it('groups richer job applications by status', () => {
+    const columns = groupJobsByStatus([job(1, 'applied'), job(2, 'offer')]);
+    expect(columns.find((column) => column.status === 'applied')?.items[0].company).toBe('Company 1');
+    expect(columns.find((column) => column.status === 'offer')?.items[0].role).toBe('Role 2');
+  });
+
+  it('summarizes richer job applications', () => {
+    expect(getJobTrackerSummary([
+      job(1, 'applied'),
+      job(2, 'interview'),
+      job(3, 'archived')
+    ])).toEqual({
+      total: 3,
+      active: 2,
+      interviews: 1,
+      offers: 0
     });
   });
 });

@@ -1,4 +1,4 @@
-import type { CvStatus, CvSummary } from '../api/client';
+import type { CvStatus, CvSummary, JobApplication } from '../api/client';
 
 export const statusLabels: Record<CvStatus, string> = {
   draft: 'Preparando',
@@ -26,6 +26,33 @@ export function groupCvsByStatus(items: CvSummary[] = []): TrackerColumn[] {
 }
 
 export function getTrackerSummary(items: CvSummary[] = []) {
+  const active = items.filter((item) => item.status !== 'archived' && item.status !== 'rejected').length;
+  const interviews = items.filter((item) => item.status === 'interview').length;
+  const offers = items.filter((item) => item.status === 'offer').length;
+
+  return {
+    total: items.length,
+    active,
+    interviews,
+    offers
+  };
+}
+
+export type JobTrackerColumn = {
+  status: CvStatus;
+  label: string;
+  items: JobApplication[];
+};
+
+export function groupJobsByStatus(items: JobApplication[] = []): JobTrackerColumn[] {
+  return statusOrder.map((status) => ({
+    status,
+    label: statusLabels[status],
+    items: items.filter((item) => item.status === status)
+  }));
+}
+
+export function getJobTrackerSummary(items: JobApplication[] = []) {
   const active = items.filter((item) => item.status !== 'archived' && item.status !== 'rejected').length;
   const interviews = items.filter((item) => item.status === 'interview').length;
   const offers = items.filter((item) => item.status === 'offer').length;
