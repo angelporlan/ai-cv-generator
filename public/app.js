@@ -28,6 +28,7 @@ const userMenuTrigger = document.querySelector('.user-menu-trigger');
 const userMenu = document.querySelector('.user-menu');
 const designSuggestions = document.querySelector('.design-suggestions');
 const designCloseButton = document.querySelector('.design-close');
+const designReopenButton = document.getElementById('design-reopen-button');
 const previewPageLabel = document.getElementById('preview-page-label');
 const previewPagePrev = document.getElementById('preview-page-prev');
 const previewPageNext = document.getElementById('preview-page-next');
@@ -47,6 +48,15 @@ const confirmTitle = document.getElementById('confirm-title');
 const confirmMessage = document.getElementById('confirm-message');
 const confirmOkBtn = document.getElementById('confirm-ok');
 const confirmCancelBtn = document.getElementById('confirm-cancel');
+const saveVersionModal = document.getElementById('save-version-modal');
+const closeSaveVersionButton = document.getElementById('close-save-version-button');
+const cancelSaveVersionButton = document.getElementById('cancel-save-version-button');
+const confirmSaveVersionButton = document.getElementById('confirm-save-version-button');
+const saveCvNameInput = document.getElementById('save-cv-name');
+const saveCvStatusSelect = document.getElementById('save-cv-status');
+const saveCvDateInput = document.getElementById('save-cv-date');
+const saveCvUrlInput = document.getElementById('save-cv-url');
+const saveCvDescriptionInput = document.getElementById('save-cv-description');
 const authAccountButton = document.getElementById('auth-account-button');
 const authAccountLabel = document.getElementById('auth-account-label');
 const openSaasButton = document.getElementById('open-saas-button');
@@ -1910,12 +1920,12 @@ async function saveEditForm(id) {
   setStatus(`"${cv.name}" actualizado`);
 }
 
-async function saveToLibrary() {
-  const name = newCvNameInput.value.trim();
-  const status = newCvStatusSelect.value;
-  const description = newCvDescriptionInput.value.trim();
-  const jobUrl = newCvUrlInput.value.trim();
-  const dateValue = newCvDateInput.value;
+async function saveCvToLibrary(details) {
+  const name = details.name.trim();
+  const status = details.status || 'Enviado';
+  const description = details.description.trim();
+  const jobUrl = details.jobUrl.trim();
+  const dateValue = details.dateValue;
   const content = editor.value;
 
   if (!name) {
@@ -1960,13 +1970,31 @@ async function saveToLibrary() {
     saveLibraryData();
   }
 
-  // Limpiar campos
+  setStatus('Postulación guardada en la biblioteca');
+  return newCv;
+}
+
+async function saveToLibrary() {
+  if (!newCvNameInput || !newCvStatusSelect || !newCvDateInput || !newCvUrlInput || !newCvDescriptionInput) {
+    return;
+  }
+
+  const saved = await saveCvToLibrary({
+    name: newCvNameInput.value,
+    status: newCvStatusSelect.value,
+    description: newCvDescriptionInput.value,
+    jobUrl: newCvUrlInput.value,
+    dateValue: newCvDateInput.value
+  });
+
+  if (!saved) {
+    return;
+  }
+
   newCvNameInput.value = '';
   newCvDescriptionInput.value = '';
   newCvUrlInput.value = '';
   newCvDateInput.value = new Date().toISOString().split('T')[0];
-
-  setStatus('Postulación guardada en la biblioteca');
 }
 
 async function loadCvFromLibrary(id) {
@@ -2091,9 +2119,6 @@ async function deleteFromLibrary(id) {
 
 function openLibrary() {
   void loadLibraryData();
-  if (newCvDateInput && !newCvDateInput.value) {
-    newCvDateInput.value = new Date().toISOString().split('T')[0];
-  }
   libraryModal.classList.add('active');
 }
 
@@ -2116,6 +2141,44 @@ function getStoredLibraryEntries() {
   } catch {
     return [];
   }
+}
+
+function openSaveVersionModal() {
+  if (!saveVersionModal) return;
+  if (saveCvDateInput && !saveCvDateInput.value) {
+    saveCvDateInput.value = new Date().toISOString().split('T')[0];
+  }
+  saveVersionModal.classList.add('active');
+  saveCvNameInput?.focus();
+}
+
+function closeSaveVersionModal() {
+  if (!saveVersionModal) return;
+  saveVersionModal.classList.remove('active');
+}
+
+async function saveVersionFromModal() {
+  if (!saveCvNameInput || !saveCvStatusSelect || !saveCvDateInput || !saveCvUrlInput || !saveCvDescriptionInput) {
+    return;
+  }
+
+  const saved = await saveCvToLibrary({
+    name: saveCvNameInput.value,
+    status: saveCvStatusSelect.value,
+    description: saveCvDescriptionInput.value,
+    jobUrl: saveCvUrlInput.value,
+    dateValue: saveCvDateInput.value
+  });
+
+  if (!saved) {
+    return;
+  }
+
+  saveCvNameInput.value = '';
+  saveCvDescriptionInput.value = '';
+  saveCvUrlInput.value = '';
+  saveCvDateInput.value = new Date().toISOString().split('T')[0];
+  closeSaveVersionModal();
 }
 
 async function getComparisonLibraryEntries() {
@@ -3184,6 +3247,16 @@ document.querySelectorAll('.design-template-card').forEach((card) => {
 if (designCloseButton && designSuggestions) {
   designCloseButton.addEventListener('click', () => {
     designSuggestions.classList.add('is-hidden');
+    if (designReopenButton) {
+      designReopenButton.hidden = false;
+    }
+  });
+}
+
+if (designReopenButton && designSuggestions) {
+  designReopenButton.addEventListener('click', () => {
+    designSuggestions.classList.remove('is-hidden');
+    designReopenButton.hidden = true;
   });
 }
 
@@ -3255,9 +3328,18 @@ downloadMdButton.addEventListener('click', () => {
 
 openLibraryBtn.addEventListener('click', openLibrary);
 closeLibraryBtn.addEventListener('click', closeLibrary);
-saveToLibraryBtn.addEventListener('click', saveToLibrary);
+saveToLibraryBtn?.addEventListener('click', saveToLibrary);
 libraryModal.addEventListener('click', (e) => {
   if (e.target === libraryModal) closeLibrary();
+});
+
+closeSaveVersionButton?.addEventListener('click', closeSaveVersionModal);
+cancelSaveVersionButton?.addEventListener('click', closeSaveVersionModal);
+confirmSaveVersionButton?.addEventListener('click', saveVersionFromModal);
+saveVersionModal?.addEventListener('click', (event) => {
+  if (event.target === saveVersionModal) {
+    closeSaveVersionModal();
+  }
 });
 
 // Library search
@@ -3300,6 +3382,7 @@ if (sectionNavigatorList) {
 if (saveCurrentButton) {
   saveCurrentButton.addEventListener('click', () => {
     saveToLocalStorage(true);
+    openSaveVersionModal();
   });
 }
 
