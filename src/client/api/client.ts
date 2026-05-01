@@ -92,7 +92,7 @@ type RequestOptions = {
   raw?: boolean;
 };
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers: HeadersInit = {};
   let body: BodyInit | undefined;
 

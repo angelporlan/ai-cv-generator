@@ -27,6 +27,22 @@
     @apply rounded-xl border border-line bg-white p-4 shadow-sm;
   }
 
+  .workspace-grid {
+    @apply grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_420px];
+  }
+
+  .toolbar-row {
+    @apply flex flex-col gap-3 rounded-lg border border-line bg-slate-50 p-2 lg:flex-row lg:items-center lg:justify-between;
+  }
+
+  .toolbar-group {
+    @apply flex flex-col gap-2 sm:flex-row sm:items-center;
+  }
+
+  .editor-textarea {
+    @apply min-h-[520px] w-full resize-y rounded-lg border border-slate-800 bg-slate-950 p-4 font-mono text-sm leading-6 text-slate-100 outline-none transition focus:border-brand focus:ring-2 focus:ring-blue-900/30 md:min-h-[620px] md:p-5;
+  }
+
   .panel-title-row {
     @apply flex items-center justify-between border-b border-line pb-4;
   }
