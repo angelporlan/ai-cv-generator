@@ -631,6 +631,12 @@ body {
   flex-wrap: wrap;
 }
 
+.actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .button {
   display: inline-flex;
   align-items: center;
@@ -648,6 +654,17 @@ body {
   transition: all var(--t-fast) var(--ease);
   white-space: nowrap;
   outline: none;
+}
+
+.button.icon-only {
+  justify-content: center;
+  padding: 6px;
+  min-width: 32px;
+}
+
+.button.icon-only svg,
+.button.icon-only img {
+  margin: 0;
 }
 
 .button svg {
