@@ -20,7 +20,7 @@ import {
   User,
   Wand2
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -28,6 +28,7 @@ import { ApiError, api, type Cv, type CvStatus, type CvSummary, type Usage } fro
 import { canUseAi, shouldPromptUpgrade } from '../domain/access';
 import { aiActions, getAiAction, getUsageCopy, type AiActionId } from '../domain/aiActions';
 import { getQualitySignals, parseMarkdown, serializeParsedCv } from '../domain/editor';
+import { getTrackerSummary, groupCvsByStatus, statusLabels, statusOrder } from '../domain/tracker';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 
 const authSchema = z.object({
@@ -36,17 +37,6 @@ const authSchema = z.object({
 });
 
 type AuthForm = z.infer<typeof authSchema>;
-
-const statusLabels: Record<CvStatus, string> = {
-  draft: 'Preparando',
-  applied: 'Aplicado',
-  interview: 'Entrevista',
-  offer: 'Oferta',
-  rejected: 'Descartado',
-  archived: 'Archivado'
-};
-
-const statusOrder: CvStatus[] = ['draft', 'applied', 'interview', 'offer', 'rejected', 'archived'];
 
 function useSession() {
   return useQuery({
@@ -115,9 +105,30 @@ function Shell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="mx-auto max-w-[1500px] px-4 py-4">{children}</main>
+      <nav className="fixed bottom-3 left-3 right-3 z-30 grid grid-cols-3 rounded-xl border border-line bg-white/95 p-1 shadow-calm backdrop-blur md:hidden">
+        <MobileLink to="/" icon={<PanelRight size={17} />} label="Editor" />
+        <MobileLink to="/library" icon={<Library size={17} />} label="CVs" />
+        <MobileLink to="/tracker" icon={<BriefcaseBusiness size={17} />} label="Tracker" />
+      </nav>
       {authOpen ? <AuthDialog onClose={() => setAuthOpen(false)} /> : null}
       {accountOpen ? <AccountDialog usage={usage} authenticated={authenticated} onClose={() => setAccountOpen(false)} onLogin={() => setAuthOpen(true)} /> : null}
     </div>
+  );
+}
+
+function MobileLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex min-h-11 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition ${
+          isActive ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-50'
+        }`
+      }
+    >
+      {icon}
+      {label}
+    </NavLink>
   );
 }
 
@@ -458,12 +469,15 @@ function AiPanel({ markdown, usage, authenticated, onApply, inline = false }: {
 }
 
 function LibraryPage() {
+  const session = useSession();
+  const authenticated = Boolean(session.data?.authenticated);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const deferredSearch = search;
+  const deferredSearch = useDeferredValue(search);
   const query = useQuery({
     queryKey: ['cvs', deferredSearch, status],
-    queryFn: () => api.listCvs({ search: deferredSearch, status })
+    queryFn: () => api.listCvs({ search: deferredSearch, status }),
+    enabled: authenticated
   });
   const navigate = useNavigate();
   const { setMarkdown, setSelectedCvId } = useWorkspaceStore();
@@ -494,12 +508,22 @@ function LibraryPage() {
           </select>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {query.data?.items.map((cv) => (
-          <CvCard key={cv.id} cv={cv} onOpen={() => loadCv.mutate(cv.id)} />
-        ))}
-        {!query.isLoading && !query.data?.items.length ? <EmptyState title="Sin CVs guardados" copy="Guarda tu primer CV desde el editor para verlo aqui." /> : null}
-      </div>
+      {!authenticated ? (
+        <EmptyState
+          title="Entra para ver tu biblioteca"
+          copy="Tus CVs guardados viven en tu cuenta. Puedes seguir editando en local desde el editor."
+          actionLabel="Ir al editor"
+          onAction={() => navigate('/')}
+        />
+      ) : (
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {query.isLoading ? <LoadingCards /> : null}
+          {query.data?.items.map((cv) => (
+            <CvCard key={cv.id} cv={cv} onOpen={() => loadCv.mutate(cv.id)} />
+          ))}
+          {!query.isLoading && !query.data?.items.length ? <EmptyState title="Sin CVs guardados" copy="Guarda tu primer CV desde el editor para verlo aqui." /> : null}
+        </div>
+      )}
     </section>
   );
 }
@@ -520,13 +544,15 @@ function CvCard({ cv, onOpen }: { cv: CvSummary; onOpen: () => void }) {
 }
 
 function TrackerPage() {
-  const query = useQuery({ queryKey: ['cvs', 'tracker'], queryFn: () => api.listCvs({}) });
-  const grouped = useMemo(() => {
-    const map = new Map<CvStatus, CvSummary[]>();
-    statusOrder.forEach((status) => map.set(status, []));
-    query.data?.items.forEach((cv) => map.get(cv.status)?.push(cv));
-    return map;
-  }, [query.data]);
+  const session = useSession();
+  const authenticated = Boolean(session.data?.authenticated);
+  const query = useQuery({
+    queryKey: ['cvs', 'tracker'],
+    queryFn: () => api.listCvs({}),
+    enabled: authenticated
+  });
+  const columns = useMemo(() => groupCvsByStatus(query.data?.items || []), [query.data]);
+  const summary = useMemo(() => getTrackerSummary(query.data?.items || []), [query.data]);
 
   return (
     <section className="panel">
@@ -535,24 +561,41 @@ function TrackerPage() {
         <h1 className="text-2xl font-semibold">Seguimiento de candidaturas</h1>
         <p className="mt-1 text-sm text-slate-600">Una vista tranquila para ordenar oportunidades sin convertir la app en un CRM pesado.</p>
       </div>
-      <div className="mt-4 grid gap-3 overflow-x-auto lg:grid-cols-6">
-        {statusOrder.map((status) => (
-          <div className="min-h-96 min-w-56 rounded-lg border border-line bg-slate-50 p-3" key={status}>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">{statusLabels[status]}</h2>
-              <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-500">{grouped.get(status)?.length || 0}</span>
-            </div>
-            <div className="space-y-2">
-              {grouped.get(status)?.map((cv) => (
-                <div className="rounded-lg border border-line bg-white p-3" key={cv.id}>
-                  <p className="text-sm font-semibold">{cv.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">{cv.description || cv.jobUrl || 'Candidatura sin notas'}</p>
-                </div>
-              ))}
-            </div>
+      {!authenticated ? (
+        <EmptyState
+          title="Entra para activar el tracker"
+          copy="El tablero se construye a partir de tus CVs guardados y sus estados de candidatura."
+        />
+      ) : (
+        <>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <SideMetric label="Total" value={String(summary.total)} />
+            <SideMetric label="Activas" value={String(summary.active)} tone="good" />
+            <SideMetric label="Entrevistas" value={String(summary.interviews)} />
+            <SideMetric label="Ofertas" value={String(summary.offers)} tone="good" />
           </div>
-        ))}
-      </div>
+          <div className="mt-4 grid gap-3 overflow-x-auto lg:grid-cols-6">
+            {query.isLoading ? <LoadingColumns /> : null}
+            {!query.isLoading && columns.map((column) => (
+              <div className="min-h-96 min-w-56 rounded-lg border border-line bg-slate-50 p-3" key={column.status}>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold">{column.label}</h2>
+                  <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-500">{column.items.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {column.items.map((cv) => (
+                    <div className="rounded-lg border border-line bg-white p-3" key={cv.id}>
+                      <p className="text-sm font-semibold">{cv.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">{cv.description || cv.jobUrl || 'Candidatura sin notas'}</p>
+                    </div>
+                  ))}
+                  {!column.items.length ? <p className="rounded-lg border border-dashed border-line bg-white p-3 text-xs text-slate-400">Sin candidaturas</p> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -715,11 +758,30 @@ function SideMetric({ label, value, tone = 'neutral' }: { label: string; value: 
   );
 }
 
-function EmptyState({ title, copy }: { title: string; copy: string }) {
+function LoadingCards() {
   return (
-    <div className="rounded-lg border border-dashed border-line bg-slate-50 p-8 text-center">
+    <>
+      {[1, 2, 3].map((item) => <div className="h-36 animate-pulse rounded-xl border border-line bg-slate-50" key={item} />)}
+    </>
+  );
+}
+
+function LoadingColumns() {
+  return (
+    <>
+      {statusOrder.map((status) => <div className="h-96 min-w-56 animate-pulse rounded-lg border border-line bg-slate-50" key={status} />)}
+    </>
+  );
+}
+
+function EmptyState({ title, copy, actionLabel, onAction }: { title: string; copy: string; actionLabel?: string; onAction?: () => void }) {
+  return (
+    <div className="mt-4 rounded-lg border border-dashed border-line bg-slate-50 p-8 text-center">
       <p className="font-semibold">{title}</p>
       <p className="mt-1 text-sm text-slate-600">{copy}</p>
+      {actionLabel && onAction ? (
+        <button className="button-secondary mt-4" type="button" onClick={onAction}>{actionLabel}</button>
+      ) : null}
     </div>
   );
 }
