@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, BriefcaseBusiness, Check, ChevronRight, Download, Gauge, Library, Loader2, Save, Wand2 } from 'lucide-react';
+import { AlertCircle, BriefcaseBusiness, Check, ChevronRight, Download, Gauge, Library, Loader2, Save, Trash2, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, type CvStatus } from '../../api/client';
 import { getUsageCopy } from '../../domain/aiActions';
+import { accentColors, fontFamilies, pageMargins, visualTemplates, type DesignSettings } from '../../domain/design';
 import { getQualitySignals, parseMarkdown, serializeParsedCv } from '../../domain/editor';
 import { statusLabels, statusOrder } from '../../domain/tracker';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
@@ -16,7 +17,7 @@ export function EditorPage() {
   const session = useSession();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { markdown, setMarkdown, selectedCvId, setSelectedCvId, editorMode, setEditorMode, rightPanel, setRightPanel } = useWorkspaceStore();
+  const { markdown, setMarkdown, selectedCvId, setSelectedCvId, editorMode, setEditorMode, rightPanel, setRightPanel, design, setDesign, aiArtifacts, clearAiArtifacts } = useWorkspaceStore();
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const quality = useMemo(() => getQualitySignals(markdown), [markdown]);
   const [notice, setNotice] = useState('');
@@ -34,7 +35,7 @@ export function EditorPage() {
         status,
         description: parsed.subtitle,
         content: markdown,
-        template: 'harvard'
+        template: design.template
       };
       return selectedCvId ? api.updateCv(selectedCvId, payload) : api.createCv(payload);
     },
@@ -48,7 +49,15 @@ export function EditorPage() {
   });
 
   const downloadPdf = useMutation({
-    mutationFn: () => api.previewPdf({ markdown, download: true, template: 'harvard' }),
+    mutationFn: () => api.previewPdf({
+      markdown,
+      download: true,
+      template: design.template,
+      accentColor: design.accentColor,
+      fontFamily: design.fontFamily,
+      pageMargin: design.pageMargin,
+      showIcons: design.showIcons
+    }),
     onSuccess: async (response) => {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -163,18 +172,62 @@ export function EditorPage() {
             options={[
               { value: 'preview', label: 'Preview' },
               { value: 'quality', label: 'Check' },
+              { value: 'design', label: 'Diseño' },
               { value: 'ai', label: 'IA' }
             ]}
-            onChange={(value) => setRightPanel(value as 'preview' | 'quality' | 'ai')}
+            onChange={(value) => setRightPanel(value as 'preview' | 'quality' | 'design' | 'ai')}
           />
         </div>
-        {rightPanel === 'preview' ? <CvPreview markdown={markdown} /> : null}
+        {rightPanel === 'preview' ? <CvPreview markdown={markdown} design={design} /> : null}
         {rightPanel === 'quality' ? <QualityPanel markdown={markdown} /> : null}
-        {rightPanel === 'ai' ? <AiPanel inline markdown={markdown} usage={usage} authenticated={authenticated} onApply={setMarkdown} /> : null}
+        {rightPanel === 'design' ? <DesignPanel design={design} onChange={setDesign} /> : null}
+        {rightPanel === 'ai' ? (
+          <div>
+            <AiPanel inline markdown={markdown} usage={usage} authenticated={authenticated} onApply={setMarkdown} />
+            <AiArtifactsPanel artifacts={aiArtifacts} onApply={setMarkdown} onClear={clearAiArtifacts} />
+          </div>
+        ) : null}
       </aside>
 
       {aiOpen ? <AiDialog markdown={markdown} usage={usage} authenticated={authenticated} onApply={setMarkdown} onClose={() => setAiOpen(false)} /> : null}
       {linkedinOpen ? <LinkedInDialog onApply={setMarkdown} onClose={() => setLinkedinOpen(false)} /> : null}
+    </div>
+  );
+}
+
+function AiArtifactsPanel({ artifacts, onApply, onClear }: {
+  artifacts: ReturnType<typeof useWorkspaceStore.getState>['aiArtifacts'];
+  onApply: (markdown: string) => void;
+  onClear: () => void;
+}) {
+  if (!artifacts.length) {
+    return (
+      <div className="mt-5 rounded-lg border border-dashed border-line bg-slate-50 p-4 text-sm text-slate-500">
+        Los resultados de IA apareceran aqui para que puedas recuperarlos durante la sesion.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">Artefactos IA</p>
+        <button className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-900" type="button" onClick={onClear}>
+          <Trash2 size={13} /> Limpiar
+        </button>
+      </div>
+      {artifacts.slice(0, 4).map((artifact) => (
+        <div className="rounded-lg border border-line bg-white p-3" key={artifact.id}>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold">{artifact.title}</p>
+              <p className="mt-1 text-xs text-slate-500">{artifact.model}</p>
+            </div>
+            <button className="button-secondary h-8 px-2 text-xs" type="button" onClick={() => onApply(artifact.content)}>Aplicar</button>
+          </div>
+          <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{artifact.content}</p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -219,23 +272,77 @@ function VisualEditor({ markdown, onChange }: { markdown: string; onChange: (mar
   );
 }
 
-function CvPreview({ markdown }: { markdown: string }) {
+function CvPreview({ markdown, design }: { markdown: string; design: DesignSettings }) {
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
 
   return (
-    <div className="mt-4 rounded-lg border border-line bg-white p-7 shadow-sm">
-      <h1 className="text-2xl font-semibold tracking-normal">{parsed.title}</h1>
+    <div className="mt-4 rounded-lg border border-line bg-white p-7 shadow-sm" style={{ borderTop: `4px solid ${design.accentColor}` }}>
+      <h1 className="text-2xl font-semibold tracking-normal" style={{ color: design.accentColor }}>{parsed.title}</h1>
       {parsed.subtitle ? <p className="mt-2 text-sm leading-6 text-slate-600">{parsed.subtitle}</p> : null}
       <div className="mt-6 space-y-5">
         {parsed.sections.map((section) => (
           <section key={section.title}>
-            <h2 className="border-b border-line pb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{section.title}</h2>
+            <h2 className="border-b border-line pb-1 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: design.accentColor }}>{section.title}</h2>
             <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-700">
               {section.items.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
             </ul>
           </section>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DesignPanel({ design, onChange }: { design: DesignSettings; onChange: (design: Partial<DesignSettings>) => void }) {
+  return (
+    <div className="mt-4 space-y-5">
+      <label className="block">
+        <span className="label">Plantilla PDF</span>
+        <select className="field mt-1" value={design.template} onChange={(event) => onChange({ template: event.target.value as DesignSettings['template'] })}>
+          {visualTemplates.map((template) => <option value={template.value} key={template.value}>{template.label}</option>)}
+        </select>
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          {visualTemplates.find((template) => template.value === design.template)?.description}
+        </p>
+      </label>
+
+      <div>
+        <span className="label">Color de acento</span>
+        <div className="mt-2 grid grid-cols-6 gap-2">
+          {accentColors.map((color) => (
+            <button
+              className={`h-9 rounded-lg border transition ${design.accentColor === color ? 'border-slate-950 ring-2 ring-slate-200' : 'border-line'}`}
+              key={color}
+              type="button"
+              aria-label={`Usar color ${color}`}
+              style={{ backgroundColor: color }}
+              onClick={() => onChange({ accentColor: color })}
+            />
+          ))}
+        </div>
+      </div>
+
+      <label className="block">
+        <span className="label">Fuente PDF</span>
+        <select className="field mt-1" value={design.fontFamily} onChange={(event) => onChange({ fontFamily: event.target.value as DesignSettings['fontFamily'] })}>
+          {fontFamilies.map((font) => <option value={font.value} key={font.value}>{font.label}</option>)}
+        </select>
+      </label>
+
+      <label className="block">
+        <span className="label">Margen</span>
+        <select className="field mt-1" value={design.pageMargin} onChange={(event) => onChange({ pageMargin: Number(event.target.value) })}>
+          {pageMargins.map((margin) => <option value={margin.value} key={margin.value}>{margin.label}</option>)}
+        </select>
+      </label>
+
+      <label className="flex items-center justify-between rounded-lg border border-line bg-white p-3">
+        <span>
+          <span className="block text-sm font-semibold">Iconos de marca</span>
+          <span className="block text-xs text-slate-500">Se aplican al PDF cuando la plantilla los soporta.</span>
+        </span>
+        <input className="h-4 w-4" type="checkbox" checked={design.showIcons} onChange={(event) => onChange({ showIcons: event.target.checked })} />
+      </label>
     </div>
   );
 }

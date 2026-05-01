@@ -175,7 +175,15 @@ export const api = {
     '/api/import-linkedin',
     { method: 'POST', body: { linkedInText } }
   ),
-  previewPdf: (input: { markdown: string; download?: boolean; template?: string }) => request<Response>('/api/preview.pdf', {
+  previewPdf: (input: {
+    markdown: string;
+    download?: boolean;
+    template?: string;
+    accentColor?: string;
+    fontFamily?: string;
+    pageMargin?: number;
+    showIcons?: boolean;
+  }) => request<Response>('/api/preview.pdf', {
     method: 'POST',
     body: input,
     raw: true

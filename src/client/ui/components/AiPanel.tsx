@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { api, type Usage } from '../../api/client';
 import { canUseAi, shouldPromptUpgrade } from '../../domain/access';
 import { aiActions, getAiAction, type AiActionId } from '../../domain/aiActions';
+import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { getErrorMessage } from '../hooks';
 
 export function AiPanel({ markdown, usage, authenticated, onApply, inline = false }: {
@@ -18,9 +19,16 @@ export function AiPanel({ markdown, usage, authenticated, onApply, inline = fals
   const [message, setMessage] = useState('');
   const action = getAiAction(actionId);
   const queryClient = useQueryClient();
+  const addAiArtifact = useWorkspaceStore((state) => state.addAiArtifact);
   const mutation = useMutation({
     mutationFn: () => api.adaptCv({ markdown, action: actionId, jobDescription: input }),
     onSuccess: (payload) => {
+      addAiArtifact({
+        action: actionId,
+        title: action.label,
+        content: payload.markdown,
+        model: payload.model
+      });
       onApply(payload.markdown);
       queryClient.invalidateQueries({ queryKey: ['session'] });
       setMessage('Resultado aplicado al editor');
