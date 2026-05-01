@@ -1,6 +1,7 @@
 const { getUserUsageSummary } = require('../../../auth-store');
 const { sendJson } = require('../http/response');
 const { getAuthenticatedUser } = require('../http/session');
+const { syncBillingStatusForUser } = require('./billing');
 
 async function handleUsage(request, response) {
   const authSession = await getAuthenticatedUser(request);
@@ -13,6 +14,7 @@ async function handleUsage(request, response) {
     });
   }
 
+  await syncBillingStatusForUser(authSession.user.id);
   const usage = await getUserUsageSummary(authSession.user.id);
   return sendJson(response, 200, {
     ok: true,

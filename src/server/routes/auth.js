@@ -18,6 +18,7 @@ const {
   GOOGLE_CLIENT_SECRET,
   SESSION_COOKIE_SECURE
 } = require('../config');
+const { syncBillingStatusForUser } = require('./billing');
 const {
   getAuthenticatedUser,
   serializeExpiredSessionCookie,
@@ -74,6 +75,7 @@ function redirect(response, location, headers = {}) {
 }
 
 async function buildSessionPayload(user, statePayload = {}) {
+  await syncBillingStatusForUser(user.id);
   const usage = await getUserUsageSummary(user.id);
 
   return {

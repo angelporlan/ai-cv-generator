@@ -142,6 +142,47 @@ async function handleBillingPortal(request, response) {
   }
 }
 
+async function syncBillingStatusForUser(userId) {
+  const billing = await getUserBilling(userId);
+
+  if (!STRIPE_SECRET_KEY || !billing.stripeCustomerId) {
+    return billing;
+  }
+
+  if (billing.isActive) {
+    return billing;
+  }
+
+  const stripe = getStripeClient();
+  if (!stripe) {
+    return billing;
+  }
+
+  const subscriptions = await stripe.subscriptions.list({
+    customer: billing.stripeCustomerId,
+    status: 'all',
+    limit: 10
+  });
+
+  const activeSubscription = subscriptions.data.find((subscription) =>
+    subscription.status === 'active' || subscription.status === 'trialing'
+  );
+
+  if (!activeSubscription) {
+    return billing;
+  }
+
+  return updateBillingForUser(userId, {
+    stripeCustomerId: billing.stripeCustomerId,
+    stripeSubscriptionId: activeSubscription.id,
+    subscriptionStatus: activeSubscription.status,
+    plan: 'pro',
+    currentPeriodEnd: activeSubscription.current_period_end
+      ? new Date(activeSubscription.current_period_end * 1000).toISOString()
+      : null
+  });
+}
+
 async function syncCheckoutSession(session) {
   const userId = session.client_reference_id || session.metadata?.userId;
 
@@ -175,5 +216,6 @@ module.exports = {
   getStripeClient,
   handleBillingCheckout,
   handleBillingPortal,
+  syncBillingStatusForUser,
   syncCheckoutSession
 };
