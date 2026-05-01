@@ -2096,6 +2096,55 @@ function getStoredLibraryEntries() {
   }
 }
 
+async function getComparisonLibraryEntries() {
+  if (!authSession?.authenticated) {
+    return getStoredLibraryEntries();
+  }
+
+  const entries = [];
+  const seenIds = new Set();
+  let page = 1;
+  let hasMore = true;
+
+  try {
+    while (hasMore) {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(LIBRARY_PAGE_SIZE),
+        status: 'all',
+        search: ''
+      });
+      const response = await fetch(`/api/cvs?${params.toString()}`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('library-fetch-failed');
+      }
+
+      const payload = await response.json();
+      const pageItems = Array.isArray(payload.items) ? payload.items.map(normalizeLibraryEntry) : [];
+
+      pageItems.forEach((item) => {
+        if (seenIds.has(item.id)) {
+          return;
+        }
+
+        seenIds.add(item.id);
+        entries.push(item);
+      });
+
+      hasMore = Boolean(payload.hasMore);
+      page += 1;
+    }
+  } catch (error) {
+    console.error('[reference] Could not load server CVs:', error);
+    return getStoredLibraryEntries();
+  }
+
+  return entries;
+}
+
 function renderReferenceVisual(markdown) {
   if (!referenceVisual) return;
 
@@ -2173,32 +2222,55 @@ function applyReferenceMode(mode) {
   }
 }
 
-function renderReferenceOptions(preferredId = '') {
+function renderReferenceOptions(entries, preferredId = '') {
   if (!referenceCvSelect) return [];
 
-  const entries = getStoredLibraryEntries()
+  const sortedEntries = [...(entries || [])]
     .sort((a, b) => (a.space || '').localeCompare(b.space || '') || (a.name || '').localeCompare(b.name || ''));
 
-  if (entries.length === 0) {
+  if (sortedEntries.length === 0) {
     referenceCvSelect.innerHTML = '<option value="" selected>No hay CVs guardados</option>';
     referenceCvSelect.disabled = true;
     return [];
   }
 
   referenceCvSelect.disabled = false;
-  referenceCvSelect.innerHTML = entries
+  referenceCvSelect.innerHTML = sortedEntries
     .map((item) => `<option value="${item.id}">${escapeHtml(item.name || 'CV sin nombre')} · ${escapeHtml(item.space || 'Sin espacio')}</option>`)
     .join('');
 
-  const existing = entries.find((entry) => entry.id === preferredId);
-  referenceCvSelect.value = existing ? existing.id : entries[0].id;
-  return entries;
+  const existing = sortedEntries.find((entry) => entry.id === preferredId);
+  referenceCvSelect.value = existing ? existing.id : sortedEntries[0].id;
+  return sortedEntries;
 }
 
-function updateReferenceContentById(id) {
-  const entries = getStoredLibraryEntries();
-  const selected = entries.find((entry) => entry.id === id);
-  if (!selected || !referenceEditor) return;
+async function updateReferenceContentById(id) {
+  if (!referenceEditor || !id) return;
+
+  let selected = null;
+
+  if (authSession?.authenticated) {
+    try {
+      const response = await fetch(`/api/cvs/${encodeURIComponent(id)}`, {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const payload = await response.json();
+        if (payload?.cv) {
+          selected = normalizeLibraryEntry(payload.cv);
+        }
+      }
+    } catch (error) {
+      console.error('[reference] Could not load server CV content:', error);
+    }
+  }
+
+  if (!selected) {
+    selected = getStoredLibraryEntries().find((entry) => entry.id === id) || null;
+  }
+
+  if (!selected) return;
 
   referenceEditor.value = selected.content || '';
   renderReferenceVisual(selected.content || '');
@@ -2209,15 +2281,16 @@ async function openReferencePane() {
   if (!referencePane || !editorBody) return;
 
   const savedId = localStorage.getItem(REFERENCE_CV_STORAGE_KEY) || '';
-  const entries = renderReferenceOptions(savedId);
+  const entries = await getComparisonLibraryEntries();
+  const renderedEntries = renderReferenceOptions(entries, savedId);
 
-  if (entries.length === 0) {
+  if (renderedEntries.length === 0) {
     closeReferencePane();
     await showAlert('No tienes CVs guardados en "Mis CVs" para comparar.', 'Sin CVs guardados');
     return;
   }
 
-  updateReferenceContentById(referenceCvSelect.value);
+  await updateReferenceContentById(referenceCvSelect.value);
   applyReferenceMode(currentReferenceMode);
   referencePane.hidden = false;
   editorBody.classList.add('has-reference');
@@ -3220,7 +3293,7 @@ if (closeReferencePaneButton) {
 
 if (referenceCvSelect) {
   referenceCvSelect.addEventListener('change', () => {
-    updateReferenceContentById(referenceCvSelect.value);
+    void updateReferenceContentById(referenceCvSelect.value);
   });
 }
 
