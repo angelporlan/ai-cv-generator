@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { useDeferredValue, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, type CvSummary } from '../../api/client';
+import type { VisualTemplate } from '../../domain/design';
 import { statusLabels, statusOrder } from '../../domain/tracker';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { EmptyState, LoadingCards } from '../components/common';
@@ -20,12 +21,15 @@ export function LibraryPage() {
     enabled: authenticated
   });
   const navigate = useNavigate();
-  const { setMarkdown, setSelectedCvId } = useWorkspaceStore();
+  const { setMarkdown, setSelectedCvId, setDesign } = useWorkspaceStore();
   const loadCv = useMutation({
     mutationFn: (id: number) => api.getCv(id),
     onSuccess: (payload) => {
       setMarkdown(payload.cv.content);
       setSelectedCvId(payload.cv.id);
+      if (payload.cv.template) {
+        setDesign({ template: payload.cv.template as VisualTemplate });
+      }
       navigate('/');
     }
   });

@@ -227,6 +227,7 @@ export const api = {
     template?: string;
     accentColor?: string;
     fontFamily?: string;
+    fontSize?: number;
     pageMargin?: number;
     showIcons?: boolean;
   }) => request<Response>('/api/preview.pdf', {

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { ApiError, api, type CvStatus } from '../../api/client';
 import { fromArtifactDto } from '../../domain/aiArtifacts';
 import { getUsageCopy } from '../../domain/aiActions';
-import { accentColors, fontFamilies, pageMargins, visualTemplates, type DesignSettings } from '../../domain/design';
+import { accentColors, fontFamilies, fontSizes, pageMargins, visualTemplates, type DesignSettings } from '../../domain/design';
 import { getQualitySignals, parseMarkdown, serializeParsedCv } from '../../domain/editor';
 import { statusLabels, statusOrder } from '../../domain/tracker';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
@@ -63,6 +63,7 @@ export function EditorPage() {
       template: design.template,
       accentColor: design.accentColor,
       fontFamily: design.fontFamily,
+      fontSize: design.fontSize,
       pageMargin: design.pageMargin,
       showIcons: design.showIcons
     }),
@@ -292,22 +293,57 @@ function VisualEditor({ markdown, onChange }: { markdown: string; onChange: (mar
 }
 
 function CvPreview({ markdown, design }: { markdown: string; design: DesignSettings }) {
+  const [mode, setMode] = useState<'simple' | 'pdf'>('simple');
+  const [pdfUrl, setPdfUrl] = useState('');
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
+  const previewPdf = useMutation({
+    mutationFn: () => api.previewPdf({
+      markdown,
+      download: false,
+      template: design.template,
+      accentColor: design.accentColor,
+      fontFamily: design.fontFamily,
+      fontSize: design.fontSize,
+      pageMargin: design.pageMargin,
+      showIcons: design.showIcons
+    }),
+    onSuccess: async (response) => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+      const blob = await response.blob();
+      setPdfUrl(URL.createObjectURL(blob));
+      setMode('pdf');
+    }
+  });
 
   return (
-    <div className="mt-4 rounded-lg border border-line bg-white p-7 shadow-sm" style={{ borderTop: `4px solid ${design.accentColor}` }}>
-      <h1 className="text-2xl font-semibold tracking-normal" style={{ color: design.accentColor }}>{parsed.title}</h1>
-      {parsed.subtitle ? <p className="mt-2 text-sm leading-6 text-slate-600">{parsed.subtitle}</p> : null}
-      <div className="mt-6 space-y-5">
-        {parsed.sections.map((section) => (
-          <section key={section.title}>
-            <h2 className="border-b border-line pb-1 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: design.accentColor }}>{section.title}</h2>
-            <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-700">
-              {section.items.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
-            </ul>
-          </section>
-        ))}
+    <div className="mt-4">
+      <div className="mb-3 flex items-center gap-2 rounded-lg border border-line bg-slate-50 p-1">
+        <button className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold ${mode === 'simple' ? 'bg-white shadow-sm' : 'text-slate-500'}`} type="button" onClick={() => setMode('simple')}>
+          Simple
+        </button>
+        <button className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold ${mode === 'pdf' ? 'bg-white shadow-sm' : 'text-slate-500'}`} type="button" onClick={() => pdfUrl ? setMode('pdf') : previewPdf.mutate()}>
+          {previewPdf.isPending ? 'Generando...' : 'PDF'}
+        </button>
       </div>
+
+      {mode === 'pdf' && pdfUrl ? (
+        <iframe className="h-[720px] w-full rounded-lg border border-line bg-white" title="Vista previa PDF" src={pdfUrl} />
+      ) : (
+        <div className="rounded-lg border border-line bg-white p-7 shadow-sm" style={{ borderTop: `4px solid ${design.accentColor}`, fontSize: `${design.fontSize}px` }}>
+          <h1 className="text-2xl font-semibold tracking-normal" style={{ color: design.accentColor }}>{parsed.title}</h1>
+          {parsed.subtitle ? <p className="mt-2 text-sm leading-6 text-slate-600">{parsed.subtitle}</p> : null}
+          <div className="mt-6 space-y-5">
+            {parsed.sections.map((section) => (
+              <section key={section.title}>
+                <h2 className="border-b border-line pb-1 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: design.accentColor }}>{section.title}</h2>
+                <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-700">
+                  {section.items.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -345,6 +381,13 @@ function DesignPanel({ design, onChange }: { design: DesignSettings; onChange: (
         <span className="label">Fuente PDF</span>
         <select className="field mt-1" value={design.fontFamily} onChange={(event) => onChange({ fontFamily: event.target.value as DesignSettings['fontFamily'] })}>
           {fontFamilies.map((font) => <option value={font.value} key={font.value}>{font.label}</option>)}
+        </select>
+      </label>
+
+      <label className="block">
+        <span className="label">Tamaño de texto</span>
+        <select className="field mt-1" value={design.fontSize} onChange={(event) => onChange({ fontSize: Number(event.target.value) })}>
+          {fontSizes.map((size) => <option value={size.value} key={size.value}>{size.label}</option>)}
         </select>
       </label>
 

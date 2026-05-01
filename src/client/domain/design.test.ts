@@ -7,12 +7,14 @@ describe('design domain', () => {
       template: 'swiss',
       accentColor: '#0f766e',
       fontFamily: 'times',
+      fontSize: 13.5,
       pageMargin: 48,
       showIcons: false
     })).toEqual({
       template: 'swiss',
       accentColor: '#0f766e',
       fontFamily: 'times',
+      fontSize: 13.5,
       pageMargin: 48,
       showIcons: false
     });
@@ -23,6 +25,7 @@ describe('design domain', () => {
       template: 'bad-template' as never,
       accentColor: 'blue',
       fontFamily: 'comic' as never,
+      fontSize: 99,
       pageMargin: 999
     })).toEqual(defaultDesignSettings);
   });

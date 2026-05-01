@@ -5,6 +5,7 @@ export type DesignSettings = {
   template: VisualTemplate;
   accentColor: string;
   fontFamily: FontFamily;
+  fontSize: number;
   pageMargin: number;
   showIcons: boolean;
 };
@@ -13,6 +14,7 @@ export const defaultDesignSettings: DesignSettings = {
   template: 'harvard',
   accentColor: '#2563eb',
   fontFamily: 'helvetica',
+  fontSize: 12.5,
   pageMargin: 36,
   showIcons: true
 };
@@ -39,6 +41,13 @@ export const pageMargins = [
   { value: 48, label: 'Amplio' }
 ];
 
+export const fontSizes = [
+  { value: 11.5, label: 'Compacta' },
+  { value: 12.5, label: 'Normal' },
+  { value: 13.5, label: 'Amplia' },
+  { value: 15, label: 'Grande' }
+];
+
 export function normalizeDesignSettings(input: Partial<DesignSettings> = {}): DesignSettings {
   const template: VisualTemplate = input.template && visualTemplates.some((item) => item.value === input.template)
     ? input.template
@@ -49,6 +58,9 @@ export function normalizeDesignSettings(input: Partial<DesignSettings> = {}): De
   const pageMargin = input.pageMargin && pageMargins.some((item) => item.value === input.pageMargin)
     ? input.pageMargin
     : defaultDesignSettings.pageMargin;
+  const fontSize = input.fontSize && fontSizes.some((item) => item.value === input.fontSize)
+    ? input.fontSize
+    : defaultDesignSettings.fontSize;
   const accentColor = typeof input.accentColor === 'string' && /^#[0-9a-f]{6}$/i.test(input.accentColor)
     ? input.accentColor
     : defaultDesignSettings.accentColor;
@@ -56,6 +68,7 @@ export function normalizeDesignSettings(input: Partial<DesignSettings> = {}): De
   return {
     template,
     fontFamily,
+    fontSize,
     pageMargin,
     accentColor,
     showIcons: input.showIcons !== false
