@@ -1,27 +1,29 @@
-# Etapa de construcción
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
 COPY package*.json ./
+RUN npm ci
 
-# Instalar dependencias
-RUN npm ci --only=production
+COPY . .
+RUN npm run build
 
-# Etapa de producción
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Copiar las dependencias de la etapa anterior
-COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Copiar archivos de la aplicación
-COPY . .
+COPY --from=builder /app/server.js ./server.js
+COPY --from=builder /app/auth-store.js ./auth-store.js
+COPY --from=builder /app/cv-content.js ./cv-content.js
+COPY --from=builder /app/cv-pdf.js ./cv-pdf.js
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/cv.md ./cv.md
+COPY --from=builder /app/cv-example.md ./cv-example.md
 
-# Exponer el puerto
 EXPOSE 3002
 
-# Comando de inicio
 CMD ["npm", "start"]

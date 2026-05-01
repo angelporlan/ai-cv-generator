@@ -22,8 +22,6 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
     env_file:
       - .env
-    volumes:
-      - .:/app
     restart: unless-stopped
   postgres:
     image: postgres:16-alpine
