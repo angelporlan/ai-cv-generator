@@ -46,7 +46,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [ ] Falta resizer entre editor y preview que sí existía en legacy.
 - [ ] Falta guía interactiva/tour o sustituto React.
 - [ ] Falta dark mode global o decisión explícita de retirarlo.
-- [ ] Falta sincronización de estado local con `/api/auth/state` tras login como hacía el legacy.
+- [x] Falta sincronizaci�n de estado local con `/api/auth/state` tras login como hac�a el legacy.
 - [x] `/library` muestra acciones visibles por tarjeta y panel de detalle.
 - [x] `/library` permite editar metadata: nombre, estado, fecha, URL, descripci�n y plantilla.
 - [x] `/library` permite actualizar un CV guardado con el borrador actual.
@@ -70,7 +70,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [x] Portar el modelo visual del legacy a un módulo React testable: parsear contactos, secciones, entries, listas y párrafos sin perder markdown al serializar.
 - [x] Rehacer `/library` como gestor real: tarjetas limpias, abrir/cargar, editar metadata, actualizar contenido, eliminar, guardar nueva versi�n y filtros.
 - [x] Restaurar Google login en `AuthDialog`: botón “Continuar con Google”, redirigir a `/auth/google`, y procesar `auth=google_success/error` al volver.
-- [ ] Añadir sync de estado autenticado usando `/api/auth/state` para que draft/diseño/modo sobrevivan como en legacy.
+- [x] A�adir sync de estado autenticado usando `/api/auth/state` para que draft/dise�o/modo sobrevivan como en legacy.
 - [ ] Mantener `/tracker` sin reescritura grande; solo alinear estados, diseño y links con biblioteca.
 
 ## Public Interfaces / Types
@@ -95,4 +95,5 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - El objetivo visual será “React limpio”: misma capacidad funcional que el legacy, sin copiar literalmente toda la UI vanilla.
 - El legacy de referencia será `public/editor.html` + `public/app.js`, porque `index.html` ya pertenece a Vite.
 - `/tracker` queda fuera de una refactorización profunda salvo ajustes de consistencia.
+
 

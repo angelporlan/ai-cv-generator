@@ -1,11 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BriefcaseBusiness, FileText, Library, LogOut, PanelRight, User } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
+import { buildWorkspaceAuthState, fingerprintWorkspaceAuthState, hasMeaningfulWorkspaceAuthState, normalizeWorkspaceAuthState } from '../../domain/authState';
 import { getGoogleAuthNotice, parseGoogleAuthResult } from '../../domain/auth';
 import { getUsageCopy } from '../../domain/aiActions';
+import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { AccountDialog, AuthDialog } from './dialogs';
 import { useSession } from '../hooks';
 
@@ -16,10 +19,29 @@ export function Shell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
+  const workspace = useWorkspaceStore(
+    useShallow((state) => ({
+      markdown: state.markdown,
+      selectedCvId: state.selectedCvId,
+      editorMode: state.editorMode,
+      rightPanel: state.rightPanel,
+      suggestionsOpen: state.suggestionsOpen,
+      design: state.design,
+      aiArtifacts: state.aiArtifacts
+    }))
+  );
   const isWorkspaceRoute = !['/library', '/tracker'].includes(location.pathname);
   const [authOpen, setAuthOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [banner, setBanner] = useState('');
+  const syncTimerRef = useRef<number | null>(null);
+  const lastSyncedFingerprintRef = useRef('');
+  const syncInFlightRef = useRef(false);
+  const remoteHydratedFingerprintRef = useRef('');
+  const workspaceSnapshot = useMemo(() => buildWorkspaceAuthState(workspace), [workspace]);
+  const workspaceFingerprint = useMemo(() => fingerprintWorkspaceAuthState(workspaceSnapshot), [workspaceSnapshot]);
+  const remoteSnapshot = useMemo(() => normalizeWorkspaceAuthState(session.data?.state), [session.data?.state]);
+  const remoteFingerprint = useMemo(() => fingerprintWorkspaceAuthState(remoteSnapshot), [remoteSnapshot]);
   const logout = useMutation({
     mutationFn: api.logout,
     onSuccess: () => {
@@ -39,6 +61,75 @@ export function Shell({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => setBanner(''), 6000);
     return () => window.clearTimeout(timer);
   }, [location.pathname, location.search, navigate, queryClient]);
+
+  useEffect(() => {
+    if (!authenticated) {
+      if (syncTimerRef.current) {
+        window.clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+
+      lastSyncedFingerprintRef.current = '';
+      syncInFlightRef.current = false;
+      remoteHydratedFingerprintRef.current = '';
+      return;
+    }
+
+    if (remoteSnapshot && hasMeaningfulWorkspaceAuthState(remoteSnapshot) && !hasMeaningfulWorkspaceAuthState(workspaceSnapshot)) {
+      if (remoteFingerprint && remoteHydratedFingerprintRef.current !== remoteFingerprint) {
+        const store = useWorkspaceStore.getState();
+        store.setMarkdown(remoteSnapshot.markdown);
+        store.setSelectedCvId(remoteSnapshot.selectedCvId);
+        store.setEditorMode(remoteSnapshot.editorMode);
+        store.setRightPanel(remoteSnapshot.rightPanel);
+        store.setSuggestionsOpen(remoteSnapshot.suggestionsOpen);
+        store.setDesign(remoteSnapshot.design);
+        store.setAiArtifacts(remoteSnapshot.aiArtifacts);
+
+        remoteHydratedFingerprintRef.current = remoteFingerprint;
+        lastSyncedFingerprintRef.current = remoteFingerprint;
+      }
+
+      return;
+    }
+
+    if (!hasMeaningfulWorkspaceAuthState(workspaceSnapshot)) {
+      return;
+    }
+
+    if (workspaceFingerprint === lastSyncedFingerprintRef.current) {
+      return;
+    }
+
+    if (syncTimerRef.current) {
+      window.clearTimeout(syncTimerRef.current);
+    }
+
+    syncTimerRef.current = window.setTimeout(() => {
+      if (!authenticated || syncInFlightRef.current) {
+        return;
+      }
+
+      syncInFlightRef.current = true;
+      void api.saveAuthState(workspaceSnapshot, workspaceSnapshot.updatedAt)
+        .then(() => {
+          lastSyncedFingerprintRef.current = workspaceFingerprint;
+        })
+        .catch(() => {
+          // Keep the local state; the next successful refresh will retry the sync.
+        })
+        .finally(() => {
+          syncInFlightRef.current = false;
+        });
+    }, 1200);
+
+    return () => {
+      if (syncTimerRef.current) {
+        window.clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
+  }, [authenticated, remoteFingerprint, remoteSnapshot, workspaceFingerprint, workspaceSnapshot]);
 
   return (
     <div className="min-h-screen bg-mist pb-20 text-ink md:pb-0">

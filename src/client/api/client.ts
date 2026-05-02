@@ -42,7 +42,9 @@ export type SessionPayload = {
   authenticated: boolean;
   user?: User;
   usage?: Usage;
-  state?: Record<string, string>;
+  state?: unknown;
+  clientUpdatedAt?: string | null;
+  serverUpdatedAt?: string | null;
 };
 
 export type CvStatus = 'draft' | 'applied' | 'interview' | 'offer' | 'rejected' | 'archived';
@@ -169,6 +171,13 @@ export const api = {
     redirect('/auth/google');
   },
   getSession: () => request<SessionPayload>('/api/auth/session'),
+  saveAuthState: (state: unknown, clientUpdatedAt = new Date().toISOString()) => request<{ ok: true; serverUpdatedAt: string | null }>('/api/auth/state', {
+    method: 'PUT',
+    body: {
+      state,
+      clientUpdatedAt
+    }
+  }),
   login: (email: string, password: string) => request<SessionPayload>('/api/auth/login', {
     method: 'POST',
     body: { email, password }

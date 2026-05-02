@@ -17,11 +17,14 @@ type WorkspaceState = {
   setRightPanel: (panel: 'preview' | 'quality' | 'ai' | 'design') => void;
   setSuggestionsOpen: (open: boolean) => void;
   setDesign: (design: Partial<DesignSettings>) => void;
+  setAiArtifacts: (items: AiArtifact[]) => void;
   addAiArtifact: (artifact: Omit<AiArtifact, 'id' | 'createdAt'>) => void;
   clearAiArtifacts: () => void;
 };
 
 const storageKey = 'cv-studio-spa-draft';
+const editorModeStorageKey = 'cv-studio-spa-editor-mode';
+const rightPanelStorageKey = 'cv-studio-spa-right-panel';
 const designStorageKey = 'cv-studio-spa-design';
 const suggestionsStorageKey = 'cv-studio-spa-suggestions-open';
 
@@ -43,11 +46,29 @@ function loadSuggestionsOpen() {
   }
 }
 
+function loadEditorMode() {
+  try {
+    const raw = localStorage.getItem(editorModeStorageKey);
+    return raw === 'visual' ? 'visual' : 'markdown';
+  } catch {
+    return 'markdown';
+  }
+}
+
+function loadRightPanel() {
+  try {
+    const raw = localStorage.getItem(rightPanelStorageKey);
+    return raw === 'quality' || raw === 'ai' || raw === 'design' ? raw : 'preview';
+  } catch {
+    return 'preview';
+  }
+}
+
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   markdown: localStorage.getItem(storageKey) || defaultMarkdown,
   selectedCvId: null,
-  editorMode: 'markdown',
-  rightPanel: 'preview',
+  editorMode: loadEditorMode(),
+  rightPanel: loadRightPanel(),
   suggestionsOpen: loadSuggestionsOpen(),
   design: loadDesignSettings(),
   aiArtifacts: loadAiArtifacts(),
@@ -56,8 +77,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     set({ markdown });
   },
   setSelectedCvId: (selectedCvId) => set({ selectedCvId }),
-  setEditorMode: (editorMode) => set({ editorMode }),
-  setRightPanel: (rightPanel) => set({ rightPanel }),
+  setEditorMode: (editorMode) => {
+    localStorage.setItem(editorModeStorageKey, editorMode);
+    set({ editorMode });
+  },
+  setRightPanel: (rightPanel) => {
+    localStorage.setItem(rightPanelStorageKey, rightPanel);
+    set({ rightPanel });
+  },
   setSuggestionsOpen: (suggestionsOpen) => {
     localStorage.setItem(suggestionsStorageKey, String(suggestionsOpen));
     set({ suggestionsOpen });
@@ -67,6 +94,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     localStorage.setItem(designStorageKey, JSON.stringify(design));
     return { design };
   }),
+  setAiArtifacts: (items) => {
+    saveAiArtifacts(items);
+    set({ aiArtifacts: items.slice(0, 25) });
+  },
   addAiArtifact: (input) => set((state) => {
     const aiArtifacts = [createAiArtifact(input), ...state.aiArtifacts].slice(0, 25);
     saveAiArtifacts(aiArtifacts);

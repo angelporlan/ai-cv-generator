@@ -82,4 +82,25 @@ describe('typed API client', () => {
     api.startGoogleLogin((url) => redirects.push(url));
     expect(redirects).toEqual(['/auth/google']);
   });
+
+  it('sends authenticated workspace state to the auth state endpoint', async () => {
+    const fetchMock = mockFetch(new Response(JSON.stringify({ ok: true, serverUpdatedAt: '2026-05-02T10:00:00.000Z' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    }));
+
+    await expect(api.saveAuthState({ markdown: '# CV\n' }, '2026-05-02T09:59:00.000Z')).resolves.toEqual({
+      ok: true,
+      serverUpdatedAt: '2026-05-02T10:00:00.000Z'
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/state', expect.objectContaining({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        state: { markdown: '# CV\n' },
+        clientUpdatedAt: '2026-05-02T09:59:00.000Z'
+      })
+    }));
+  });
 });
