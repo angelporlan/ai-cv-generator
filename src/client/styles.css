@@ -196,7 +196,7 @@
   }
 
   .contact-block {
-    @apply border-b border-white/10 px-4 py-3 font-mono text-[11px] leading-5 text-slate-300;
+    @apply scroll-mt-24 border-b border-white/10 px-4 py-3 font-mono text-[11px] leading-5 text-slate-300;
   }
 
   .studio-textarea {
@@ -208,7 +208,7 @@
   }
 
   .editable-section {
-    @apply m-4 overflow-hidden rounded-md border border-white/10 bg-[#111d2c];
+    @apply m-4 scroll-mt-24 overflow-hidden rounded-md border border-white/10 bg-[#111d2c];
   }
 
   .section-title-input {

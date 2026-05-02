@@ -8,12 +8,14 @@ type WorkspaceState = {
   selectedCvId: number | null;
   editorMode: 'markdown' | 'visual';
   rightPanel: 'preview' | 'quality' | 'ai' | 'design';
+  suggestionsOpen: boolean;
   design: DesignSettings;
   aiArtifacts: AiArtifact[];
   setMarkdown: (markdown: string) => void;
   setSelectedCvId: (id: number | null) => void;
   setEditorMode: (mode: 'markdown' | 'visual') => void;
   setRightPanel: (panel: 'preview' | 'quality' | 'ai' | 'design') => void;
+  setSuggestionsOpen: (open: boolean) => void;
   setDesign: (design: Partial<DesignSettings>) => void;
   addAiArtifact: (artifact: Omit<AiArtifact, 'id' | 'createdAt'>) => void;
   clearAiArtifacts: () => void;
@@ -21,6 +23,7 @@ type WorkspaceState = {
 
 const storageKey = 'cv-studio-spa-draft';
 const designStorageKey = 'cv-studio-spa-design';
+const suggestionsStorageKey = 'cv-studio-spa-suggestions-open';
 
 function loadDesignSettings() {
   try {
@@ -31,11 +34,21 @@ function loadDesignSettings() {
   }
 }
 
+function loadSuggestionsOpen() {
+  try {
+    const raw = localStorage.getItem(suggestionsStorageKey);
+    return raw === null ? true : raw === 'true';
+  } catch {
+    return true;
+  }
+}
+
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   markdown: localStorage.getItem(storageKey) || defaultMarkdown,
   selectedCvId: null,
   editorMode: 'markdown',
   rightPanel: 'preview',
+  suggestionsOpen: loadSuggestionsOpen(),
   design: loadDesignSettings(),
   aiArtifacts: loadAiArtifacts(),
   setMarkdown: (markdown) => {
@@ -45,6 +58,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setSelectedCvId: (selectedCvId) => set({ selectedCvId }),
   setEditorMode: (editorMode) => set({ editorMode }),
   setRightPanel: (rightPanel) => set({ rightPanel }),
+  setSuggestionsOpen: (suggestionsOpen) => {
+    localStorage.setItem(suggestionsStorageKey, String(suggestionsOpen));
+    set({ suggestionsOpen });
+  },
   setDesign: (designPatch) => set((state) => {
     const design = normalizeDesignSettings({ ...state.design, ...designPatch });
     localStorage.setItem(designStorageKey, JSON.stringify(design));

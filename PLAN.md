@@ -34,7 +34,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [x] El editor fuerza 3 columnas fijas y provoca overflow horizontal en desktop.
 - [ ] `Section Navigator` solo pinta botones; no navega, no refleja sección activa, no cuenta bloques y duplica títulos.
 - [x] Botón cerrar de `Design Suggestions` no hace nada.
-- [ ] `Design Suggestions` no tiene botón de reapertura ni estado persistido como el legacy.
+- [x] `Design Suggestions` no tiene botón de reapertura ni estado persistido como el legacy.
 - [x] Miniaturas de diseño solo muestran 4 plantillas; falta `swiss`.
 - [ ] Panel de diseño está escondido detrás de tabs y no se abre al pulsar “Personalizar” porque esa acción no existe.
 - [ ] El editor visual React pierde estructura avanzada del markdown legacy: contactos, `###`, separadores, bloques entry/list/paragraph.

@@ -32,7 +32,7 @@ import {
   X,
   ZoomIn
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, type CvStatus, type CvSummary } from '../../api/client';
 import { getUsageCopy } from '../../domain/aiActions';
@@ -40,6 +40,7 @@ import { fromArtifactDto } from '../../domain/aiArtifacts';
 import { accentColors, fontFamilies, fontSizes, pageMargins, visualTemplates, type DesignSettings } from '../../domain/design';
 import { getQualitySignals, parseMarkdown, serializeParsedCv } from '../../domain/editor';
 import { statusLabels, statusOrder } from '../../domain/tracker';
+import { buildNavigatorItems } from '../../domain/editorNavigator';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { AiPanel } from '../components/AiPanel';
 import { AiDialog, LinkedInDialog } from '../components/dialogs';
@@ -49,10 +50,10 @@ export function EditorPage() {
   const session = useSession();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { markdown, setMarkdown, selectedCvId, setSelectedCvId, editorMode, setEditorMode, rightPanel, setRightPanel, design, setDesign, aiArtifacts, clearAiArtifacts } = useWorkspaceStore();
+  const { markdown, setMarkdown, selectedCvId, setSelectedCvId, editorMode, setEditorMode, rightPanel, setRightPanel, suggestionsOpen, setSuggestionsOpen, design, setDesign, aiArtifacts, clearAiArtifacts } = useWorkspaceStore();
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const introLines = useMemo(() => getIntroLines(markdown, parsed), [markdown, parsed]);
-  const navigatorGroups = useMemo(() => getNavigatorGroups(parsed), [parsed]);
+  const navigatorItems = useMemo(() => buildNavigatorItems(parsed, introLines), [parsed, introLines]);
   const quality = useMemo(() => getQualitySignals(markdown), [markdown]);
   const [notice, setNotice] = useState('');
   const [aiOpen, setAiOpen] = useState(false);
@@ -66,9 +67,11 @@ export function EditorPage() {
   const [status, setStatus] = useState<CvStatus>('draft');
   const [contentTemplate, setContentTemplate] = useState('cv.md');
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const [suggestionsOpen, setSuggestionsOpen] = useState(true);
+  const [activeNavigatorId, setActiveNavigatorId] = useState('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const editorColumnRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const usage = session.data?.usage;
   const authenticated = Boolean(session.data?.authenticated);
   const stats = useMemo(() => getEditorStats(markdown), [markdown]);
@@ -220,6 +223,95 @@ export function EditorPage() {
     }
   };
 
+  useEffect(() => {
+    if (navigatorItems.length) {
+      setActiveNavigatorId(navigatorItems[0].id);
+    }
+  }, [navigatorItems]);
+
+  useEffect(() => {
+    const root = editorColumnRef.current;
+    if (!root || !navigatorItems.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (!visible) return;
+
+        const sectionId = (visible.target as HTMLElement).dataset.sectionId;
+        if (sectionId) {
+          setActiveNavigatorId(sectionId);
+        }
+      },
+      {
+        root,
+        threshold: [0.2, 0.4, 0.6, 0.8],
+        rootMargin: '-10% 0px -55% 0px'
+      }
+    );
+
+    navigatorItems.forEach((item) => {
+      const element = sectionRefs.current[item.id];
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [navigatorItems]);
+
+  useEffect(() => {
+    if (editorMode !== 'markdown') return;
+    const textarea = editorRef.current;
+    if (!textarea) return;
+
+    const syncActiveSection = () => {
+      const nextId = getMarkdownNavigatorIdAtOffset(markdown, textarea.selectionStart, parsed);
+      if (nextId) {
+        setActiveNavigatorId(nextId);
+      }
+    };
+
+    const handleSelectionChange = () => {
+      if (document.activeElement === textarea) {
+        syncActiveSection();
+      }
+    };
+
+    textarea.addEventListener('keyup', syncActiveSection);
+    textarea.addEventListener('click', syncActiveSection);
+    textarea.addEventListener('input', syncActiveSection);
+    document.addEventListener('selectionchange', handleSelectionChange);
+    syncActiveSection();
+
+    return () => {
+      textarea.removeEventListener('keyup', syncActiveSection);
+      textarea.removeEventListener('click', syncActiveSection);
+      textarea.removeEventListener('input', syncActiveSection);
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, [editorMode, markdown, parsed]);
+
+  const scrollToSection = (sectionId: string) => {
+    if (editorMode === 'markdown') {
+      const textarea = editorRef.current;
+      const range = getMarkdownSectionRange(markdown, parsed, sectionId);
+      if (!textarea || !range) return;
+
+      textarea.focus();
+      textarea.setSelectionRange(range.start, range.start);
+      textarea.scrollTop = Math.max(0, (textarea.scrollHeight * range.start) / Math.max(1, textarea.value.length) - 160);
+    } else {
+      const element = sectionRefs.current[sectionId];
+      if (!element) return;
+
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    setActiveNavigatorId(sectionId);
+  };
+
   return (
     <div
       className={`editor-shell ${
@@ -228,15 +320,23 @@ export function EditorPage() {
     >
       {!navCollapsed ? (
         <aside className="editor-nav">
-        <h2 className="px-4 pt-4 text-sm font-semibold text-white">Section Navigator</h2>
-        <div className="mt-4 space-y-1 px-2">
-          {navigatorGroups.map((item, index) => (
-            <button className={`editor-nav-item ${/experiencia|experience/i.test(item) ? 'is-active' : ''}`} type="button" key={`${item}-${index}`}>
-              <span>{item}</span>
-              {index < 5 ? <ChevronDown size={13} /> : null}
-            </button>
-          ))}
-        </div>
+          <h2 className="px-4 pt-4 text-sm font-semibold text-white">Section Navigator</h2>
+          <div className="mt-4 space-y-1 px-2">
+            {navigatorItems.map((item) => (
+              <button
+                className={`editor-nav-item ${activeNavigatorId === item.id ? 'is-active' : ''}`}
+                type="button"
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{item.label}</span>
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-slate-300">{item.count}</span>
+                </span>
+                <ChevronDown size={13} />
+              </button>
+            ))}
+          </div>
         </aside>
       ) : null}
 
@@ -256,7 +356,7 @@ export function EditorPage() {
               <ChevronLeft size={14} className={navCollapsed ? 'rotate-180 transition-transform' : 'transition-transform'} />
               {navCollapsed ? 'Mostrar nav' : 'Ocultar nav'}
             </button>
-            <button className="studio-button ghost" type="button" onClick={() => setSuggestionsOpen((value) => !value)}>
+            <button className="studio-button ghost" type="button" onClick={() => setSuggestionsOpen(!suggestionsOpen)}>
               <Palette size={14} />
               {suggestionsOpen ? 'Ocultar diseño' : 'Mostrar diseño'}
             </button>
@@ -311,7 +411,7 @@ export function EditorPage() {
         ) : null}
 
         <div className={`editor-canvas ${referenceOpen ? 'has-reference' : ''}`}>
-          <div className="editor-column">
+          <div className="editor-column" ref={editorColumnRef}>
             <div className="document-panel">
               <SectionHeader icon={<List size={14} />} title="Resumen Profesional" />
               <div className="format-toolbar" aria-label="Herramientas de formato">
@@ -325,7 +425,13 @@ export function EditorPage() {
                 <button className="tool-icon" type="button" onClick={() => fileInputRef.current?.click()} aria-label="Importar Markdown"><FileInput size={14} /></button>
               </div>
               <input ref={fileInputRef} hidden type="file" accept=".md,text/markdown,text/plain" onChange={(event) => handleFileImport(event.target.files?.[0])} />
-              <div className="contact-block">
+              <div
+                className="contact-block"
+                data-section-id="profile"
+                ref={(element) => {
+                  sectionRefs.current.profile = element;
+                }}
+              >
                 {introLines.map((line, index) => <p key={`${line}-${index}`}>⇔ {line}</p>)}
               </div>
               {editorMode === 'markdown' ? (
@@ -338,7 +444,7 @@ export function EditorPage() {
                   aria-label="Editor markdown del CV"
                 />
               ) : (
-                <VisualEditor markdown={markdown} onChange={setMarkdown} />
+                <VisualEditor markdown={markdown} onChange={setMarkdown} sectionRefs={sectionRefs} />
               )}
               <div className="editor-stats">
                 <span>{stats.characters.toLocaleString('es')} caracteres</span>
@@ -451,10 +557,55 @@ function getIntroLines(markdown: string, parsed: ReturnType<typeof parseMarkdown
   return Array.from(new Set(beforeSections.length ? beforeSections : fallback)).slice(0, 7);
 }
 
-function getNavigatorGroups(parsed: ReturnType<typeof parseMarkdown>) {
-  const defaults = ['Resumen Profesional', 'Experiencia', 'Educacion', 'Habilidades'];
-  const titles = parsed.sections.map((section) => section.title).filter(Boolean);
-  return Array.from(new Set([...titles, ...defaults])).slice(0, 7);
+function getMarkdownNavigatorIdAtOffset(markdown: string, offset: number, parsed: ReturnType<typeof parseMarkdown>) {
+  const ranges = getMarkdownNavigatorRanges(markdown, parsed);
+  for (let index = ranges.length - 1; index >= 0; index -= 1) {
+    if (offset >= ranges[index].start) {
+      return ranges[index].id;
+    }
+  }
+
+  return ranges[0]?.id || 'profile';
+}
+
+function getMarkdownSectionRange(markdown: string, parsed: ReturnType<typeof parseMarkdown>, sectionId: string) {
+  return getMarkdownNavigatorRanges(markdown, parsed).find((range) => range.id === sectionId) || null;
+}
+
+function getMarkdownNavigatorRanges(markdown: string, parsed: ReturnType<typeof parseMarkdown>) {
+  const lines = markdown.split(/\r?\n/);
+  const ranges: Array<{ id: string; start: number; end: number }> = [];
+  let cursor = 0;
+  let sectionIndex = -1;
+  let profileStart = 0;
+  let profileEnd = markdown.length;
+
+  for (const line of lines) {
+    if (line.startsWith('## ')) {
+      if (sectionIndex < 0) {
+        profileEnd = cursor;
+      } else {
+        ranges[ranges.length - 1].end = cursor;
+      }
+
+      sectionIndex += 1;
+      ranges.push({
+        id: `section-${sectionIndex}`,
+        start: cursor,
+        end: markdown.length
+      });
+    }
+
+    cursor += line.length + 1;
+  }
+
+  if (ranges.length) {
+    ranges.unshift({ id: 'profile', start: profileStart, end: profileEnd });
+  } else {
+    ranges.push({ id: 'profile', start: profileStart, end: profileEnd });
+  }
+
+  return ranges;
 }
 
 const contentTemplates = [
@@ -576,7 +727,15 @@ function ReferencePane({ cvs, selectedId, markdown, mode, loading, onModeChange,
   );
 }
 
-function VisualEditor({ markdown, onChange }: { markdown: string; onChange: (markdown: string) => void }) {
+function VisualEditor({
+  markdown,
+  onChange,
+  sectionRefs
+}: {
+  markdown: string;
+  onChange: (markdown: string) => void;
+  sectionRefs: MutableRefObject<Record<string, HTMLElement | null>>;
+}) {
   const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
   const update = (next: typeof parsed) => onChange(serializeParsedCv(next));
   const updateSection = (sectionIndex: number, patch: Partial<typeof parsed.sections[number]>) => {
@@ -593,13 +752,21 @@ function VisualEditor({ markdown, onChange }: { markdown: string; onChange: (mar
 
   return (
     <div className="space-y-4">
-      <div className="editable-section">
+      <div
+        className="editable-section"
+        data-section-id="profile"
+        ref={(element) => {
+          sectionRefs.current.profile = element;
+        }}
+      >
         <SectionHeader icon={<FileText size={14} />} title="Identidad" />
         <input className="section-title-input" value={parsed.title} onChange={(event) => update({ ...parsed, title: event.target.value })} aria-label="Nombre principal" />
         <textarea className="section-body-input" value={parsed.subtitle} onChange={(event) => update({ ...parsed, subtitle: event.target.value })} aria-label="Resumen o contacto inicial" />
       </div>
       {parsed.sections.map((section, sectionIndex) => (
         <EditableSection
+          sectionId={`section-${sectionIndex}`}
+          sectionRefs={sectionRefs}
           key={`${section.title}-${sectionIndex}`}
           canMoveUp={sectionIndex > 0}
           canMoveDown={sectionIndex < parsed.sections.length - 1}
@@ -622,7 +789,9 @@ function VisualEditor({ markdown, onChange }: { markdown: string; onChange: (mar
   );
 }
 
-function EditableSection({ title, value, canMoveUp, canMoveDown, onTitleChange, onItemsChange, onMove, onRemove }: {
+function EditableSection({ sectionId, sectionRefs, title, value, canMoveUp, canMoveDown, onTitleChange, onItemsChange, onMove, onRemove }: {
+  sectionId: string;
+  sectionRefs: MutableRefObject<Record<string, HTMLElement | null>>;
   canMoveUp: boolean;
   canMoveDown: boolean;
   title: string;
@@ -633,7 +802,13 @@ function EditableSection({ title, value, canMoveUp, canMoveDown, onTitleChange, 
   onRemove: () => void;
 }) {
   return (
-    <div className="editable-section">
+    <div
+      className="editable-section"
+      data-section-id={sectionId}
+      ref={(element) => {
+        sectionRefs.current[sectionId] = element;
+      }}
+    >
       <div className="section-header">
         <div className="flex min-w-0 items-center gap-2"><FileText size={14} /><span className="truncate">{title || 'Seccion sin titulo'}</span></div>
         <div className="flex items-center gap-1">
