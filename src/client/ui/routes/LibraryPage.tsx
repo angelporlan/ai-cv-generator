@@ -395,11 +395,21 @@ function LibraryCard({
         </div>
         <div className="mt-4 grid gap-2 text-xs text-slate-500">
           <p className="flex items-center gap-2"><FileText size={13} /> {cv.template}</p>
-          <p className="flex items-start gap-2 break-words"><ExternalLink size={13} className="mt-0.5 shrink-0" /> {cv.jobUrl || 'Sin oferta asociada'}</p>
           <p>Ultimo uso: {formatDate(cv.lastUsedDate)}</p>
         </div>
       </button>
-      <div className="mt-auto flex gap-2">
+      <div className="mt-auto flex flex-wrap gap-2">
+        {cv.jobUrl ? (
+          <a className="button-secondary flex-1" href={cv.jobUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={15} />
+            {getJobSourceLabel(cv.jobUrl)}
+          </a>
+        ) : (
+          <span className="inline-flex flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+            <ExternalLink size={15} />
+            Sin oferta asociada
+          </span>
+        )}
         <button className="button-secondary flex-1" type="button" onClick={onSelect}>
           <PencilLine size={15} />
           Editar
@@ -463,4 +473,23 @@ function uniqueCopyName(baseName: string, items: CvSummary[]) {
   }
 
   return `${baseName} copy`;
+}
+
+function getJobSourceLabel(jobUrl: string) {
+  try {
+    const host = new URL(jobUrl).hostname.replace(/^www\./, '').toLowerCase();
+    if (host.includes('linkedin.com')) return 'LinkedIn';
+    if (host.includes('infojobs')) return 'InfoJobs';
+    if (host.includes('indeed.com')) return 'Indeed';
+    if (host.includes('glassdoor.com')) return 'Glassdoor';
+    if (host.includes('computrabajo.com')) return 'Computrabajo';
+    if (host.includes('jobtoday.com')) return 'Job Today';
+    if (host.includes('lever.co')) return 'Lever';
+    if (host.includes('greenhouse.io')) return 'Greenhouse';
+    if (host.includes('teamtailor.com')) return 'Teamtailor';
+  } catch {
+    return 'Oferta asociada';
+  }
+
+  return 'Oferta asociada';
 }
