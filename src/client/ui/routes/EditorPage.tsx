@@ -80,6 +80,10 @@ export function EditorPage() {
     () => navigatorItems.find((item) => item.id === activeNavigatorId) || navigatorItems[0] || null,
     [activeNavigatorId, navigatorItems]
   );
+  const formattingInMarkdown = editorMode === 'markdown';
+  const toolbarHelp = formattingInMarkdown
+    ? 'Selecciona texto en Markdown para aplicar formato. Si no hay seleccion, insertare un ejemplo editable.'
+    : 'El formato se aplica al Markdown bruto. Cambia a Markdown para usar negrita, enlaces o listas.';
   const remoteArtifacts = useQuery({
     queryKey: ['ai-artifacts'],
     queryFn: api.listAiArtifacts,
@@ -194,7 +198,7 @@ export function EditorPage() {
     const textarea = editorRef.current;
     if (!textarea || editorMode !== 'markdown') {
       setEditorMode('markdown');
-      setNotice('Cambia a Markdown para aplicar formato sobre seleccion');
+      setNotice('Toolbar de formato listo: selecciona texto en Markdown y vuelve a pulsar la accion.');
       return;
     }
 
@@ -212,6 +216,7 @@ export function EditorPage() {
     };
     const replacement = replacements[format];
     setMarkdown(`${markdown.slice(0, start)}${replacement}${markdown.slice(end)}`);
+    setNotice(selected ? 'Formato aplicado a la seleccion Markdown' : 'Formato insertado en Markdown');
     window.requestAnimationFrame(() => {
       textarea.focus();
       textarea.setSelectionRange(start, start + replacement.length);
@@ -447,14 +452,23 @@ export function EditorPage() {
             <div className="document-panel">
               <SectionHeader icon={<List size={14} />} title="Resumen Profesional" />
               <div className="format-toolbar" aria-label="Herramientas de formato">
-                <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('bold')} aria-label="Negrita"><Bold size={14} /></button>
-                <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('italic')} aria-label="Cursiva"><Italic size={14} /></button>
-                <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('underline')} aria-label="Subrayado"><Underline size={14} /></button>
-                <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('link')} aria-label="Enlace"><Link size={14} /></button>
-                <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('list')} aria-label="Lista"><List size={14} /></button>
-                <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('ordered')} aria-label="Lista numerada"><ListOrdered size={14} /></button>
-                <button className="tool-icon" type="button" onClick={handleExampleLoad} aria-label="Cargar ejemplo"><MoreHorizontal size={14} /></button>
-                <button className="tool-icon" type="button" onClick={() => fileInputRef.current?.click()} aria-label="Importar Markdown"><FileInput size={14} /></button>
+                <div className="format-toolbar-actions">
+                  <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('bold')} disabled={!formattingInMarkdown} title={toolbarHelp} aria-label="Negrita Markdown"><Bold size={14} /></button>
+                  <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('italic')} disabled={!formattingInMarkdown} title={toolbarHelp} aria-label="Cursiva Markdown"><Italic size={14} /></button>
+                  <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('underline')} disabled={!formattingInMarkdown} title={toolbarHelp} aria-label="Subrayado Markdown"><Underline size={14} /></button>
+                  <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('link')} disabled={!formattingInMarkdown} title={toolbarHelp} aria-label="Enlace Markdown"><Link size={14} /></button>
+                  <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('list')} disabled={!formattingInMarkdown} title={toolbarHelp} aria-label="Lista Markdown"><List size={14} /></button>
+                  <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('ordered')} disabled={!formattingInMarkdown} title={toolbarHelp} aria-label="Lista numerada Markdown"><ListOrdered size={14} /></button>
+                  <span className="format-toolbar-divider" aria-hidden="true" />
+                  <button className="tool-icon" type="button" onClick={handleExampleLoad} aria-label="Cargar ejemplo"><MoreHorizontal size={14} /></button>
+                  <button className="tool-icon" type="button" onClick={() => fileInputRef.current?.click()} aria-label="Importar Markdown"><FileInput size={14} /></button>
+                </div>
+                <div className="format-toolbar-note">
+                  <span>{toolbarHelp}</span>
+                  {!formattingInMarkdown ? (
+                    <button type="button" onClick={() => setEditorMode('markdown')}>Cambiar a Markdown</button>
+                  ) : null}
+                </div>
               </div>
               <input ref={fileInputRef} hidden type="file" accept=".md,text/markdown,text/plain" onChange={(event) => handleFileImport(event.target.files?.[0])} />
               <div

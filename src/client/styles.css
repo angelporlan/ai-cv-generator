@@ -225,11 +225,27 @@
   }
 
   .format-toolbar {
-    @apply flex h-9 items-center gap-1 border-b border-white/10 px-3;
+    @apply flex min-h-10 flex-col gap-2 border-b border-white/10 px-3 py-2 md:flex-row md:items-center md:justify-between;
+  }
+
+  .format-toolbar-actions {
+    @apply flex flex-wrap items-center gap-1;
+  }
+
+  .format-toolbar-divider {
+    @apply mx-1 hidden h-5 w-px bg-white/10 sm:inline-block;
+  }
+
+  .format-toolbar-note {
+    @apply flex min-w-0 flex-wrap items-center gap-2 text-[11px] leading-4 text-slate-400;
+  }
+
+  .format-toolbar-note button {
+    @apply cursor-pointer rounded-md border border-cyan-300/30 bg-cyan-400/10 px-2 py-1 font-semibold text-cyan-100 transition hover:border-cyan-300/60 hover:bg-cyan-400/20;
   }
 
   .tool-icon {
-    @apply inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-white/10 hover:text-white;
+    @apply inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-400;
   }
 
   .drag-handle {
