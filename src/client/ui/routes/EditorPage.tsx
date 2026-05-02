@@ -356,10 +356,6 @@ export function EditorPage() {
               <ChevronLeft size={14} className={navCollapsed ? 'rotate-180 transition-transform' : 'transition-transform'} />
               {navCollapsed ? 'Mostrar nav' : 'Ocultar nav'}
             </button>
-            <button className="studio-button ghost" type="button" onClick={() => setSuggestionsOpen(!suggestionsOpen)}>
-              <Palette size={14} />
-              {suggestionsOpen ? 'Ocultar diseño' : 'Mostrar diseño'}
-            </button>
             <select className="studio-select" value={contentTemplate} onChange={(event) => handleTemplateChange(event.target.value)} aria-label="Plantilla de contenido">
               {contentTemplates.map((template) => <option value={template.value} key={template.value}>{template.label}</option>)}
             </select>
@@ -468,7 +464,16 @@ export function EditorPage() {
           ) : null}
 
           <aside className="preview-column">
-            <CvPreview markdown={markdown} design={design} />
+            <div className="preview-header">
+              <div className="preview-label">Preview</div>
+              {!suggestionsOpen ? (
+                <button className="preview-reopen-button" type="button" onClick={() => setSuggestionsOpen(true)} aria-label="Abrir Design Suggestions">
+                  <Palette size={14} />
+                  Abrir diseño
+                </button>
+              ) : null}
+            </div>
+            <CvPreview markdown={markdown} design={design} showLabel={false} />
           </aside>
         </div>
       </section>
@@ -828,7 +833,7 @@ function EditableSection({ sectionId, sectionRefs, title, value, canMoveUp, canM
   );
 }
 
-function CvPreview({ markdown, design, compact = false }: { markdown: string; design: DesignSettings; compact?: boolean }) {
+function CvPreview({ markdown, design, compact = false, showLabel = true }: { markdown: string; design: DesignSettings; compact?: boolean; showLabel?: boolean }) {
   const [url, setUrl] = useState('');
   const [zoom, setZoom] = useState(1);
   const [page, setPage] = useState(1);
@@ -876,7 +881,7 @@ function CvPreview({ markdown, design, compact = false }: { markdown: string; de
 
   return (
     <div className={`preview-shell ${compact ? 'is-compact' : ''}`}>
-      <div className="preview-label">Preview</div>
+      {showLabel ? <div className="preview-label">Preview</div> : null}
       <div className="preview-page pdf-frame-wrap" style={{ borderTopColor: design.accentColor }}>
         {url ? (
           <iframe
