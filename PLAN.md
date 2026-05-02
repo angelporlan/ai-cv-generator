@@ -38,7 +38,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [x] Miniaturas de diseño solo muestran 4 plantillas; falta `swiss`.
 - [x] Panel de diseño tiene acción visible de “Personalizar” y abre `Design Suggestions` en la pestaña correcta.
 - [x] El editor visual React conserva contactos, `###`, separadores, bloques entry/list/paragraph y roundtrip markdown.
-- [ ] El editor visual no soporta colapsar secciones, auto-resize cómodo ni drag & drop.
+- [x] El editor visual soporta colapsar secciones, auto-resize comodo y drag & drop.
 - [ ] El toolbar de formato solo funciona parcialmente y no comunica bien cuándo aplica a Markdown.
 - [ ] La carga de ejemplos falla si no existe `*-example.md`; necesita fallback y aviso claro.
 - [ ] Preview PDF puede quedar con scroll interno raro y controles de página sin validar páginas reales.

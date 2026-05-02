@@ -232,6 +232,10 @@
     @apply inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-white/10 hover:text-white;
   }
 
+  .drag-handle {
+    @apply inline-flex h-7 w-7 cursor-grab items-center justify-center rounded-md text-slate-500 transition hover:bg-white/10 hover:text-slate-200 active:cursor-grabbing;
+  }
+
   .tool-mini-button {
     @apply inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 text-[11px] font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white;
   }
@@ -252,12 +256,25 @@
     @apply m-4 scroll-mt-24 overflow-hidden rounded-md border border-white/10 bg-[#111d2c];
   }
 
+  .editable-section.is-collapsed {
+    @apply border-white/5 bg-[#101a28]/80;
+  }
+
+  .editable-section.is-dragging,
+  .visual-block-card.is-dragging {
+    @apply border-cyan-300/60 opacity-60 ring-2 ring-cyan-300/20;
+  }
+
+  .visual-block-card {
+    @apply rounded-md border border-white/10 bg-[#0f1a28] p-3 transition;
+  }
+
   .section-title-input {
     @apply w-full border-b border-white/10 bg-transparent px-4 py-3 text-sm font-semibold text-white outline-none focus:bg-white/5;
   }
 
   .section-body-input {
-    @apply min-h-32 w-full resize-y bg-transparent px-4 py-3 text-xs leading-5 text-slate-200 outline-none focus:bg-white/5;
+    @apply min-h-32 w-full resize-y overflow-hidden bg-transparent px-4 py-3 text-xs leading-5 text-slate-200 outline-none focus:bg-white/5;
   }
 
   .preview-column {

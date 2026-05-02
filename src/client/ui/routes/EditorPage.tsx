@@ -13,6 +13,7 @@ import {
   FileDown,
   FileInput,
   FileText,
+  GripVertical,
   Italic,
   LayoutTemplate,
   Library,
@@ -32,7 +33,7 @@ import {
   X,
   ZoomIn
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject, type TextareaHTMLAttributes } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, api, type CvStatus, type CvSummary } from '../../api/client';
 import { getUsageCopy } from '../../domain/aiActions';
@@ -575,11 +576,17 @@ export function EditorPage() {
   );
 }
 
-function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+function SectionHeader({ icon, title, collapsed = false, onToggle }: { icon: React.ReactNode; title: string; collapsed?: boolean; onToggle?: () => void }) {
   return (
     <div className="section-header">
       <div className="flex items-center gap-2">{icon}<span>{title}</span></div>
-      <ChevronDown size={14} />
+      {onToggle ? (
+        <button className="tool-icon" type="button" onClick={onToggle} aria-expanded={!collapsed} aria-label={collapsed ? 'Expandir seccion' : 'Colapsar seccion'}>
+          <ChevronDown className={collapsed ? '-rotate-90 transition-transform' : 'transition-transform'} size={14} />
+        </button>
+      ) : (
+        <ChevronDown size={14} />
+      )}
     </div>
   );
 }
@@ -713,6 +720,9 @@ function VisualEditor({
   sectionRefs: MutableRefObject<Record<string, HTMLElement | null>>;
 }) {
   const parsed = useMemo(() => parseVisualStateFromMarkdown(markdown), [markdown]);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => new Set());
+  const [draggedSectionIndex, setDraggedSectionIndex] = useState<number | null>(null);
+  const [draggedBlock, setDraggedBlock] = useState<{ sectionIndex: number; blockIndex: number } | null>(null);
   const update = (next: VisualCvState) => onChange(serializeVisualStateToMarkdown(next));
   const updateSection = (sectionIndex: number, patch: Partial<VisualCvState['sections'][number]>) => {
     update({
@@ -726,6 +736,13 @@ function VisualEditor({
     const sections = [...parsed.sections];
     const [section] = sections.splice(sectionIndex, 1);
     sections.splice(target, 0, section);
+    update({ ...parsed, sections });
+  };
+  const moveSectionTo = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= parsed.sections.length) return;
+    const sections = [...parsed.sections];
+    const [section] = sections.splice(fromIndex, 1);
+    sections.splice(toIndex, 0, section);
     update({ ...parsed, sections });
   };
   const updateBlock = (sectionIndex: number, blockIndex: number, patch: Partial<VisualBlock>) => {
@@ -750,6 +767,43 @@ function VisualEditor({
     blocks.splice(target, 0, block);
     updateSection(sectionIndex, { blocks });
   };
+  const moveBlockTo = (sectionIndex: number, fromIndex: number, toIndex: number) => {
+    const section = parsed.sections[sectionIndex];
+    if (!section || fromIndex === toIndex || toIndex < 0 || toIndex >= section.blocks.length) return;
+    const blocks = [...section.blocks];
+    const [block] = blocks.splice(fromIndex, 1);
+    blocks.splice(toIndex, 0, block);
+    updateSection(sectionIndex, { blocks });
+  };
+  const toggleCollapsedSection = (sectionId: string) => {
+    setCollapsedSections((current) => {
+      const next = new Set(current);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  };
+  const isCollapsed = (sectionId: string) => collapsedSections.has(sectionId);
+  const handleSectionDragOver = (event: DragEvent<HTMLElement>) => {
+    if (draggedSectionIndex === null) return;
+    event.preventDefault();
+  };
+  const handleSectionDrop = (event: DragEvent<HTMLElement>, sectionIndex: number) => {
+    event.preventDefault();
+    if (draggedSectionIndex === null) return;
+    moveSectionTo(draggedSectionIndex, sectionIndex);
+    setDraggedSectionIndex(null);
+  };
+  const handleBlockDragOver = (event: DragEvent<HTMLElement>) => {
+    if (!draggedBlock) return;
+    event.preventDefault();
+  };
+  const handleBlockDrop = (event: DragEvent<HTMLElement>, sectionIndex: number, blockIndex: number) => {
+    event.preventDefault();
+    if (!draggedBlock || draggedBlock.sectionIndex !== sectionIndex) return;
+    moveBlockTo(sectionIndex, draggedBlock.blockIndex, blockIndex);
+    setDraggedBlock(null);
+  };
   const addContact = () => {
     update({ ...parsed, contacts: [...parsed.contacts, { label: '', value: '' }] });
   };
@@ -773,21 +827,26 @@ function VisualEditor({
   return (
     <div className="space-y-4">
       <div
-        className="editable-section"
+        className={`editable-section ${isCollapsed('profile') ? 'is-collapsed' : ''}`}
         data-section-id="profile"
         ref={(element) => {
           sectionRefs.current.profile = element;
         }}
       >
-        <SectionHeader icon={<FileText size={14} />} title="Identidad" />
-        <div className="space-y-4 p-4">
+        <SectionHeader
+          icon={<FileText size={14} />}
+          title="Identidad"
+          collapsed={isCollapsed('profile')}
+          onToggle={() => toggleCollapsedSection('profile')}
+        />
+        {!isCollapsed('profile') ? <div className="space-y-4 p-4">
           <label className="block">
             <span className="dark-label">Nombre principal</span>
             <input className="section-title-input mt-1" value={parsed.title} onChange={(event) => update({ ...parsed, title: event.target.value })} aria-label="Nombre principal" />
           </label>
           <label className="block">
             <span className="dark-label">Resumen o introduccion</span>
-            <textarea className="section-body-input mt-1 min-h-24" value={parsed.intro} onChange={(event) => update({ ...parsed, intro: event.target.value })} aria-label="Resumen o introduccion" />
+            <AutoResizeTextarea className="section-body-input mt-1 min-h-24" value={parsed.intro} onChange={(event) => update({ ...parsed, intro: event.target.value })} aria-label="Resumen o introduccion" />
           </label>
           <div>
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -832,29 +891,48 @@ function VisualEditor({
               {!parsed.contacts.length ? <p className="text-xs text-slate-400">Puedes añadir email, enlaces o telefono como contactos editables.</p> : null}
             </div>
           </div>
-        </div>
+        </div> : null}
       </div>
       {parsed.sections.map((section, sectionIndex) => (
         <div
-          className="editable-section"
+          className={`editable-section ${isCollapsed(`section-${sectionIndex}`) ? 'is-collapsed' : ''} ${draggedSectionIndex === sectionIndex ? 'is-dragging' : ''}`}
           data-section-id={`section-${sectionIndex}`}
           key={`${section.title}-${sectionIndex}`}
           ref={(element) => {
             sectionRefs.current[`section-${sectionIndex}`] = element;
           }}
+          onDragOver={handleSectionDragOver}
+          onDrop={(event) => handleSectionDrop(event, sectionIndex)}
         >
           <div className="section-header">
             <div className="flex min-w-0 items-center gap-2">
+              <button
+                className="drag-handle"
+                type="button"
+                draggable
+                onDragStart={(event) => {
+                  setDraggedSectionIndex(sectionIndex);
+                  event.dataTransfer.effectAllowed = 'move';
+                  event.dataTransfer.setData('text/plain', `section-${sectionIndex}`);
+                }}
+                onDragEnd={() => setDraggedSectionIndex(null)}
+                aria-label="Arrastrar seccion"
+              >
+                <GripVertical size={14} />
+              </button>
               <FileText size={14} />
               <span className="truncate">{section.title || 'Seccion sin titulo'}</span>
             </div>
             <div className="flex items-center gap-1">
+              <button className="tool-icon" type="button" onClick={() => toggleCollapsedSection(`section-${sectionIndex}`)} aria-expanded={!isCollapsed(`section-${sectionIndex}`)} aria-label={isCollapsed(`section-${sectionIndex}`) ? 'Expandir seccion' : 'Colapsar seccion'}>
+                <ChevronDown className={isCollapsed(`section-${sectionIndex}`) ? '-rotate-90 transition-transform' : 'transition-transform'} size={13} />
+              </button>
               <button className="tool-icon" type="button" onClick={() => moveSection(sectionIndex, -1)} disabled={sectionIndex === 0} aria-label="Subir seccion"><ArrowUp size={13} /></button>
               <button className="tool-icon" type="button" onClick={() => moveSection(sectionIndex, 1)} disabled={sectionIndex === parsed.sections.length - 1} aria-label="Bajar seccion"><ArrowDown size={13} /></button>
               <button className="tool-icon" type="button" onClick={() => update({ ...parsed, sections: parsed.sections.filter((_, index) => index !== sectionIndex) })} aria-label="Eliminar seccion"><Trash2 size={13} /></button>
             </div>
           </div>
-          <div className="space-y-4 p-4">
+          {!isCollapsed(`section-${sectionIndex}`) ? <div className="space-y-4 p-4">
             <label className="block">
               <span className="dark-label">Titulo de seccion</span>
               <input className="section-title-input mt-1" value={section.title} onChange={(event) => updateSection(sectionIndex, { title: event.target.value })} aria-label="Titulo de seccion" />
@@ -873,13 +951,18 @@ function VisualEditor({
                   onChange={(patch) => updateBlock(sectionIndex, blockIndex, patch)}
                   onRemove={() => updateSection(sectionIndex, { blocks: section.blocks.filter((_, index) => index !== blockIndex) })}
                   onMove={(direction) => moveBlock(sectionIndex, blockIndex, direction)}
+                  onDragStart={() => setDraggedBlock({ sectionIndex, blockIndex })}
+                  onDragEnd={() => setDraggedBlock(null)}
+                  onDragOver={handleBlockDragOver}
+                  onDrop={(event) => handleBlockDrop(event, sectionIndex, blockIndex)}
                   canMoveUp={blockIndex > 0}
                   canMoveDown={blockIndex < section.blocks.length - 1}
+                  dragging={draggedBlock?.sectionIndex === sectionIndex && draggedBlock.blockIndex === blockIndex}
                 />
               ))}
               {!section.blocks.length ? <p className="text-xs text-slate-400">Anade una entrada, lista o párrafo para esta sección.</p> : null}
             </div>
-          </div>
+          </div> : null}
         </div>
       ))}
       <button
@@ -893,7 +976,7 @@ function VisualEditor({
   );
 }
 
-function VisualBlockEditor({ block, blockIndex, canMoveUp, canMoveDown, onChange, onRemove, onMove }: {
+function VisualBlockEditor({ block, blockIndex, canMoveUp, canMoveDown, onChange, onRemove, onMove, onDragStart, onDragEnd, onDragOver, onDrop, dragging }: {
   block: VisualBlock;
   blockIndex: number;
   canMoveUp: boolean;
@@ -901,12 +984,40 @@ function VisualBlockEditor({ block, blockIndex, canMoveUp, canMoveDown, onChange
   onChange: (patch: Partial<VisualBlock>) => void;
   onRemove: () => void;
   onMove: (direction: -1 | 1) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: (event: DragEvent<HTMLElement>) => void;
+  onDrop: (event: DragEvent<HTMLElement>) => void;
+  dragging: boolean;
 }) {
+  const blockRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    blockRef.current?.querySelectorAll('textarea').forEach((textarea) => {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
+  }, [block]);
+
   return (
-    <div className="rounded-md border border-white/10 bg-[#0f1a28] p-3">
+    <div ref={blockRef} className={`visual-block-card ${dragging ? 'is-dragging' : ''}`} onDragOver={onDragOver} onDrop={onDrop}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
           <span>{block.type === 'entry' ? 'Entrada' : block.type === 'list' ? 'Lista' : 'Párrafo'}</span>
+          <button
+            className="drag-handle"
+            type="button"
+            draggable
+            onDragStart={(event) => {
+              onDragStart();
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', `block-${blockIndex}`);
+            }}
+            onDragEnd={onDragEnd}
+            aria-label="Arrastrar bloque"
+          >
+            <GripVertical size={14} />
+          </button>
           <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-300">Bloque {blockIndex + 1}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -922,18 +1033,31 @@ function VisualBlockEditor({ block, blockIndex, canMoveUp, canMoveDown, onChange
             <input className="section-body-input min-h-0 py-2" value={block.role} onChange={(event) => onChange({ role: event.target.value })} aria-label="Rol de entrada" placeholder="Rol" />
             <input className="section-body-input min-h-0 py-2" value={block.date} onChange={(event) => onChange({ date: event.target.value })} aria-label="Fecha de entrada" placeholder="Fecha" />
           </div>
-          <textarea className="section-body-input min-h-24" value={block.summary} onChange={(event) => onChange({ summary: event.target.value })} aria-label="Resumen de entrada" placeholder="Resumen breve" />
-          <textarea className="section-body-input min-h-24" value={block.bullets} onChange={(event) => onChange({ bullets: event.target.value })} aria-label="Logros de entrada" placeholder="Logros, uno por linea" />
+          <AutoResizeTextarea className="section-body-input min-h-24" value={block.summary} onChange={(event) => onChange({ summary: event.target.value })} aria-label="Resumen de entrada" placeholder="Resumen breve" />
+          <AutoResizeTextarea className="section-body-input min-h-24" value={block.bullets} onChange={(event) => onChange({ bullets: event.target.value })} aria-label="Logros de entrada" placeholder="Logros, uno por linea" />
         </div>
       ) : null}
       {block.type === 'list' ? (
-        <textarea className="section-body-input min-h-24" value={block.items} onChange={(event) => onChange({ items: event.target.value })} aria-label="Lista" placeholder="Elemento por linea" />
+        <AutoResizeTextarea className="section-body-input min-h-24" value={block.items} onChange={(event) => onChange({ items: event.target.value })} aria-label="Lista" placeholder="Elemento por linea" />
       ) : null}
       {block.type === 'paragraph' ? (
         <textarea className="section-body-input min-h-24" value={block.text} onChange={(event) => onChange({ text: event.target.value })} aria-label="Parrafo" placeholder="Texto del párrafo" />
       ) : null}
     </div>
   );
+}
+
+function AutoResizeTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [props.value]);
+
+  return <textarea {...props} ref={textareaRef} rows={1} />;
 }
 
 function CvPreview({ markdown, design, compact = false, showLabel = true }: { markdown: string; design: DesignSettings; compact?: boolean; showLabel?: boolean }) {
