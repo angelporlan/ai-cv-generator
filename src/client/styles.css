@@ -90,11 +90,297 @@
   .card-button {
     @apply cursor-pointer rounded-xl border border-line bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-calm;
   }
+
+  .editor-shell {
+    @apply -m-4 grid min-h-[calc(100vh-4rem)] bg-[#0c1522] text-slate-200 lg:grid-cols-[220px_minmax(760px,1fr)_210px];
+  }
+
+  .editor-nav {
+    @apply hidden border-r border-white/10 bg-[#111d2c] lg:block;
+  }
+
+  .editor-nav-item {
+    @apply flex h-10 w-full cursor-pointer items-center justify-between rounded-md px-3 text-left text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white;
+  }
+
+  .editor-nav-item.is-active {
+    @apply bg-white/10 text-white;
+  }
+
+  .editor-board {
+    @apply min-w-0 border-r border-white/10 bg-[#0f1a28];
+  }
+
+  .studio-topbar {
+    @apply sticky top-16 z-20 flex min-h-14 flex-col gap-3 border-b border-white/10 bg-[#132133]/95 px-4 py-2 backdrop-blur xl:flex-row xl:items-center xl:justify-between;
+  }
+
+  .studio-title-input {
+    @apply w-full min-w-0 bg-transparent text-sm font-semibold text-white outline-none;
+  }
+
+  .studio-select {
+    @apply h-8 rounded-md border border-white/10 bg-[#0e1825] px-2 text-xs font-medium text-slate-200 outline-none transition focus:border-cyan-400;
+  }
+
+  .studio-button {
+    @apply inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .studio-button.ghost {
+    @apply border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white;
+  }
+
+  .studio-button.primary {
+    @apply border border-cyan-300/50 bg-cyan-400 text-slate-950 hover:bg-cyan-300;
+  }
+
+  .mode-toggle {
+    @apply inline-flex h-8 rounded-md border border-white/10 bg-white/5 p-0.5;
+  }
+
+  .mode-toggle button {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded px-2 text-xs font-semibold text-slate-400 transition hover:text-white;
+  }
+
+  .mode-toggle button.is-active {
+    @apply bg-cyan-400 text-slate-950;
+  }
+
+  .download-menu {
+    @apply absolute right-0 top-10 z-30 w-44 overflow-hidden rounded-md border border-white/10 bg-[#172638] py-1 shadow-2xl;
+  }
+
+  .download-menu button {
+    @apply flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left text-xs font-medium text-slate-200 transition hover:bg-white/10;
+  }
+
+  .editor-canvas {
+    @apply grid min-h-[calc(100vh-7.5rem)] gap-0 xl:grid-cols-[minmax(480px,1fr)_430px];
+  }
+
+  .editor-canvas.has-reference {
+    @apply xl:grid-cols-[minmax(420px,1fr)_minmax(300px,360px)_430px];
+  }
+
+  .editor-column {
+    @apply min-w-0 overflow-auto p-4;
+  }
+
+  .document-panel {
+    @apply mx-auto max-w-3xl rounded-md border border-white/10 bg-[#172436] shadow-2xl shadow-black/20;
+  }
+
+  .section-header {
+    @apply flex h-11 items-center justify-between border-b border-white/10 bg-white/5 px-4 text-sm font-medium text-slate-200;
+  }
+
+  .format-toolbar {
+    @apply flex h-9 items-center gap-1 border-b border-white/10 px-3;
+  }
+
+  .tool-icon {
+    @apply inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-white/10 hover:text-white;
+  }
+
+  .contact-block {
+    @apply border-b border-white/10 px-4 py-3 font-mono text-[11px] leading-5 text-slate-300;
+  }
+
+  .studio-textarea {
+    @apply min-h-[640px] w-full resize-y border-0 bg-transparent p-4 font-mono text-xs leading-5 text-slate-100 outline-none placeholder:text-slate-500;
+  }
+
+  .editor-stats {
+    @apply flex flex-wrap items-center gap-3 border-t border-white/10 px-4 py-2 text-[11px] font-medium text-slate-400;
+  }
+
+  .editable-section {
+    @apply m-4 overflow-hidden rounded-md border border-white/10 bg-[#111d2c];
+  }
+
+  .section-title-input {
+    @apply w-full border-b border-white/10 bg-transparent px-4 py-3 text-sm font-semibold text-white outline-none focus:bg-white/5;
+  }
+
+  .section-body-input {
+    @apply min-h-32 w-full resize-y bg-transparent px-4 py-3 text-xs leading-5 text-slate-200 outline-none focus:bg-white/5;
+  }
+
+  .preview-column {
+    @apply hidden min-w-0 border-l border-white/10 bg-[#09111d] p-4 xl:block;
+  }
+
+  .reference-column {
+    @apply min-w-0 border-l border-white/10 bg-[#0b1420] xl:block;
+  }
+
+  .reference-head {
+    @apply flex items-start justify-between gap-3 border-b border-white/10 p-3;
+  }
+
+  .reference-textarea {
+    @apply mt-3 h-[calc(100vh-15rem)] w-full resize-none border-0 bg-transparent p-3 font-mono text-xs leading-5 text-slate-200 outline-none;
+  }
+
+  .reference-visual {
+    @apply p-3;
+  }
+
+  .preview-shell {
+    @apply sticky top-[8.5rem] mx-auto flex max-w-[390px] flex-col items-center;
+  }
+
+  .preview-label {
+    @apply mb-4 self-start rounded-md bg-[#162337] px-3 py-2 text-xs font-bold text-white;
+  }
+
+  .preview-page {
+    @apply aspect-[0.707/1] w-full overflow-hidden border-t-4 bg-[#fffaf0] p-8 text-[#171717] shadow-2xl shadow-black/40;
+  }
+
+  .pdf-frame-wrap {
+    @apply p-0;
+  }
+
+  .pdf-frame {
+    @apply h-full w-full border-0 bg-white;
+  }
+
+  .preview-shell.is-compact {
+    @apply sticky top-0 max-w-none;
+  }
+
+  .preview-shell.is-compact .preview-label {
+    @apply hidden;
+  }
+
+  .preview-shell.is-compact .preview-page {
+    @apply shadow-none;
+  }
+
+  .preview-page h1 {
+    @apply text-center text-xl font-bold tracking-normal;
+  }
+
+  .preview-subtitle {
+    @apply mt-2 text-center text-[9px] leading-4 text-slate-700;
+  }
+
+  .preview-page h2 {
+    @apply border-b border-slate-300 pb-1 text-[9px] font-bold uppercase tracking-normal;
+  }
+
+  .preview-page ul {
+    @apply mt-1 space-y-1 text-[8px] leading-3 text-slate-800;
+  }
+
+  .preview-page li {
+    @apply truncate;
+  }
+
+  .preview-controls {
+    @apply mt-4 flex w-full items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300;
+  }
+
+  .preview-controls button {
+    @apply inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white;
+  }
+
+  .suggestions-panel {
+    @apply hidden min-w-0 overflow-y-auto bg-[#111d2c] lg:block;
+  }
+
+  .suggestion-list {
+    @apply space-y-3 p-4;
+  }
+
+  .suggestion-thumb {
+    @apply block w-full cursor-pointer rounded-md border border-white/10 bg-white/5 p-2 transition hover:border-cyan-300/70;
+  }
+
+  .suggestion-thumb.is-active {
+    @apply border-cyan-300 shadow-[0_0_0_1px_rgba(103,232,249,0.45)];
+  }
+
+  .thumb-card {
+    @apply mx-auto aspect-[0.707/1] w-full max-w-[120px] rounded-sm bg-white p-3 shadow-lg;
+  }
+
+  .thumb-card.theme-1 {
+    @apply bg-slate-100;
+  }
+
+  .thumb-card.theme-2 {
+    @apply bg-[#eef6fb];
+  }
+
+  .thumb-card.theme-3 {
+    @apply bg-[#f7eadf];
+  }
+
+  .thumb-title {
+    @apply mx-auto mb-3 h-2 w-16 rounded-sm bg-slate-800;
+  }
+
+  .thumb-line {
+    @apply mb-2 h-1.5 w-14 rounded-sm bg-slate-300;
+  }
+
+  .thumb-line.wide {
+    @apply w-full;
+  }
+
+  .thumb-block {
+    @apply mb-2 h-10 rounded-sm bg-slate-200;
+  }
+
+  .suggestion-tabs {
+    @apply grid grid-cols-3 rounded-md border border-white/10 bg-white/5 p-1;
+  }
+
+  .suggestion-tabs button {
+    @apply cursor-pointer rounded px-2 py-1.5 text-xs font-semibold text-slate-400 transition hover:text-white;
+  }
+
+  .suggestion-tabs button.is-active {
+    @apply bg-cyan-400 text-slate-950;
+  }
+
+  .dark-label {
+    @apply text-xs font-semibold uppercase tracking-normal text-slate-400;
+  }
+
+  .dark-field {
+    @apply h-9 w-full rounded-md border border-white/10 bg-[#0e1825] px-3 text-xs text-slate-100 outline-none transition focus:border-cyan-400;
+  }
+
+  .side-action-dark {
+    @apply flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 text-left text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white;
+  }
+
+  .side-action-dark svg:last-child {
+    @apply ml-auto;
+  }
 }
 
 @media (max-width: 640px) {
   .panel {
     border-radius: 8px;
     padding: 12px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .editor-shell {
+    @apply block;
+  }
+
+  .editor-canvas {
+    @apply block;
+  }
+
+  .studio-topbar {
+    top: 4rem;
   }
 }
