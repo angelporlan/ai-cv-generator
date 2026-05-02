@@ -336,7 +336,7 @@ export function EditorPage() {
     >
       {!navCollapsed ? (
         <aside className="editor-nav">
-          <h2 className="px-4 pt-4 text-sm font-semibold text-white">Section Navigator</h2>
+          <h2 className="px-4 pt-4 text-sm font-semibold text-slate-900 dark:text-white">Section Navigator</h2>
           <div className="mt-4 space-y-1 px-2">
             {navigatorItems.map((item) => (
               <button
@@ -347,7 +347,7 @@ export function EditorPage() {
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate">{item.label}</span>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-slate-300">{item.count}</span>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">{item.count}</span>
                 </span>
                 <ChevronDown size={13} />
               </button>
@@ -365,7 +365,7 @@ export function EditorPage() {
               onChange={(event) => setSaveName(event.target.value)}
               aria-label="Nombre del CV"
             />
-            <p className="mt-1 text-xs text-slate-400">{notice || (authenticated ? 'Borrador local cargado' : 'Editando en local')}</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{notice || (authenticated ? 'Borrador local cargado' : 'Editando en local')}</p>
           </div>
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             <button className="studio-button ghost" type="button" onClick={() => setNavCollapsed((value) => !value)}>
@@ -421,14 +421,14 @@ export function EditorPage() {
         </div>
 
         {!authenticated ? (
-          <div className="mx-4 mt-4 rounded-md border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50">
+          <div className="mx-4 mt-4 rounded-md border border-cyan-300 bg-cyan-50 px-4 py-3 text-sm text-cyan-950 dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-50">
             Puedes editar en local. Entra para guardar biblioteca, descargar PDF y usar IA.
           </div>
         ) : null}
 
         <div className="mobile-section-nav lg:hidden">
           <div className="mobile-section-nav-head">
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Secciones</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Secciones</span>
             <span className="text-xs text-slate-500">{activeNavigator?.label || 'Sin secciones'}</span>
           </div>
           <div className="mobile-section-nav-scroll" role="tablist" aria-label="Navegacion de secciones">
@@ -530,14 +530,14 @@ export function EditorPage() {
 
       {suggestionsOpen ? (
         <aside className="suggestions-panel">
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <h2 className="text-sm font-semibold text-white">Design Suggestions</h2>
+          <div className="flex items-center justify-between border-b border-line px-4 py-3 dark:border-white/10">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Design Suggestions</h2>
             <button className="tool-icon" type="button" onClick={() => setSuggestionsOpen(false)} aria-label="Cerrar sugerencias">
               <X size={14} />
             </button>
           </div>
           <SuggestionThumbnails design={design} onChange={setDesign} />
-          <div className="border-t border-white/10 p-4">
+          <div className="border-t border-line p-4 dark:border-white/10">
             <div className="suggestion-tabs">
               {[
                 { value: 'design', label: 'Design' },
@@ -659,7 +659,7 @@ function AiArtifactsPanel({ artifacts, onApply, onClear }: {
 }) {
   if (!artifacts.length) {
     return (
-      <div className="mt-4 rounded-md border border-dashed border-white/15 bg-white/5 p-3 text-xs leading-5 text-slate-400">
+      <div className="mt-4 rounded-md border border-dashed border-line bg-slate-50 p-3 text-xs leading-5 text-slate-500 dark:border-white/15 dark:bg-white/5 dark:text-slate-400">
         Los resultados de IA apareceran aqui para recuperarlos durante la sesion.
       </div>
     );
@@ -668,16 +668,16 @@ function AiArtifactsPanel({ artifacts, onApply, onClear }: {
   return (
     <div className="mt-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">Artefactos IA</p>
-        <button className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white" type="button" onClick={onClear}>
+        <p className="text-sm font-semibold text-slate-900 dark:text-white">Artefactos IA</p>
+        <button className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white" type="button" onClick={onClear}>
           <Trash2 size={13} /> Limpiar
         </button>
       </div>
       {artifacts.slice(0, 4).map((artifact) => (
-        <div className="rounded-md border border-white/10 bg-white/5 p-3" key={artifact.id}>
-          <p className="text-sm font-semibold text-white">{artifact.title}</p>
-          <p className="mt-1 text-xs text-slate-400">{artifact.model}</p>
-          <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-300">{artifact.content}</p>
+        <div className="rounded-md border border-line bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5" key={artifact.id}>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">{artifact.title}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{artifact.model}</p>
+          <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600 dark:text-slate-300">{artifact.content}</p>
           <button className="studio-button ghost mt-3 h-8 text-xs" type="button" onClick={() => onApply(artifact.content)}>Aplicar</button>
         </div>
       ))}
@@ -712,7 +712,7 @@ function ReferencePane({ cvs, selectedId, markdown, mode, loading, onModeChange,
         <button className={mode === 'visual' ? 'is-active' : ''} type="button" onClick={() => onModeChange('visual')}>Visual</button>
       </div>
       {loading ? (
-        <div className="flex items-center gap-2 p-4 text-sm text-slate-400"><Loader2 className="animate-spin" size={15} /> Cargando referencia</div>
+        <div className="flex items-center gap-2 p-4 text-sm text-slate-500 dark:text-slate-400"><Loader2 className="animate-spin" size={15} /> Cargando referencia</div>
       ) : mode === 'markdown' ? (
         <textarea className="reference-textarea" value={markdown} readOnly aria-label="Markdown del CV de referencia" />
       ) : (
@@ -1032,7 +1032,7 @@ function VisualBlockEditor({ block, blockIndex, canMoveUp, canMoveDown, onChange
           >
             <GripVertical size={14} />
           </button>
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-300">Bloque {blockIndex + 1}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500 dark:bg-white/10 dark:text-slate-300">Bloque {blockIndex + 1}</span>
         </div>
         <div className="flex items-center gap-1">
           <button className="tool-icon" type="button" onClick={() => onMove(-1)} disabled={!canMoveUp} aria-label="Subir bloque"><ArrowUp size={13} /></button>
@@ -1190,7 +1190,7 @@ function DesignPanel({ design, onChange }: { design: DesignSettings; onChange: (
         <div className="mt-2 grid grid-cols-6 gap-2">
           {accentColors.map((color) => (
             <button
-              className={`h-8 cursor-pointer rounded-md border transition ${design.accentColor === color ? 'border-cyan-300 ring-2 ring-cyan-300/30' : 'border-white/15'}`}
+              className={`h-8 cursor-pointer rounded-md border transition ${design.accentColor === color ? 'border-brand ring-2 ring-blue-300/40 dark:border-cyan-300 dark:ring-cyan-300/30' : 'border-slate-300 dark:border-white/15'}`}
               key={color}
               type="button"
               aria-label={`Usar color ${color}`}
@@ -1199,9 +1199,9 @@ function DesignPanel({ design, onChange }: { design: DesignSettings; onChange: (
             />
           ))}
         </div>
-        <label className="mt-2 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2">
-          <Palette size={14} className="text-slate-400" />
-          <span className="text-xs text-slate-400">Color libre</span>
+        <label className="mt-2 flex items-center gap-2 rounded-md border border-line bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+          <Palette size={14} className="text-slate-500 dark:text-slate-400" />
+          <span className="text-xs text-slate-500 dark:text-slate-400">Color libre</span>
           <input className="ml-auto h-7 w-10 cursor-pointer border-0 bg-transparent" type="color" value={design.accentColor} onChange={(event) => onChange({ accentColor: event.target.value })} aria-label="Elegir color libre" />
         </label>
       </div>
@@ -1228,10 +1228,10 @@ function DesignPanel({ design, onChange }: { design: DesignSettings; onChange: (
         </label>
       </div>
 
-      <label className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 p-3">
+      <label className="flex items-center justify-between rounded-md border border-line bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
         <span>
-          <span className="block text-sm font-semibold text-white">Iconos de marca</span>
-          <span className="block text-xs text-slate-400">Se aplican al PDF cuando la plantilla los soporta.</span>
+          <span className="block text-sm font-semibold text-slate-900 dark:text-white">Iconos de marca</span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400">Se aplican al PDF cuando la plantilla los soporta.</span>
         </span>
         <input className="h-4 w-4" type="checkbox" checked={design.showIcons} onChange={(event) => onChange({ showIcons: event.target.checked })} />
       </label>
@@ -1243,21 +1243,21 @@ function QualityPanel({ markdown }: { markdown: string }) {
   const quality = useMemo(() => getDetailedQualitySignals(markdown), [markdown]);
   return (
     <div className="mt-4 space-y-3">
-      <div className="rounded-md border border-white/10 bg-white/5 p-4">
+      <div className="rounded-md border border-line bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
         <p className="dark-label">Score</p>
-        <div className="mt-1 flex items-end gap-2 text-white">
+        <div className="mt-1 flex items-end gap-2 text-slate-900 dark:text-white">
           <span className="text-3xl font-semibold">{quality.score}</span>
-          <span className="pb-1 text-sm text-slate-400">/ 100</span>
+          <span className="pb-1 text-sm text-slate-500 dark:text-slate-400">/ 100</span>
         </div>
       </div>
       {quality.checks.map((check) => (
-        <div className="flex items-center gap-3 rounded-md border border-white/10 bg-white/5 p-3" key={check.label}>
-          <span className={`flex h-7 w-7 items-center justify-center rounded-full ${check.passed ? 'bg-emerald-400/15 text-emerald-300' : 'bg-amber-400/15 text-amber-300'}`}>
+        <div className="flex items-center gap-3 rounded-md border border-line bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5" key={check.label}>
+          <span className={`flex h-7 w-7 items-center justify-center rounded-full ${check.passed ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300'}`}>
             {check.passed ? <Check size={15} /> : <AlertCircle size={15} />}
           </span>
           <span>
-            <span className="block text-sm font-medium text-slate-200">{check.label}</span>
-            <span className="block text-xs leading-5 text-slate-400">{check.description}</span>
+            <span className="block text-sm font-medium text-slate-800 dark:text-slate-200">{check.label}</span>
+            <span className="block text-xs leading-5 text-slate-500 dark:text-slate-400">{check.description}</span>
           </span>
         </div>
       ))}
@@ -1318,10 +1318,10 @@ function getDetailedQualitySignals(markdown: string) {
 }
 
 function SideMetric({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'neutral' | 'good' | 'warn' }) {
-  const toneClass = tone === 'good' ? 'text-emerald-300' : tone === 'warn' ? 'text-amber-300' : 'text-white';
+  const toneClass = tone === 'good' ? 'text-emerald-700 dark:text-emerald-300' : tone === 'warn' ? 'text-amber-700 dark:text-amber-300' : 'text-slate-900 dark:text-white';
   return (
-    <div className="rounded-md border border-white/10 bg-white/5 p-3">
-      <p className="text-xs font-medium text-slate-400">{label}</p>
+    <div className="rounded-md border border-line bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       <p className={`mt-1 text-sm font-semibold ${toneClass}`}>{value}</p>
     </div>
   );
