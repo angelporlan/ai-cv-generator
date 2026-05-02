@@ -45,7 +45,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [ ] La comparación de CV existe parcialmente, pero no tiene UX completa ni manejo cuando no hay CVs.
 - [ ] Falta resizer entre editor y preview que sí existía en legacy.
 - [ ] Falta guía interactiva/tour o sustituto React.
-- [ ] Falta dark mode global o decisión explícita de retirarlo.
+- [x] Falta dark mode global o decisión explícita de retirarlo.
 - [x] Falta sincronizaci�n de estado local con `/api/auth/state` tras login como hac�a el legacy.
 - [x] `/library` muestra acciones visibles por tarjeta y panel de detalle.
 - [x] `/library` permite editar metadata: nombre, estado, fecha, URL, descripci�n y plantilla.

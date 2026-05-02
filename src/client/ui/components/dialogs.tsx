@@ -34,9 +34,9 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Acceso a tu espacio" onClose={onClose}>
-      <div className="mb-4 grid grid-cols-2 rounded-lg border border-line bg-slate-50 p-1">
-        <button className={`rounded-md px-3 py-2 text-sm font-medium ${mode === 'login' ? 'bg-white shadow-sm' : 'text-slate-600'}`} type="button" onClick={() => setMode('login')}>Entrar</button>
-        <button className={`rounded-md px-3 py-2 text-sm font-medium ${mode === 'register' ? 'bg-white shadow-sm' : 'text-slate-600'}`} type="button" onClick={() => setMode('register')}>Crear cuenta</button>
+      <div className="mb-4 grid grid-cols-2 rounded-lg border border-line bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950">
+        <button className={`rounded-md px-3 py-2 text-sm font-medium ${mode === 'login' ? 'bg-white shadow-sm dark:bg-slate-800' : 'text-slate-600 dark:text-slate-400'}`} type="button" onClick={() => setMode('login')}>Entrar</button>
+        <button className={`rounded-md px-3 py-2 text-sm font-medium ${mode === 'register' ? 'bg-white shadow-sm dark:bg-slate-800' : 'text-slate-600 dark:text-slate-400'}`} type="button" onClick={() => setMode('register')}>Crear cuenta</button>
       </div>
       <form className="space-y-3" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
         <label className="block">
@@ -49,7 +49,7 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
           <input className="field mt-1" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} {...form.register('password')} />
           {form.formState.errors.password ? <span className="form-error">{form.formState.errors.password.message}</span> : null}
         </label>
-        {mutation.error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{getErrorMessage(mutation.error)}</div> : null}
+        {mutation.error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-200">{getErrorMessage(mutation.error)}</div> : null}
         <button className="button-primary w-full" type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Lock size={16} />}
           {mode === 'login' ? 'Entrar' : 'Crear cuenta'}
@@ -86,10 +86,10 @@ export function AccountDialog({ usage, authenticated, onClose, onLogin }: {
   return (
     <Modal title="Cuenta y plan" onClose={onClose}>
       <div className="space-y-3">
-        <div className="rounded-lg border border-line bg-slate-50 p-4">
+        <div className="rounded-lg border border-line bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
           <p className="eyebrow">Estado</p>
           <p className="mt-1 text-lg font-semibold">{authenticated ? usage?.billing?.isActive ? 'Plan Pro' : 'Plan gratis' : 'Sin sesion'}</p>
-          <p className="mt-1 text-sm text-slate-600">{getUsageCopy(usage)}</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{getUsageCopy(usage)}</p>
         </div>
         {!authenticated ? (
           <button className="button-primary w-full" type="button" onClick={() => { onClose(); onLogin(); }}>Entrar</button>
@@ -134,7 +134,7 @@ export function LinkedInDialog({ onApply, onClose }: { onApply: (markdown: strin
         <span className="label">Texto del perfil</span>
         <textarea className="field mt-1 min-h-52" value={text} onChange={(event) => setText(event.target.value)} placeholder="Pega aqui el texto de tu perfil..." />
       </label>
-      {mutation.error ? <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{getErrorMessage(mutation.error)}</div> : null}
+      {mutation.error ? <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-200">{getErrorMessage(mutation.error)}</div> : null}
       <button className="button-primary mt-4 w-full" type="button" disabled={!text.trim() || mutation.isPending} onClick={() => mutation.mutate()}>
         {mutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
         Procesar perfil

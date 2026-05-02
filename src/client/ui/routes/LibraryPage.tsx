@@ -203,7 +203,7 @@ export function LibraryPage() {
         <div className="min-w-0">
           <p className="eyebrow">Biblioteca</p>
           <h1 className="text-2xl font-semibold">CVs guardados</h1>
-          <p className="mt-1 text-sm text-slate-600">Gestiona versiones, metadata y el contenido activo de tus CVs desde un solo lugar.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Gestiona versiones, metadata y el contenido activo de tus CVs desde un solo lugar.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <label className="relative">
@@ -228,7 +228,7 @@ export function LibraryPage() {
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div>
             {notice ? (
-              <div className="mb-4 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-950">
+              <div className="mb-4 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-950 dark:border-cyan-900 dark:bg-cyan-950/50 dark:text-cyan-100">
                 {notice}
               </div>
             ) : null}
@@ -254,16 +254,16 @@ export function LibraryPage() {
             </div>
           </div>
 
-          <aside className="rounded-xl border border-line bg-slate-50 p-4 shadow-sm">
+          <aside className="rounded-xl border border-line bg-slate-50 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
             {selectedCv && draft ? (
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="eyebrow">Detalle</p>
                     <h2 className="truncate text-xl font-semibold">{selectedCv.name}</h2>
-                    <p className="mt-1 text-sm text-slate-600">{selectedCv.description || 'Sin descripcion'}</p>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{selectedCv.description || 'Sin descripcion'}</p>
                   </div>
-                  <span className="rounded-full border border-line bg-white px-3 py-1 text-xs text-slate-600">{statusLabels[selectedCv.status]}</span>
+                  <span className="rounded-full border border-line bg-white px-3 py-1 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{statusLabels[selectedCv.status]}</span>
                 </div>
 
                 <div className="grid gap-3">
@@ -284,10 +284,10 @@ export function LibraryPage() {
                   <label className="block">
                     <span className="label">URL de oferta</span>
                     <input className="field mt-1" value={draft.jobUrl} onChange={(event) => setDraft({ ...draft, jobUrl: event.target.value })} placeholder="https://..." />
-                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                       <ExternalLink size={13} className="shrink-0" />
                       {draft.jobUrl ? (
-                        <a className="truncate font-semibold text-slate-700 hover:text-ink" href={draft.jobUrl} target="_blank" rel="noreferrer">
+                        <a className="truncate font-semibold text-slate-700 hover:text-ink dark:text-slate-200 dark:hover:text-white" href={draft.jobUrl} target="_blank" rel="noreferrer">
                           {getJobSourceLabel(draft.jobUrl)}
                         </a>
                       ) : (
@@ -307,14 +307,14 @@ export function LibraryPage() {
                   </label>
                 </div>
 
-                <div className="space-y-2 rounded-lg border border-line bg-white p-3">
+                <div className="space-y-2 rounded-lg border border-line bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold">Contenido</p>
-                    <button className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-ink" type="button" onClick={() => loadCv.mutate(selectedCv.id)} disabled={loadCv.isPending}>
+                    <button className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-ink dark:text-slate-300 dark:hover:text-white" type="button" onClick={() => loadCv.mutate(selectedCv.id)} disabled={loadCv.isPending}>
                       <RefreshCcw size={13} /> Abrir en editor
                     </button>
                   </div>
-                    <p className="text-xs leading-5 text-slate-500 line-clamp-5">{currentContent || 'Sin contenido cargado'}</p>
+                    <p className="text-xs leading-5 text-slate-500 line-clamp-5 dark:text-slate-400">{currentContent || 'Sin contenido cargado'}</p>
                   </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -347,7 +347,7 @@ export function LibraryPage() {
               <div className="flex h-full min-h-[420px] items-center justify-center text-center">
                 <div className="max-w-sm">
                   <p className="text-lg font-semibold">Selecciona un CV</p>
-                  <p className="mt-2 text-sm text-slate-600">Abre una tarjeta para editar metadata, abrir el contenido o guardar una nueva versión.</p>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Abre una tarjeta para editar metadata, abrir el contenido o guardar una nueva versión.</p>
                 </div>
               </div>
             )}
@@ -361,7 +361,7 @@ export function LibraryPage() {
           onClose={() => setDeleteTarget(null)}
         >
           <div className="space-y-4">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               Vas a eliminar <strong>{deleteTarget.name}</strong>. Esta acción no se puede deshacer.
             </p>
             <div className="flex justify-end gap-2">
@@ -394,20 +394,20 @@ function LibraryCard({
   onDelete: () => void;
 }) {
   return (
-    <article className={`card-button flex h-full flex-col gap-4 text-left ${active ? 'border-slate-400 shadow-calm' : ''}`}>
+    <article className={`card-button flex h-full flex-col gap-4 text-left ${active ? 'border-slate-400 shadow-calm dark:border-cyan-400/60' : ''}`}>
       <button className="text-left" type="button" onClick={onSelect}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="truncate font-semibold">{cv.name}</h3>
-            <p className="mt-1 line-clamp-2 text-sm text-slate-600">{cv.description || 'Sin descripcion'}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{cv.description || 'Sin descripcion'}</p>
           </div>
-          <span className="rounded-full border border-line bg-slate-50 px-2 py-1 text-xs text-slate-600">{statusLabels[cv.status]}</span>
+          <span className="rounded-full border border-line bg-slate-50 px-2 py-1 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">{statusLabels[cv.status]}</span>
         </div>
-        <div className="mt-4 grid gap-2 text-xs text-slate-500">
+        <div className="mt-4 grid gap-2 text-xs text-slate-500 dark:text-slate-400">
           <p className="flex items-center gap-2">
             <ExternalLink size={13} />
             {cv.jobUrl ? (
-              <a className="font-semibold text-slate-700 hover:text-ink" href={cv.jobUrl} target="_blank" rel="noreferrer">
+              <a className="font-semibold text-slate-700 hover:text-ink dark:text-slate-200 dark:hover:text-white" href={cv.jobUrl} target="_blank" rel="noreferrer">
                 {getJobSourceLabel(cv.jobUrl)}
               </a>
             ) : (
