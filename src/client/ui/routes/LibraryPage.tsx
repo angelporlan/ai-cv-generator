@@ -284,6 +284,16 @@ export function LibraryPage() {
                   <label className="block">
                     <span className="label">URL de oferta</span>
                     <input className="field mt-1" value={draft.jobUrl} onChange={(event) => setDraft({ ...draft, jobUrl: event.target.value })} placeholder="https://..." />
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                      <ExternalLink size={13} className="shrink-0" />
+                      {draft.jobUrl ? (
+                        <a className="truncate font-semibold text-slate-700 hover:text-ink" href={draft.jobUrl} target="_blank" rel="noreferrer">
+                          {getJobSourceLabel(draft.jobUrl)}
+                        </a>
+                      ) : (
+                        <span>enlace a la oferta</span>
+                      )}
+                    </div>
                   </label>
                   <label className="block">
                     <span className="label">Fecha de uso</span>
@@ -394,22 +404,20 @@ function LibraryCard({
           <span className="rounded-full border border-line bg-slate-50 px-2 py-1 text-xs text-slate-600">{statusLabels[cv.status]}</span>
         </div>
         <div className="mt-4 grid gap-2 text-xs text-slate-500">
-          <p className="flex items-center gap-2"><FileText size={13} /> {cv.template}</p>
+          <p className="flex items-center gap-2">
+            <ExternalLink size={13} />
+            {cv.jobUrl ? (
+              <a className="font-semibold text-slate-700 hover:text-ink" href={cv.jobUrl} target="_blank" rel="noreferrer">
+                {getJobSourceLabel(cv.jobUrl)}
+              </a>
+            ) : (
+              <span>Sin oferta asociada</span>
+            )}
+          </p>
           <p>Ultimo uso: {formatDate(cv.lastUsedDate)}</p>
         </div>
       </button>
       <div className="mt-auto flex flex-wrap gap-2">
-        {cv.jobUrl ? (
-          <a className="button-secondary flex-1" href={cv.jobUrl} target="_blank" rel="noreferrer">
-            <ExternalLink size={15} />
-            {getJobSourceLabel(cv.jobUrl)}
-          </a>
-        ) : (
-          <span className="inline-flex flex-1 items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-slate-500">
-            <ExternalLink size={15} />
-            Sin oferta asociada
-          </span>
-        )}
         <button className="button-secondary flex-1" type="button" onClick={onSelect}>
           <PencilLine size={15} />
           Editar
@@ -476,6 +484,17 @@ function uniqueCopyName(baseName: string, items: CvSummary[]) {
 }
 
 function getJobSourceLabel(jobUrl: string) {
+  const normalized = jobUrl.toLowerCase();
+  if (normalized.includes('linkedin.com')) return 'LinkedIn';
+  if (normalized.includes('infojobs')) return 'InfoJobs';
+  if (normalized.includes('indeed.com')) return 'Indeed';
+  if (normalized.includes('glassdoor.com')) return 'Glassdoor';
+  if (normalized.includes('computrabajo.com')) return 'Computrabajo';
+  if (normalized.includes('jobtoday.com')) return 'Job Today';
+  if (normalized.includes('lever.co')) return 'Lever';
+  if (normalized.includes('greenhouse.io')) return 'Greenhouse';
+  if (normalized.includes('teamtailor.com')) return 'Teamtailor';
+
   try {
     const host = new URL(jobUrl).hostname.replace(/^www\./, '').toLowerCase();
     if (host.includes('linkedin.com')) return 'LinkedIn';
@@ -488,8 +507,8 @@ function getJobSourceLabel(jobUrl: string) {
     if (host.includes('greenhouse.io')) return 'Greenhouse';
     if (host.includes('teamtailor.com')) return 'Teamtailor';
   } catch {
-    return 'Oferta asociada';
+    return 'enlace a la oferta';
   }
 
-  return 'Oferta asociada';
+  return 'enlace a la oferta';
 }
