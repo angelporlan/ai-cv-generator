@@ -39,8 +39,8 @@ import { getUsageCopy } from '../../domain/aiActions';
 import { fromArtifactDto } from '../../domain/aiArtifacts';
 import { accentColors, fontFamilies, fontSizes, pageMargins, visualTemplates, type DesignSettings } from '../../domain/design';
 import { getQualitySignals, parseMarkdown, serializeParsedCv } from '../../domain/editor';
+import { buildNavigatorItems, getIntroLines, getMarkdownNavigatorIdAtOffset, getMarkdownSectionRange } from '../../domain/editorNavigator';
 import { statusLabels, statusOrder } from '../../domain/tracker';
-import { buildNavigatorItems } from '../../domain/editorNavigator';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { AiPanel } from '../components/AiPanel';
 import { AiDialog, LinkedInDialog } from '../components/dialogs';
@@ -75,6 +75,10 @@ export function EditorPage() {
   const usage = session.data?.usage;
   const authenticated = Boolean(session.data?.authenticated);
   const stats = useMemo(() => getEditorStats(markdown), [markdown]);
+  const activeNavigator = useMemo(
+    () => navigatorItems.find((item) => item.id === activeNavigatorId) || navigatorItems[0] || null,
+    [activeNavigatorId, navigatorItems]
+  );
   const remoteArtifacts = useQuery({
     queryKey: ['ai-artifacts'],
     queryFn: api.listAiArtifacts,
@@ -224,10 +228,10 @@ export function EditorPage() {
   };
 
   useEffect(() => {
-    if (navigatorItems.length) {
+    if (navigatorItems.length && !navigatorItems.some((item) => item.id === activeNavigatorId)) {
       setActiveNavigatorId(navigatorItems[0].id);
     }
-  }, [navigatorItems]);
+  }, [activeNavigatorId, navigatorItems]);
 
   useEffect(() => {
     const root = editorColumnRef.current;
@@ -267,7 +271,7 @@ export function EditorPage() {
     if (!textarea) return;
 
     const syncActiveSection = () => {
-      const nextId = getMarkdownNavigatorIdAtOffset(markdown, textarea.selectionStart, parsed);
+      const nextId = getMarkdownNavigatorIdAtOffset(markdown, textarea.selectionStart);
       if (nextId) {
         setActiveNavigatorId(nextId);
       }
@@ -296,12 +300,14 @@ export function EditorPage() {
   const scrollToSection = (sectionId: string) => {
     if (editorMode === 'markdown') {
       const textarea = editorRef.current;
-      const range = getMarkdownSectionRange(markdown, parsed, sectionId);
+      const range = getMarkdownSectionRange(markdown, sectionId);
       if (!textarea || !range) return;
 
       textarea.focus();
       textarea.setSelectionRange(range.start, range.start);
-      textarea.scrollTop = Math.max(0, (textarea.scrollHeight * range.start) / Math.max(1, textarea.value.length) - 160);
+      const lineHeight = Number.parseFloat(window.getComputedStyle(textarea).lineHeight) || 20;
+      const offsetLines = markdown.slice(0, range.start).split(/\r?\n/).length - 1;
+      textarea.scrollTop = Math.max(0, offsetLines * lineHeight - textarea.clientHeight * 0.2);
     } else {
       const element = sectionRefs.current[sectionId];
       if (!element) return;
@@ -405,6 +411,27 @@ export function EditorPage() {
             Puedes editar en local. Entra para guardar biblioteca, descargar PDF y usar IA.
           </div>
         ) : null}
+
+        <div className="mobile-section-nav lg:hidden">
+          <div className="mobile-section-nav-head">
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Secciones</span>
+            <span className="text-xs text-slate-500">{activeNavigator?.label || 'Sin secciones'}</span>
+          </div>
+          <div className="mobile-section-nav-scroll" role="tablist" aria-label="Navegacion de secciones">
+            {navigatorItems.map((item) => (
+              <button
+                aria-current={activeNavigatorId === item.id ? 'true' : undefined}
+                className={`mobile-section-nav-item ${activeNavigatorId === item.id ? 'is-active' : ''}`}
+                key={item.id}
+                type="button"
+                onClick={() => scrollToSection(item.id)}
+              >
+                <span className="truncate">{item.label}</span>
+                <span className="mobile-section-nav-count">{item.count}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className={`editor-canvas ${referenceOpen ? 'has-reference' : ''}`}>
           <div className="editor-column" ref={editorColumnRef}>
@@ -547,70 +574,6 @@ function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }
       <ChevronDown size={14} />
     </div>
   );
-}
-
-function getIntroLines(markdown: string, parsed: ReturnType<typeof parseMarkdown>) {
-  const beforeSections: string[] = [];
-  for (const rawLine of markdown.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('# ')) continue;
-    if (line.startsWith('## ')) break;
-    beforeSections.push(line.replace(/^[-*]\s*/, '').trim());
-  }
-
-  const fallback = [parsed.title, parsed.subtitle].filter(Boolean);
-  return Array.from(new Set(beforeSections.length ? beforeSections : fallback)).slice(0, 7);
-}
-
-function getMarkdownNavigatorIdAtOffset(markdown: string, offset: number, parsed: ReturnType<typeof parseMarkdown>) {
-  const ranges = getMarkdownNavigatorRanges(markdown, parsed);
-  for (let index = ranges.length - 1; index >= 0; index -= 1) {
-    if (offset >= ranges[index].start) {
-      return ranges[index].id;
-    }
-  }
-
-  return ranges[0]?.id || 'profile';
-}
-
-function getMarkdownSectionRange(markdown: string, parsed: ReturnType<typeof parseMarkdown>, sectionId: string) {
-  return getMarkdownNavigatorRanges(markdown, parsed).find((range) => range.id === sectionId) || null;
-}
-
-function getMarkdownNavigatorRanges(markdown: string, parsed: ReturnType<typeof parseMarkdown>) {
-  const lines = markdown.split(/\r?\n/);
-  const ranges: Array<{ id: string; start: number; end: number }> = [];
-  let cursor = 0;
-  let sectionIndex = -1;
-  let profileStart = 0;
-  let profileEnd = markdown.length;
-
-  for (const line of lines) {
-    if (line.startsWith('## ')) {
-      if (sectionIndex < 0) {
-        profileEnd = cursor;
-      } else {
-        ranges[ranges.length - 1].end = cursor;
-      }
-
-      sectionIndex += 1;
-      ranges.push({
-        id: `section-${sectionIndex}`,
-        start: cursor,
-        end: markdown.length
-      });
-    }
-
-    cursor += line.length + 1;
-  }
-
-  if (ranges.length) {
-    ranges.unshift({ id: 'profile', start: profileStart, end: profileEnd });
-  } else {
-    ranges.push({ id: 'profile', start: profileStart, end: profileEnd });
-  }
-
-  return ranges;
 }
 
 const contentTemplates = [

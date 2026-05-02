@@ -32,7 +32,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [ ] Añadir en `PLAN.md` una sección nueva: “Auditoría paridad SPA React/Vite vs legacy”.
 - [x] El editor tiene márgenes laterales blancos sin sentido por mezcla entre `Shell max-width` y `editor-shell -m-4`.
 - [x] El editor fuerza 3 columnas fijas y provoca overflow horizontal en desktop.
-- [ ] `Section Navigator` solo pinta botones; no navega, no refleja sección activa, no cuenta bloques y duplica títulos.
+- [x] `Section Navigator` navega, refleja sección activa, cuenta bloques y soporta desktop/móvil sin duplicar títulos.
 - [x] Botón cerrar de `Design Suggestions` no hace nada.
 - [x] `Design Suggestions` no tiene botón de reapertura ni estado persistido como el legacy.
 - [x] Miniaturas de diseño solo muestran 4 plantillas; falta `swiss`.
@@ -65,7 +65,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 
 - [ ] Actualizar `PLAN.md` con este checklist y separar tareas por fase: layout, editor, biblioteca, auth, QA.
 - [x] Ajustar layout React: quitar gutters externos, dejar editor full-width dentro del shell, hacer sidebars colapsables y evitar overflow horizontal.
-- [ ] Implementar `Section Navigator` con refs por sección, scroll/focus, active state por `IntersectionObserver`, conteo de bloques y soporte móvil.
+- [x] Implementar `Section Navigator` con refs por sección, scroll/focus, active state por `IntersectionObserver`, conteo de bloques y soporte móvil.
 - [ ] Completar `Design Suggestions`: cerrar/reabrir, persistencia local, 5 plantillas, click sincronizado con `design.template`, y controles visibles de plantilla/color/fuente/tamaño/margen/iconos.
 - [ ] Portar el modelo visual del legacy a un módulo React testable: parsear contactos, secciones, entries, listas y párrafos sin perder markdown al serializar.
 - [ ] Rehacer `/library` como gestor real: tarjetas limpias, menú de acciones, abrir/cargar, editar metadata, actualizar contenido, eliminar, guardar nueva versión, filtros y vista lista/kanban si se mantiene separada del tracker.
