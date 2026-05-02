@@ -90,6 +90,10 @@ export function EditorPage() {
     enabled: authenticated
   });
   const visibleArtifacts = remoteArtifacts.data?.items.map(fromArtifactDto) || aiArtifacts;
+  const openDesignSuggestions = () => {
+    setSuggestionsOpen(true);
+    setRightPanel('design');
+  };
 
   const loadTemplate = useMutation({
     mutationFn: (file: string) => api.loadSource(file),
@@ -386,6 +390,10 @@ export function EditorPage() {
               <Sparkles size={14} />
               AI Assistant Review
             </button>
+            <button className="studio-button ghost" type="button" onClick={openDesignSuggestions}>
+              <Palette size={14} />
+              Personalizar
+            </button>
             <button className="studio-button ghost" type="button" onClick={toggleReference}>
               <PanelRightOpen size={14} />
               Comparar
@@ -494,9 +502,9 @@ export function EditorPage() {
             <div className="preview-header">
               <div className="preview-label">Preview</div>
               {!suggestionsOpen ? (
-                <button className="preview-reopen-button" type="button" onClick={() => setSuggestionsOpen(true)} aria-label="Abrir Design Suggestions">
+                <button className="preview-reopen-button" type="button" onClick={openDesignSuggestions} aria-label="Abrir Design Suggestions">
                   <Palette size={14} />
-                  Abrir diseño
+                  Personalizar
                 </button>
               ) : null}
             </div>

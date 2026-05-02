@@ -36,7 +36,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [x] Botón cerrar de `Design Suggestions` no hace nada.
 - [x] `Design Suggestions` no tiene botón de reapertura ni estado persistido como el legacy.
 - [x] Miniaturas de diseño solo muestran 4 plantillas; falta `swiss`.
-- [ ] Panel de diseño está escondido detrás de tabs y no se abre al pulsar “Personalizar” porque esa acción no existe.
+- [x] Panel de diseño tiene acción visible de “Personalizar” y abre `Design Suggestions` en la pestaña correcta.
 - [ ] El editor visual React pierde estructura avanzada del markdown legacy: contactos, `###`, separadores, bloques entry/list/paragraph.
 - [ ] El editor visual no soporta colapsar secciones, auto-resize cómodo ni drag & drop.
 - [ ] El toolbar de formato solo funciona parcialmente y no comunica bien cuándo aplica a Markdown.
@@ -66,7 +66,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [ ] Actualizar `PLAN.md` con este checklist y separar tareas por fase: layout, editor, biblioteca, auth, QA.
 - [x] Ajustar layout React: quitar gutters externos, dejar editor full-width dentro del shell, hacer sidebars colapsables y evitar overflow horizontal.
 - [x] Implementar `Section Navigator` con refs por sección, scroll/focus, active state por `IntersectionObserver`, conteo de bloques y soporte móvil.
-- [ ] Completar `Design Suggestions`: cerrar/reabrir, persistencia local, 5 plantillas, click sincronizado con `design.template`, y controles visibles de plantilla/color/fuente/tamaño/margen/iconos.
+- [x] Completar `Design Suggestions`: cerrar/reabrir, persistencia local, 5 plantillas, click sincronizado con `design.template`, y controles visibles de plantilla/color/fuente/tamaño/margen/iconos.
 - [ ] Portar el modelo visual del legacy a un módulo React testable: parsear contactos, secciones, entries, listas y párrafos sin perder markdown al serializar.
 - [ ] Rehacer `/library` como gestor real: tarjetas limpias, menú de acciones, abrir/cargar, editar metadata, actualizar contenido, eliminar, guardar nueva versión, filtros y vista lista/kanban si se mantiene separada del tracker.
 - [x] Restaurar Google login en `AuthDialog`: botón “Continuar con Google”, redirigir a `/auth/google`, y procesar `auth=google_success/error` al volver.
