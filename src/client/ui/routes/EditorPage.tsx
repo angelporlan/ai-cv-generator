@@ -38,7 +38,7 @@ import { ApiError, api, type CvStatus, type CvSummary } from '../../api/client';
 import { getUsageCopy } from '../../domain/aiActions';
 import { fromArtifactDto } from '../../domain/aiArtifacts';
 import { accentColors, fontFamilies, fontSizes, pageMargins, visualTemplates, type DesignSettings } from '../../domain/design';
-import { getQualitySignals, parseMarkdown, serializeParsedCv } from '../../domain/editor';
+import { createEmptyVisualSection, getQualitySignals, parseMarkdown, parseVisualStateFromMarkdown, serializeVisualStateToMarkdown, type VisualBlock, type VisualCvState } from '../../domain/editor';
 import { buildNavigatorItems, getIntroLines, getMarkdownNavigatorIdAtOffset, getMarkdownSectionRange } from '../../domain/editorNavigator';
 import { statusLabels, statusOrder } from '../../domain/tracker';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
@@ -712,10 +712,13 @@ function VisualEditor({
   onChange: (markdown: string) => void;
   sectionRefs: MutableRefObject<Record<string, HTMLElement | null>>;
 }) {
-  const parsed = useMemo(() => parseMarkdown(markdown), [markdown]);
-  const update = (next: typeof parsed) => onChange(serializeParsedCv(next));
-  const updateSection = (sectionIndex: number, patch: Partial<typeof parsed.sections[number]>) => {
-    update({ ...parsed, sections: parsed.sections.map((section, index) => index === sectionIndex ? { ...section, ...patch } : section) });
+  const parsed = useMemo(() => parseVisualStateFromMarkdown(markdown), [markdown]);
+  const update = (next: VisualCvState) => onChange(serializeVisualStateToMarkdown(next));
+  const updateSection = (sectionIndex: number, patch: Partial<VisualCvState['sections'][number]>) => {
+    update({
+      ...parsed,
+      sections: parsed.sections.map((section, index) => index === sectionIndex ? { ...section, ...patch } : section)
+    });
   };
   const moveSection = (sectionIndex: number, direction: -1 | 1) => {
     const target = sectionIndex + direction;
@@ -724,6 +727,47 @@ function VisualEditor({
     const [section] = sections.splice(sectionIndex, 1);
     sections.splice(target, 0, section);
     update({ ...parsed, sections });
+  };
+  const updateBlock = (sectionIndex: number, blockIndex: number, patch: Partial<VisualBlock>) => {
+    update({
+      ...parsed,
+      sections: parsed.sections.map((section, currentSectionIndex) => {
+        if (currentSectionIndex !== sectionIndex) return section;
+        return {
+          ...section,
+          blocks: section.blocks.map((block, currentBlockIndex) => currentBlockIndex === blockIndex ? { ...block, ...patch } as VisualBlock : block)
+        };
+      })
+    });
+  };
+  const moveBlock = (sectionIndex: number, blockIndex: number, direction: -1 | 1) => {
+    const section = parsed.sections[sectionIndex];
+    if (!section) return;
+    const target = blockIndex + direction;
+    if (target < 0 || target >= section.blocks.length) return;
+    const blocks = [...section.blocks];
+    const [block] = blocks.splice(blockIndex, 1);
+    blocks.splice(target, 0, block);
+    updateSection(sectionIndex, { blocks });
+  };
+  const addContact = () => {
+    update({ ...parsed, contacts: [...parsed.contacts, { label: '', value: '' }] });
+  };
+  const addSection = () => {
+    update({ ...parsed, sections: [...parsed.sections, createEmptyVisualSection()] });
+  };
+  const addBlock = (sectionIndex: number, block: VisualBlock['type']) => {
+    const section = parsed.sections[sectionIndex];
+    if (!section) return;
+
+    const nextBlock: VisualBlock =
+      block === 'entry'
+        ? { type: 'entry', title: 'Nueva entrada', role: '', date: '', summary: '', bullets: '' }
+        : block === 'list'
+          ? { type: 'list', items: '' }
+          : { type: 'paragraph', text: '' };
+
+    updateSection(sectionIndex, { blocks: [...section.blocks, nextBlock] });
   };
 
   return (
@@ -736,28 +780,112 @@ function VisualEditor({
         }}
       >
         <SectionHeader icon={<FileText size={14} />} title="Identidad" />
-        <input className="section-title-input" value={parsed.title} onChange={(event) => update({ ...parsed, title: event.target.value })} aria-label="Nombre principal" />
-        <textarea className="section-body-input" value={parsed.subtitle} onChange={(event) => update({ ...parsed, subtitle: event.target.value })} aria-label="Resumen o contacto inicial" />
+        <div className="space-y-4 p-4">
+          <label className="block">
+            <span className="dark-label">Nombre principal</span>
+            <input className="section-title-input mt-1" value={parsed.title} onChange={(event) => update({ ...parsed, title: event.target.value })} aria-label="Nombre principal" />
+          </label>
+          <label className="block">
+            <span className="dark-label">Resumen o introduccion</span>
+            <textarea className="section-body-input mt-1 min-h-24" value={parsed.intro} onChange={(event) => update({ ...parsed, intro: event.target.value })} aria-label="Resumen o introduccion" />
+          </label>
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="dark-label">Contactos</span>
+              <button className="tool-mini-button" type="button" onClick={addContact}>
+                <Plus size={12} /> Anadir contacto
+              </button>
+            </div>
+            <div className="space-y-2">
+              {parsed.contacts.map((contact, contactIndex) => (
+                <div className="grid gap-2 md:grid-cols-[160px_minmax(0,1fr)_auto]" key={`${contact.label}-${contactIndex}`}>
+                  <input
+                    className="section-title-input"
+                    value={contact.label}
+                    onChange={(event) => update({
+                      ...parsed,
+                      contacts: parsed.contacts.map((item, index) => index === contactIndex ? { ...item, label: event.target.value } : item)
+                    })}
+                    aria-label={`Etiqueta del contacto ${contactIndex + 1}`}
+                    placeholder="Email"
+                  />
+                  <input
+                    className="section-body-input min-h-0 py-2"
+                    value={contact.value}
+                    onChange={(event) => update({
+                      ...parsed,
+                      contacts: parsed.contacts.map((item, index) => index === contactIndex ? { ...item, value: event.target.value } : item)
+                    })}
+                    aria-label={`Valor del contacto ${contactIndex + 1}`}
+                    placeholder="persona@correo.com"
+                  />
+                  <button
+                    className="tool-icon self-start md:self-center"
+                    type="button"
+                    onClick={() => update({ ...parsed, contacts: parsed.contacts.filter((_, index) => index !== contactIndex) })}
+                    aria-label="Eliminar contacto"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+              {!parsed.contacts.length ? <p className="text-xs text-slate-400">Puedes añadir email, enlaces o telefono como contactos editables.</p> : null}
+            </div>
+          </div>
+        </div>
       </div>
       {parsed.sections.map((section, sectionIndex) => (
-        <EditableSection
-          sectionId={`section-${sectionIndex}`}
-          sectionRefs={sectionRefs}
+        <div
+          className="editable-section"
+          data-section-id={`section-${sectionIndex}`}
           key={`${section.title}-${sectionIndex}`}
-          canMoveUp={sectionIndex > 0}
-          canMoveDown={sectionIndex < parsed.sections.length - 1}
-          title={section.title}
-          value={section.items.join('\n')}
-          onTitleChange={(title) => updateSection(sectionIndex, { title })}
-          onItemsChange={(items) => updateSection(sectionIndex, { items })}
-          onMove={(direction) => moveSection(sectionIndex, direction)}
-          onRemove={() => update({ ...parsed, sections: parsed.sections.filter((_, index) => index !== sectionIndex) })}
-        />
+          ref={(element) => {
+            sectionRefs.current[`section-${sectionIndex}`] = element;
+          }}
+        >
+          <div className="section-header">
+            <div className="flex min-w-0 items-center gap-2">
+              <FileText size={14} />
+              <span className="truncate">{section.title || 'Seccion sin titulo'}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button className="tool-icon" type="button" onClick={() => moveSection(sectionIndex, -1)} disabled={sectionIndex === 0} aria-label="Subir seccion"><ArrowUp size={13} /></button>
+              <button className="tool-icon" type="button" onClick={() => moveSection(sectionIndex, 1)} disabled={sectionIndex === parsed.sections.length - 1} aria-label="Bajar seccion"><ArrowDown size={13} /></button>
+              <button className="tool-icon" type="button" onClick={() => update({ ...parsed, sections: parsed.sections.filter((_, index) => index !== sectionIndex) })} aria-label="Eliminar seccion"><Trash2 size={13} /></button>
+            </div>
+          </div>
+          <div className="space-y-4 p-4">
+            <label className="block">
+              <span className="dark-label">Titulo de seccion</span>
+              <input className="section-title-input mt-1" value={section.title} onChange={(event) => updateSection(sectionIndex, { title: event.target.value })} aria-label="Titulo de seccion" />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button className="tool-mini-button" type="button" onClick={() => addBlock(sectionIndex, 'entry')}><Plus size={12} /> Entrada</button>
+              <button className="tool-mini-button" type="button" onClick={() => addBlock(sectionIndex, 'paragraph')}><Plus size={12} /> Párrafo</button>
+              <button className="tool-mini-button" type="button" onClick={() => addBlock(sectionIndex, 'list')}><Plus size={12} /> Lista</button>
+            </div>
+            <div className="space-y-3">
+              {section.blocks.map((block, blockIndex) => (
+                <VisualBlockEditor
+                  block={block}
+                  blockIndex={blockIndex}
+                  key={`${sectionIndex}-${blockIndex}-${block.type}`}
+                  onChange={(patch) => updateBlock(sectionIndex, blockIndex, patch)}
+                  onRemove={() => updateSection(sectionIndex, { blocks: section.blocks.filter((_, index) => index !== blockIndex) })}
+                  onMove={(direction) => moveBlock(sectionIndex, blockIndex, direction)}
+                  canMoveUp={blockIndex > 0}
+                  canMoveDown={blockIndex < section.blocks.length - 1}
+                />
+              ))}
+              {!section.blocks.length ? <p className="text-xs text-slate-400">Anade una entrada, lista o párrafo para esta sección.</p> : null}
+            </div>
+          </div>
+        </div>
       ))}
       <button
         className="studio-button ghost mx-4 mb-4"
         type="button"
-        onClick={() => update({ ...parsed, sections: [...parsed.sections, { title: 'Nueva seccion', items: ['Nuevo bloque'] }] })}
+        onClick={addSection}
       >
         <Plus size={14} /> Anadir seccion
       </button>
@@ -765,41 +893,45 @@ function VisualEditor({
   );
 }
 
-function EditableSection({ sectionId, sectionRefs, title, value, canMoveUp, canMoveDown, onTitleChange, onItemsChange, onMove, onRemove }: {
-  sectionId: string;
-  sectionRefs: MutableRefObject<Record<string, HTMLElement | null>>;
+function VisualBlockEditor({ block, blockIndex, canMoveUp, canMoveDown, onChange, onRemove, onMove }: {
+  block: VisualBlock;
+  blockIndex: number;
   canMoveUp: boolean;
   canMoveDown: boolean;
-  title: string;
-  value: string;
-  onTitleChange: (title: string) => void;
-  onItemsChange: (items: string[]) => void;
-  onMove: (direction: -1 | 1) => void;
+  onChange: (patch: Partial<VisualBlock>) => void;
   onRemove: () => void;
+  onMove: (direction: -1 | 1) => void;
 }) {
   return (
-    <div
-      className="editable-section"
-      data-section-id={sectionId}
-      ref={(element) => {
-        sectionRefs.current[sectionId] = element;
-      }}
-    >
-      <div className="section-header">
-        <div className="flex min-w-0 items-center gap-2"><FileText size={14} /><span className="truncate">{title || 'Seccion sin titulo'}</span></div>
+    <div className="rounded-md border border-white/10 bg-[#0f1a28] p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+          <span>{block.type === 'entry' ? 'Entrada' : block.type === 'list' ? 'Lista' : 'Párrafo'}</span>
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-300">Bloque {blockIndex + 1}</span>
+        </div>
         <div className="flex items-center gap-1">
-          <button className="tool-icon" type="button" onClick={() => onMove(-1)} disabled={!canMoveUp} aria-label="Subir seccion"><ArrowUp size={13} /></button>
-          <button className="tool-icon" type="button" onClick={() => onMove(1)} disabled={!canMoveDown} aria-label="Bajar seccion"><ArrowDown size={13} /></button>
-          <button className="tool-icon" type="button" onClick={onRemove} aria-label="Eliminar seccion"><Trash2 size={13} /></button>
+          <button className="tool-icon" type="button" onClick={() => onMove(-1)} disabled={!canMoveUp} aria-label="Subir bloque"><ArrowUp size={13} /></button>
+          <button className="tool-icon" type="button" onClick={() => onMove(1)} disabled={!canMoveDown} aria-label="Bajar bloque"><ArrowDown size={13} /></button>
+          <button className="tool-icon" type="button" onClick={onRemove} aria-label="Eliminar bloque"><Trash2 size={13} /></button>
         </div>
       </div>
-      <input className="section-title-input" value={title} onChange={(event) => onTitleChange(event.target.value)} aria-label="Titulo de seccion" />
-      <textarea
-        className="section-body-input"
-        value={value}
-        onChange={(event) => onItemsChange(event.target.value.split(/\r?\n/).filter(Boolean))}
-        aria-label={`Contenido de ${title}`}
-      />
+      {block.type === 'entry' ? (
+        <div className="space-y-3">
+          <input className="section-title-input" value={block.title} onChange={(event) => onChange({ title: event.target.value })} aria-label="Titulo de entrada" placeholder="Empresa o proyecto" />
+          <div className="grid gap-2 md:grid-cols-2">
+            <input className="section-body-input min-h-0 py-2" value={block.role} onChange={(event) => onChange({ role: event.target.value })} aria-label="Rol de entrada" placeholder="Rol" />
+            <input className="section-body-input min-h-0 py-2" value={block.date} onChange={(event) => onChange({ date: event.target.value })} aria-label="Fecha de entrada" placeholder="Fecha" />
+          </div>
+          <textarea className="section-body-input min-h-24" value={block.summary} onChange={(event) => onChange({ summary: event.target.value })} aria-label="Resumen de entrada" placeholder="Resumen breve" />
+          <textarea className="section-body-input min-h-24" value={block.bullets} onChange={(event) => onChange({ bullets: event.target.value })} aria-label="Logros de entrada" placeholder="Logros, uno por linea" />
+        </div>
+      ) : null}
+      {block.type === 'list' ? (
+        <textarea className="section-body-input min-h-24" value={block.items} onChange={(event) => onChange({ items: event.target.value })} aria-label="Lista" placeholder="Elemento por linea" />
+      ) : null}
+      {block.type === 'paragraph' ? (
+        <textarea className="section-body-input min-h-24" value={block.text} onChange={(event) => onChange({ text: event.target.value })} aria-label="Parrafo" placeholder="Texto del párrafo" />
+      ) : null}
     </div>
   );
 }

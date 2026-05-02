@@ -37,7 +37,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [x] `Design Suggestions` no tiene botón de reapertura ni estado persistido como el legacy.
 - [x] Miniaturas de diseño solo muestran 4 plantillas; falta `swiss`.
 - [x] Panel de diseño tiene acción visible de “Personalizar” y abre `Design Suggestions` en la pestaña correcta.
-- [ ] El editor visual React pierde estructura avanzada del markdown legacy: contactos, `###`, separadores, bloques entry/list/paragraph.
+- [x] El editor visual React conserva contactos, `###`, separadores, bloques entry/list/paragraph y roundtrip markdown.
 - [ ] El editor visual no soporta colapsar secciones, auto-resize cómodo ni drag & drop.
 - [ ] El toolbar de formato solo funciona parcialmente y no comunica bien cuándo aplica a Markdown.
 - [ ] La carga de ejemplos falla si no existe `*-example.md`; necesita fallback y aviso claro.
@@ -67,7 +67,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [x] Ajustar layout React: quitar gutters externos, dejar editor full-width dentro del shell, hacer sidebars colapsables y evitar overflow horizontal.
 - [x] Implementar `Section Navigator` con refs por sección, scroll/focus, active state por `IntersectionObserver`, conteo de bloques y soporte móvil.
 - [x] Completar `Design Suggestions`: cerrar/reabrir, persistencia local, 5 plantillas, click sincronizado con `design.template`, y controles visibles de plantilla/color/fuente/tamaño/margen/iconos.
-- [ ] Portar el modelo visual del legacy a un módulo React testable: parsear contactos, secciones, entries, listas y párrafos sin perder markdown al serializar.
+- [x] Portar el modelo visual del legacy a un módulo React testable: parsear contactos, secciones, entries, listas y párrafos sin perder markdown al serializar.
 - [ ] Rehacer `/library` como gestor real: tarjetas limpias, menú de acciones, abrir/cargar, editar metadata, actualizar contenido, eliminar, guardar nueva versión, filtros y vista lista/kanban si se mantiene separada del tracker.
 - [x] Restaurar Google login en `AuthDialog`: botón “Continuar con Google”, redirigir a `/auth/google`, y procesar `auth=google_success/error` al volver.
 - [ ] Añadir sync de estado autenticado usando `/api/auth/state` para que draft/diseño/modo sobrevivan como en legacy.
@@ -82,7 +82,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 
 ## Test Plan
 
-- [ ] Unit tests del parser/serializer visual: contactos, `###`, listas, párrafos, separadores y roundtrip sin pérdida grave.
+- [x] Unit tests del parser/serializer visual: contactos, `###`, listas, párrafos, separadores y roundtrip sin pérdida grave.
 - [ ] Tests de `LibraryPage`: abrir CV, editar metadata, actualizar contenido, eliminar, filtros, estados vacíos.
 - [ ] Tests de auth: botón Google construye redirección, callback success invalida sesión, callback error muestra aviso.
 - [ ] Tests de editor: navigator hace scroll, design suggestions cambia plantilla, toolbar modifica selección, importar/descargar Markdown.

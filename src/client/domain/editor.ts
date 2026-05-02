@@ -7,6 +7,48 @@ export type ParsedCv = {
   }>;
 };
 
+export type VisualContact = {
+  label: string;
+  value: string;
+};
+
+export type VisualBlock =
+  | {
+      type: 'entry';
+      title: string;
+      role: string;
+      date: string;
+      summary: string;
+      bullets: string;
+    }
+  | {
+      type: 'list';
+      items: string;
+    }
+  | {
+      type: 'paragraph';
+      text: string;
+    };
+
+export type VisualSection = {
+  title: string;
+  blocks: VisualBlock[];
+};
+
+export type VisualCvState = {
+  title: string;
+  intro: string;
+  contacts: VisualContact[];
+  sections: VisualSection[];
+};
+
+export function createEmptyVisualSection(): VisualSection {
+  return {
+    title: 'Nueva seccion',
+    blocks: [{ type: 'paragraph', text: '' }]
+  };
+}
+
 export const defaultMarkdown = `# Tu Nombre
 
 Especialista en producto y tecnologia
@@ -58,6 +100,194 @@ export function serializeParsedCv(cv: ParsedCv): string {
     chunks.push('');
   });
   return chunks.join('\n').trim() + '\n';
+}
+
+export function parseVisualStateFromMarkdown(markdown: string): VisualCvState {
+  const lines = markdown.replace(/\r/g, '').split('\n');
+  const state: VisualCvState = {
+    title: 'Curriculum Vitae',
+    intro: '',
+    contacts: [],
+    sections: []
+  };
+
+  let currentSection: VisualSection | null = null;
+  let currentEntry: Extract<VisualBlock, { type: 'entry' }> | null = null;
+
+  const ensureSection = (title: string) => {
+    currentSection = { title, blocks: [] };
+    state.sections.push(currentSection);
+    currentEntry = null;
+  };
+
+  const addParagraph = (text: string) => {
+    if (!currentSection) {
+      state.intro = mergeLines(state.intro, text);
+      return;
+    }
+
+    if (currentEntry) {
+      currentEntry.summary = mergeLines(currentEntry.summary, text);
+      return;
+    }
+
+    currentSection.blocks.push({ type: 'paragraph', text });
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line || line === '---') continue;
+
+    if (line.startsWith('# ')) {
+      state.title = line.slice(2).replace(/^CV\s*--\s*/i, '').trim() || state.title;
+      continue;
+    }
+
+    const contactMatch = line.match(/^\*\*([^*]+):\*\*\s*(.+)$/);
+    if (contactMatch && !currentSection) {
+      state.contacts.push({
+        label: contactMatch[1].trim(),
+        value: contactMatch[2].trim()
+      });
+      continue;
+    }
+
+    if (line.startsWith('## ')) {
+      ensureSection(line.slice(3).trim());
+      continue;
+    }
+
+    if (line.startsWith('### ')) {
+      if (!currentSection) continue;
+
+      currentEntry = {
+        type: 'entry',
+        title: line.slice(4).trim(),
+        role: '',
+        date: '',
+        summary: '',
+        bullets: ''
+      };
+      (currentSection as VisualSection).blocks.push(currentEntry);
+      continue;
+    }
+
+    if (line.startsWith('- ')) {
+      if (!currentSection) {
+        state.intro = mergeLines(state.intro, line.slice(2).trim());
+        continue;
+      }
+
+      if (currentEntry) {
+        currentEntry.bullets = mergeLines(currentEntry.bullets, line.slice(2).trim());
+        continue;
+      }
+
+      const listBlock = getOrCreateSectionListBlock(currentSection);
+      listBlock.items = mergeLines(listBlock.items, line.slice(2).trim());
+      continue;
+    }
+
+    if (currentEntry && line.startsWith('**') && line.endsWith('**') && !currentEntry.role) {
+      currentEntry.role = line.replace(/\*\*/g, '').trim();
+      continue;
+    }
+
+    if (currentEntry && !currentEntry.date) {
+      currentEntry.date = line;
+      continue;
+    }
+
+    addParagraph(line);
+  }
+
+  return state;
+}
+
+export function serializeVisualStateToMarkdown(state: VisualCvState): string {
+  const lines: string[] = [];
+  const title = state.title.trim() || 'CV sin titulo';
+  lines.push(`# ${title}`, '');
+
+  splitMultiline(state.intro).forEach((value) => lines.push(value));
+
+  state.contacts
+    .filter((contact) => contact.label.trim() || contact.value.trim())
+    .forEach((contact) => {
+      lines.push(`**${contact.label.trim() || 'Contacto'}:** ${contact.value.trim()}`);
+    });
+
+  if (state.intro.trim() && state.contacts.length > 0) {
+    lines.push('');
+  }
+
+  if (state.intro.trim() || state.contacts.length > 0) {
+    lines.push('');
+  }
+
+  state.sections
+    .filter((section) => section.title.trim())
+    .forEach((section, sectionIndex, validSections) => {
+      if (sectionIndex > 0 || lines[lines.length - 1] !== '') {
+        lines.push('');
+      }
+
+      lines.push(`## ${section.title.trim()}`);
+
+      section.blocks.forEach((block) => {
+        if (block.type === 'entry') {
+          lines.push(`### ${block.title.trim() || 'Entrada'}`);
+          if (block.role.trim()) lines.push(`**${block.role.trim()}**`);
+          if (block.date.trim()) lines.push(block.date.trim());
+          splitMultiline(block.summary).forEach((value) => lines.push(value));
+          splitMultiline(block.bullets).forEach((value) => lines.push(`- ${value}`));
+          lines.push('');
+          return;
+        }
+
+        if (block.type === 'list') {
+          splitMultiline(block.items).forEach((value) => lines.push(`- ${value}`));
+          lines.push('');
+          return;
+        }
+
+        splitMultiline(block.text).forEach((value) => lines.push(value));
+        lines.push('');
+      });
+
+      if (sectionIndex === validSections.length - 1) {
+        while (lines.length > 0 && lines[lines.length - 1] === '') {
+          lines.pop();
+        }
+      }
+    });
+
+  return `${lines.join('\n').trimEnd()}\n`;
+}
+
+function mergeLines(existing: string, next: string) {
+  if (!existing.trim()) return next.trim();
+  if (!next.trim()) return existing.trim();
+  return `${existing.trim()}\n${next.trim()}`;
+}
+
+function splitMultiline(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function getOrCreateSectionListBlock(section: VisualSection) {
+  const previous = section.blocks[section.blocks.length - 1];
+  if (previous?.type === 'list') {
+    return previous;
+  }
+
+  const block: Extract<VisualBlock, { type: 'list' }> = { type: 'list', items: '' };
+  section.blocks.push(block);
+  return block;
 }
 
 export function getQualitySignals(markdown: string) {
