@@ -30,12 +30,12 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 ## Checklist De Problemas Detectados
 
 - [ ] Añadir en `PLAN.md` una sección nueva: “Auditoría paridad SPA React/Vite vs legacy”.
-- [ ] El editor tiene márgenes laterales blancos sin sentido por mezcla entre `Shell max-width` y `editor-shell -m-4`.
-- [ ] El editor fuerza 3 columnas fijas y provoca overflow horizontal en desktop.
+- [x] El editor tiene márgenes laterales blancos sin sentido por mezcla entre `Shell max-width` y `editor-shell -m-4`.
+- [x] El editor fuerza 3 columnas fijas y provoca overflow horizontal en desktop.
 - [ ] `Section Navigator` solo pinta botones; no navega, no refleja sección activa, no cuenta bloques y duplica títulos.
-- [ ] Botón cerrar de `Design Suggestions` no hace nada.
+- [x] Botón cerrar de `Design Suggestions` no hace nada.
 - [ ] `Design Suggestions` no tiene botón de reapertura ni estado persistido como el legacy.
-- [ ] Miniaturas de diseño solo muestran 4 plantillas; falta `swiss`.
+- [x] Miniaturas de diseño solo muestran 4 plantillas; falta `swiss`.
 - [ ] Panel de diseño está escondido detrás de tabs y no se abre al pulsar “Personalizar” porque esa acción no existe.
 - [ ] El editor visual React pierde estructura avanzada del markdown legacy: contactos, `###`, separadores, bloques entry/list/paragraph.
 - [ ] El editor visual no soporta colapsar secciones, auto-resize cómodo ni drag & drop.
@@ -64,7 +64,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 ## Key Changes
 
 - [ ] Actualizar `PLAN.md` con este checklist y separar tareas por fase: layout, editor, biblioteca, auth, QA.
-- [ ] Ajustar layout React: quitar gutters externos, dejar editor full-width dentro del shell, hacer sidebars colapsables y evitar overflow horizontal.
+- [x] Ajustar layout React: quitar gutters externos, dejar editor full-width dentro del shell, hacer sidebars colapsables y evitar overflow horizontal.
 - [ ] Implementar `Section Navigator` con refs por sección, scroll/focus, active state por `IntersectionObserver`, conteo de bloques y soporte móvil.
 - [ ] Completar `Design Suggestions`: cerrar/reabrir, persistencia local, 5 plantillas, click sincronizado con `design.template`, y controles visibles de plantilla/color/fuente/tamaño/margen/iconos.
 - [ ] Portar el modelo visual del legacy a un módulo React testable: parsear contactos, secciones, entries, listas y párrafos sin perder markdown al serializar.

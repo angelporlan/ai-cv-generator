@@ -16,6 +16,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
+  const isWorkspaceRoute = !['/library', '/tracker'].includes(location.pathname);
   const [authOpen, setAuthOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [banner, setBanner] = useState('');
@@ -80,7 +81,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </header>
 
       {banner ? (
-        <div className="mx-auto mt-4 max-w-[1500px] px-4">
+        <div className={`mt-4 px-4 ${isWorkspaceRoute ? 'w-full' : 'mx-auto max-w-[1500px]'}`}>
           <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
             <span>{banner}</span>
             <button className="text-xs font-semibold uppercase tracking-wide text-emerald-700" type="button" onClick={() => setBanner('')}>
@@ -90,7 +91,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
-      <main className="mx-auto max-w-[1500px] px-4 py-4">{children}</main>
+      <main className={isWorkspaceRoute ? 'w-full px-0 py-0' : 'mx-auto max-w-[1500px] px-4 py-4'}>{children}</main>
       <nav className="fixed bottom-3 left-3 right-3 z-30 grid grid-cols-3 rounded-xl border border-line bg-white/95 p-1 shadow-calm backdrop-blur md:hidden">
         <MobileLink to="/" icon={<PanelRight size={17} />} label="Editor" />
         <MobileLink to="/library" icon={<Library size={17} />} label="CVs" />

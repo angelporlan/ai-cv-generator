@@ -65,6 +65,8 @@ export function EditorPage() {
   const [saveName, setSaveName] = useState(parsed.title);
   const [status, setStatus] = useState<CvStatus>('draft');
   const [contentTemplate, setContentTemplate] = useState('cv.md');
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const usage = session.data?.usage;
@@ -219,8 +221,13 @@ export function EditorPage() {
   };
 
   return (
-    <div className="editor-shell">
-      <aside className="editor-nav">
+    <div
+      className={`editor-shell ${
+        navCollapsed ? (suggestionsOpen ? 'is-nav-collapsed' : 'is-nav-and-suggestions-collapsed') : suggestionsOpen ? 'is-suggestions-open' : 'is-suggestions-collapsed'
+      }`}
+    >
+      {!navCollapsed ? (
+        <aside className="editor-nav">
         <h2 className="px-4 pt-4 text-sm font-semibold text-white">Section Navigator</h2>
         <div className="mt-4 space-y-1 px-2">
           {navigatorGroups.map((item, index) => (
@@ -230,7 +237,8 @@ export function EditorPage() {
             </button>
           ))}
         </div>
-      </aside>
+        </aside>
+      ) : null}
 
       <section className="editor-board">
         <div className="studio-topbar">
@@ -244,6 +252,14 @@ export function EditorPage() {
             <p className="mt-1 text-xs text-slate-400">{notice || (authenticated ? 'Borrador local cargado' : 'Editando en local')}</p>
           </div>
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+            <button className="studio-button ghost" type="button" onClick={() => setNavCollapsed((value) => !value)}>
+              <ChevronLeft size={14} className={navCollapsed ? 'rotate-180 transition-transform' : 'transition-transform'} />
+              {navCollapsed ? 'Mostrar nav' : 'Ocultar nav'}
+            </button>
+            <button className="studio-button ghost" type="button" onClick={() => setSuggestionsOpen((value) => !value)}>
+              <Palette size={14} />
+              {suggestionsOpen ? 'Ocultar diseño' : 'Mostrar diseño'}
+            </button>
             <select className="studio-select" value={contentTemplate} onChange={(event) => handleTemplateChange(event.target.value)} aria-label="Plantilla de contenido">
               {contentTemplates.map((template) => <option value={template.value} key={template.value}>{template.label}</option>)}
             </select>
@@ -351,57 +367,61 @@ export function EditorPage() {
         </div>
       </section>
 
-      <aside className="suggestions-panel">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <h2 className="text-sm font-semibold text-white">Design Suggestions</h2>
-          <button className="tool-icon" type="button" aria-label="Cerrar sugerencias"><X size={14} /></button>
-        </div>
-        <SuggestionThumbnails design={design} onChange={setDesign} />
-        <div className="border-t border-white/10 p-4">
-          <div className="suggestion-tabs">
-            {[
-              { value: 'design', label: 'Design' },
-              { value: 'quality', label: 'Check' },
-              { value: 'ai', label: 'IA' }
-            ].map((item) => (
-              <button className={rightPanel === item.value ? 'is-active' : ''} type="button" key={item.value} onClick={() => setRightPanel(item.value as 'design' | 'quality' | 'ai')}>
-                {item.label}
-              </button>
-            ))}
+      {suggestionsOpen ? (
+        <aside className="suggestions-panel">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <h2 className="text-sm font-semibold text-white">Design Suggestions</h2>
+            <button className="tool-icon" type="button" onClick={() => setSuggestionsOpen(false)} aria-label="Cerrar sugerencias">
+              <X size={14} />
+            </button>
           </div>
-          {rightPanel === 'quality' ? <QualityPanel markdown={markdown} /> : null}
-          {rightPanel === 'ai' ? (
-            <div>
-              <AiPanel inline markdown={markdown} usage={usage} authenticated={authenticated} onApply={setMarkdown} />
-              <AiArtifactsPanel
-                artifacts={visibleArtifacts}
-                onApply={setMarkdown}
-                onClear={() => {
-                  clearAiArtifacts();
-                  if (authenticated) {
-                    api.clearAiArtifacts()
-                      .then(() => queryClient.invalidateQueries({ queryKey: ['ai-artifacts'] }))
-                      .catch(() => undefined);
-                  }
-                }}
-              />
+          <SuggestionThumbnails design={design} onChange={setDesign} />
+          <div className="border-t border-white/10 p-4">
+            <div className="suggestion-tabs">
+              {[
+                { value: 'design', label: 'Design' },
+                { value: 'quality', label: 'Check' },
+                { value: 'ai', label: 'IA' }
+              ].map((item) => (
+                <button className={rightPanel === item.value ? 'is-active' : ''} type="button" key={item.value} onClick={() => setRightPanel(item.value as 'design' | 'quality' | 'ai')}>
+                  {item.label}
+                </button>
+              ))}
             </div>
-          ) : null}
-          {rightPanel === 'design' || rightPanel === 'preview' ? <DesignPanel design={design} onChange={setDesign} /> : null}
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <SideMetric label="Calidad" value={`${quality.score}%`} tone={quality.score >= 75 ? 'good' : 'warn'} />
-            <SideMetric label="IA" value={getUsageCopy(usage)} />
+            {rightPanel === 'quality' ? <QualityPanel markdown={markdown} /> : null}
+            {rightPanel === 'ai' ? (
+              <div>
+                <AiPanel inline markdown={markdown} usage={usage} authenticated={authenticated} onApply={setMarkdown} />
+                <AiArtifactsPanel
+                  artifacts={visibleArtifacts}
+                  onApply={setMarkdown}
+                  onClear={() => {
+                    clearAiArtifacts();
+                    if (authenticated) {
+                      api.clearAiArtifacts()
+                        .then(() => queryClient.invalidateQueries({ queryKey: ['ai-artifacts'] }))
+                        .catch(() => undefined);
+                    }
+                  }}
+                />
+              </div>
+            ) : null}
+            {rightPanel === 'design' || rightPanel === 'preview' ? <DesignPanel design={design} onChange={setDesign} /> : null}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <SideMetric label="Calidad" value={`${quality.score}%`} tone={quality.score >= 75 ? 'good' : 'warn'} />
+              <SideMetric label="IA" value={getUsageCopy(usage)} />
+            </div>
+            <div className="mt-4 space-y-2">
+              <button className="side-action-dark" type="button" onClick={() => setLinkedinOpen(true)}>
+                <BriefcaseBusiness size={15} /> Importar LinkedIn <ChevronRight size={14} />
+              </button>
+              <button className="side-action-dark" type="button" onClick={() => navigate('/library')}>
+                <Library size={15} /> Abrir biblioteca <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
-          <div className="mt-4 space-y-2">
-            <button className="side-action-dark" type="button" onClick={() => setLinkedinOpen(true)}>
-              <BriefcaseBusiness size={15} /> Importar LinkedIn <ChevronRight size={14} />
-            </button>
-            <button className="side-action-dark" type="button" onClick={() => navigate('/library')}>
-              <Library size={15} /> Abrir biblioteca <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      </aside>
+        </aside>
+      ) : null}
 
       {aiOpen ? <AiDialog markdown={markdown} usage={usage} authenticated={authenticated} onApply={setMarkdown} onClose={() => setAiOpen(false)} /> : null}
       {linkedinOpen ? <LinkedInDialog onApply={setMarkdown} onClose={() => setLinkedinOpen(false)} /> : null}
@@ -712,7 +732,7 @@ function CvPreview({ markdown, design, compact = false }: { markdown: string; de
 function SuggestionThumbnails({ design, onChange }: { design: DesignSettings; onChange: (design: Partial<DesignSettings>) => void }) {
   return (
     <div className="suggestion-list">
-      {visualTemplates.slice(0, 4).map((template, index) => (
+      {visualTemplates.map((template, index) => (
         <button
           className={`suggestion-thumb ${design.template === template.value ? 'is-active' : ''}`}
           type="button"
