@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BriefcaseBusiness, FileText, Library, LogOut, PanelRight, User } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
+import { getGoogleAuthNotice, parseGoogleAuthResult } from '../../domain/auth';
 import { getUsageCopy } from '../../domain/aiActions';
 import { AccountDialog, AuthDialog } from './dialogs';
 import { useSession } from '../hooks';
@@ -13,8 +14,11 @@ export function Shell({ children }: { children: ReactNode }) {
   const usage = session.data?.usage;
   const authenticated = Boolean(session.data?.authenticated);
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [authOpen, setAuthOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [banner, setBanner] = useState('');
   const logout = useMutation({
     mutationFn: api.logout,
     onSuccess: () => {
@@ -22,6 +26,18 @@ export function Shell({ children }: { children: ReactNode }) {
       setAccountOpen(false);
     }
   });
+
+  useEffect(() => {
+    const result = parseGoogleAuthResult(location.search);
+    if (!result) return;
+
+    setBanner(getGoogleAuthNotice(result));
+    queryClient.invalidateQueries({ queryKey: ['session'] });
+    navigate({ pathname: location.pathname }, { replace: true });
+
+    const timer = window.setTimeout(() => setBanner(''), 6000);
+    return () => window.clearTimeout(timer);
+  }, [location.pathname, location.search, navigate, queryClient]);
 
   return (
     <div className="min-h-screen bg-mist pb-20 text-ink md:pb-0">
@@ -62,6 +78,17 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+
+      {banner ? (
+        <div className="mx-auto mt-4 max-w-[1500px] px-4">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <span>{banner}</span>
+            <button className="text-xs font-semibold uppercase tracking-wide text-emerald-700" type="button" onClick={() => setBanner('')}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <main className="mx-auto max-w-[1500px] px-4 py-4">{children}</main>
       <nav className="fixed bottom-3 left-3 right-3 z-30 grid grid-cols-3 rounded-xl border border-line bg-white/95 p-1 shadow-calm backdrop-blur md:hidden">

@@ -56,8 +56,8 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [ ] `/library` muestra URLs largas rompiendo tarjetas y diseño.
 - [ ] `/library` necesita mejor jerarquía visual, estados vacíos/loading/error y acciones por tarjeta.
 - [ ] `/tracker` funciona, pero conviene verificar que estados coinciden con biblioteca y CVs.
-- [ ] Login React no incluye “Continuar con Google”.
-- [ ] Callback `?auth=google_success/error` no se procesa en React tras volver de Google.
+- [x] Login React incluye “Continuar con Google”.
+- [x] Callback `?auth=google_success/error` se procesa en React tras volver de Google.
 - [ ] Botón cuenta no muestra email/estado con la riqueza del legacy.
 - [ ] No hay tests de integración/componentes para editor, biblioteca, login Google ni preview.
 
@@ -69,7 +69,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [ ] Completar `Design Suggestions`: cerrar/reabrir, persistencia local, 5 plantillas, click sincronizado con `design.template`, y controles visibles de plantilla/color/fuente/tamaño/margen/iconos.
 - [ ] Portar el modelo visual del legacy a un módulo React testable: parsear contactos, secciones, entries, listas y párrafos sin perder markdown al serializar.
 - [ ] Rehacer `/library` como gestor real: tarjetas limpias, menú de acciones, abrir/cargar, editar metadata, actualizar contenido, eliminar, guardar nueva versión, filtros y vista lista/kanban si se mantiene separada del tracker.
-- [ ] Restaurar Google login en `AuthDialog`: botón “Continuar con Google”, guardar acción pendiente si aplica, redirigir a `/auth/google`, y procesar `auth=google_success/error` al volver.
+- [x] Restaurar Google login en `AuthDialog`: botón “Continuar con Google”, redirigir a `/auth/google`, y procesar `auth=google_success/error` al volver.
 - [ ] Añadir sync de estado autenticado usando `/api/auth/state` para que draft/diseño/modo sobrevivan como en legacy.
 - [ ] Mantener `/tracker` sin reescritura grande; solo alinear estados, diseño y links con biblioteca.
 

@@ -54,6 +54,15 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
           {mutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Lock size={16} />}
           {mode === 'login' ? 'Entrar' : 'Crear cuenta'}
         </button>
+        <button className="button-secondary w-full" type="button" onClick={() => api.startGoogleLogin()}>
+          <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21.35 11.1h-9.18v2.98h5.3c-.23 1.31-.98 2.42-2.07 3.17v2.63h3.35c1.96-1.8 3.1-4.45 3.1-7.61 0-.75-.07-1.48-.2-2.17z" />
+            <path d="M12.17 22c2.64 0 4.85-.87 6.47-2.36l-3.35-2.63c-.93.63-2.12 1-3.12 1-2.39 0-4.42-1.61-5.14-3.78H3.6v2.7C5.2 19.59 8.37 22 12.17 22z" />
+            <path d="M7.03 14.23a5.94 5.94 0 0 1 0-4.46V7.07H3.6a10 10 0 0 0 0 8.89l3.43-1.73z" />
+            <path d="M12.17 5.88c1.43 0 2.72.49 3.74 1.47l2.81-2.82C17.02 2.95 14.8 2 12.17 2 8.37 2 5.2 4.41 3.6 7.07l3.43 2.7c.72-2.17 2.75-3.89 5.14-3.89z" />
+          </svg>
+          Continuar con Google
+        </button>
       </form>
     </Modal>
   );

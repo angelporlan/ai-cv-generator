@@ -164,6 +164,10 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 }
 
 export const api = {
+  getGoogleLoginUrl: () => '/auth/google',
+  startGoogleLogin: (redirect: (url: string) => void = (url) => { window.location.assign(url); }) => {
+    redirect('/auth/google');
+  },
   getSession: () => request<SessionPayload>('/api/auth/session'),
   login: (email: string, password: string) => request<SessionPayload>('/api/auth/login', {
     method: 'POST',

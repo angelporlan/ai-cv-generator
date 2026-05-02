@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, request } from './client';
+import { ApiError, api, request } from './client';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -73,5 +73,13 @@ describe('typed API client', () => {
       status: 0,
       message: 'offline'
     });
+  });
+
+  it('exposes the Google auth redirect URL and start helper', () => {
+    const redirects: string[] = [];
+
+    expect(api.getGoogleLoginUrl()).toBe('/auth/google');
+    api.startGoogleLogin((url) => redirects.push(url));
+    expect(redirects).toEqual(['/auth/google']);
   });
 });
