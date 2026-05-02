@@ -2,7 +2,6 @@ node_modules
 .env
 cv.md
 /cvs
-PLAN.MD
 
 # IDEs and extensions
 .agents/
