@@ -424,9 +424,8 @@ export function EditorPage() {
 
   return (
     <div
-      className={`editor-shell ${
-        navCollapsed ? (suggestionsOpen ? 'is-nav-collapsed' : 'is-nav-and-suggestions-collapsed') : suggestionsOpen ? 'is-suggestions-open' : 'is-suggestions-collapsed'
-      }`}
+      className={`editor-shell ${navCollapsed ? (suggestionsOpen ? 'is-nav-collapsed' : 'is-nav-and-suggestions-collapsed') : suggestionsOpen ? 'is-suggestions-open' : 'is-suggestions-collapsed'
+        }`}
     >
       {!navCollapsed ? (
         <aside className="editor-nav">
@@ -494,11 +493,11 @@ export function EditorPage() {
               <Palette size={14} />
               Personalizar
             </button>
-          <button className="studio-button ghost" type="button" onClick={toggleReference}>
-            <PanelRightOpen size={14} />
-            Comparar
-            {savedCvCount ? <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">{savedCvCount}</span> : null}
-          </button>
+            <button className="studio-button ghost" type="button" onClick={toggleReference}>
+              <PanelRightOpen size={14} />
+              Comparar
+              {savedCvCount ? <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">{savedCvCount}</span> : null}
+            </button>
             <div className="relative">
               <button className="studio-button primary" type="button" onClick={() => setDownloadOpen((open) => !open)} disabled={downloadPdf.isPending}>
                 {downloadPdf.isPending ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
@@ -570,15 +569,7 @@ export function EditorPage() {
                 </div>
               </div>
               <input ref={fileInputRef} hidden type="file" accept=".md,text/markdown,text/plain" onChange={(event) => handleFileImport(event.target.files?.[0])} />
-              <div
-                className="contact-block"
-                data-section-id="profile"
-                ref={(element) => {
-                  sectionRefs.current.profile = element;
-                }}
-              >
-                {introLines.map((line, index) => <p key={`${line}-${index}`}>⇔ {line}</p>)}
-              </div>
+
               {editorMode === 'markdown' ? (
                 <textarea
                   ref={editorRef}
