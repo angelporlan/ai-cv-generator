@@ -43,7 +43,7 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - [x] La carga de ejemplos falla si no existe `*-example.md`; ahora usa fallback a la plantilla base y muestra un aviso claro.
 - [x] Preview PDF ahora clampa y deshabilita la navegación fuera de rango cuando puede leer las páginas reales del PDF.
 - [ ] La comparación de CV existe parcialmente, pero no tiene UX completa ni manejo cuando no hay CVs.
-- [ ] Falta resizer entre editor y preview que sí existía en legacy.
+- [x] Hay resizer entre editor y preview con ancho persistente y límites razonables, como base de la experiencia legacy.
 - [ ] Falta guía interactiva/tour o sustituto React.
 - [x] Falta dark mode global o decisión explícita de retirarlo.
 - [x] Falta sincronizaci�n de estado local con `/api/auth/state` tras login como hac�a el legacy.
@@ -95,3 +95,4 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - El objetivo visual será “React limpio”: misma capacidad funcional que el legacy, sin copiar literalmente toda la UI vanilla.
 - El legacy de referencia será `public/editor.html` + `public/app.js`, porque `index.html` ya pertenece a Vite.
 - `/tracker` queda fuera de una refactorización profunda salvo ajustes de consistencia.
+

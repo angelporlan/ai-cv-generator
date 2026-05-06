@@ -210,15 +210,36 @@
   }
 
   .editor-canvas {
-    @apply grid min-h-[calc(100vh-7.5rem)] min-w-0 gap-0 xl:grid-cols-[minmax(0,1fr)_430px];
+    @apply grid min-h-[calc(100vh-7.5rem)] min-w-0 gap-0;
   }
 
-  .editor-canvas.has-reference {
-    @apply xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)_430px];
+  @media (min-width: 1280px) {
+    .editor-canvas:not(.has-reference) {
+      grid-template-columns: minmax(0, var(--editor-panel-width, 1fr)) 12px minmax(360px, 1fr);
+    }
+
+    .editor-canvas.has-reference {
+      grid-template-columns: minmax(0, var(--editor-panel-width, 1fr)) minmax(300px, 360px) 430px;
+    }
   }
 
   .editor-column {
     @apply min-w-0 overflow-auto p-4;
+  }
+
+  .workspace-resizer {
+    @apply hidden xl:flex relative z-20 cursor-col-resize items-center justify-center bg-transparent;
+    touch-action: none;
+  }
+
+  .workspace-resizer::before {
+    content: '';
+    @apply h-full w-px bg-line transition;
+  }
+
+  .workspace-resizer:hover::before,
+  .editor-canvas.is-resizing .workspace-resizer::before {
+    @apply bg-brand dark:bg-cyan-300;
   }
 
   .document-panel {
@@ -300,6 +321,11 @@
 
   .preview-column {
     @apply hidden min-w-0 border-l border-line bg-slate-50 p-4 dark:border-white/10 dark:bg-[#09111d] xl:block;
+  }
+
+  .editor-canvas.is-resizing .preview-column,
+  .editor-canvas.is-resizing .editor-column {
+    @apply select-none;
   }
 
   .preview-header {

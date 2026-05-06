@@ -69,9 +69,12 @@ export function EditorPage() {
   const [contentTemplate, setContentTemplate] = useState('cv.md');
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [activeNavigatorId, setActiveNavigatorId] = useState('profile');
+  const [editorPaneWidth, setEditorPaneWidth] = useState(loadEditorPaneWidth);
+  const [isResizingEditor, setIsResizingEditor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const editorColumnRef = useRef<HTMLDivElement>(null);
+  const editorCanvasRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const usage = session.data?.usage;
   const authenticated = Boolean(session.data?.authenticated);
@@ -248,6 +251,77 @@ export function EditorPage() {
       if (firstId) loadReference.mutate(firstId);
     }
   };
+
+  const startEditorResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (referenceOpen || window.innerWidth < 1280) return;
+
+    const root = editorCanvasRef.current;
+    if (!root) return;
+
+    const separator = event.currentTarget;
+    separator.setPointerCapture(event.pointerId);
+    setIsResizingEditor(true);
+
+    const updateWidth = (clientX: number) => {
+      const rect = root.getBoundingClientRect();
+      const maxWidth = Math.max(640, rect.width - PREVIEW_MIN_WIDTH - RESIZER_WIDTH);
+      const nextWidth = clamp(clientX - rect.left, 640, maxWidth);
+      setEditorPaneWidth(nextWidth);
+    };
+
+    updateWidth(event.clientX);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      updateWidth(moveEvent.clientX);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizingEditor(false);
+      separator.releasePointerCapture(event.pointerId);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp, { once: true });
+    window.addEventListener('pointercancel', handlePointerUp, { once: true });
+  };
+
+  useEffect(() => {
+    const clampEditorWidth = () => {
+      const root = editorCanvasRef.current;
+      if (!root || referenceOpen) return;
+
+      const rect = root.getBoundingClientRect();
+      const maxWidth = Math.max(640, rect.width - PREVIEW_MIN_WIDTH - RESIZER_WIDTH);
+      setEditorPaneWidth((current) => clamp(current, 640, maxWidth));
+    };
+
+    clampEditorWidth();
+    window.addEventListener('resize', clampEditorWidth);
+    return () => window.removeEventListener('resize', clampEditorWidth);
+  }, [referenceOpen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(EDITOR_PANE_WIDTH_STORAGE_KEY, String(editorPaneWidth));
+    } catch {
+      // Ignore storage failures and keep the current in-memory split.
+    }
+  }, [editorPaneWidth]);
+
+  useEffect(() => {
+    document.body.classList.toggle('is-resizing-editor', isResizingEditor);
+    document.body.style.userSelect = isResizingEditor ? 'none' : '';
+    document.body.style.cursor = isResizingEditor ? 'col-resize' : '';
+
+    return () => {
+      document.body.classList.remove('is-resizing-editor');
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizingEditor]);
 
   useEffect(() => {
     if (navigatorItems.length && !navigatorItems.some((item) => item.id === activeNavigatorId)) {
@@ -459,7 +533,11 @@ export function EditorPage() {
           </div>
         </div>
 
-        <div className={`editor-canvas ${referenceOpen ? 'has-reference' : ''}`}>
+        <div
+          className={`editor-canvas ${referenceOpen ? 'has-reference' : ''} ${isResizingEditor ? 'is-resizing' : ''}`}
+          ref={editorCanvasRef}
+          style={{ '--editor-panel-width': `${editorPaneWidth}px` } as React.CSSProperties}
+        >
           <div className="editor-column" ref={editorColumnRef}>
             <div className="document-panel">
               <SectionHeader icon={<List size={14} />} title="Resumen Profesional" />
@@ -522,6 +600,16 @@ export function EditorPage() {
               onModeChange={setReferenceMode}
               onSelect={(id) => loadReference.mutate(Number(id))}
               onClose={() => setReferenceOpen(false)}
+            />
+          ) : null}
+
+          {!referenceOpen ? (
+            <div
+              className="workspace-resizer"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Ajustar ancho del editor y la vista previa"
+              onPointerDown={startEditorResize}
             />
           ) : null}
 
@@ -629,6 +717,12 @@ const contentTemplates = [
   { value: 'cv-finance.md', label: 'Finanzas y Contabilidad' }
 ];
 
+const EDITOR_PANE_WIDTH_STORAGE_KEY = 'cv-studio-spa-editor-pane-width';
+const DEFAULT_EDITOR_PANE_WIDTH = 760;
+const MIN_EDITOR_PANE_WIDTH = 640;
+const PREVIEW_MIN_WIDTH = 360;
+const RESIZER_WIDTH = 12;
+
 const defaultPreviewDesign: DesignSettings = {
   template: 'harvard',
   accentColor: '#2563eb',
@@ -662,6 +756,23 @@ function getEditorStats(markdown: string) {
     lines: markdown ? markdown.split(/\r?\n/).length : 0,
     words: text ? text.split(/\s+/).length : 0
   };
+}
+
+function loadEditorPaneWidth() {
+  try {
+    const stored = Number(localStorage.getItem(EDITOR_PANE_WIDTH_STORAGE_KEY));
+    if (Number.isFinite(stored) && stored >= MIN_EDITOR_PANE_WIDTH) {
+      return stored;
+    }
+  } catch {
+    // Ignore storage access errors and fall back to the default width.
+  }
+
+  return DEFAULT_EDITOR_PANE_WIDTH;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function AiArtifactsPanel({ artifacts, onApply, onClear }: {
