@@ -37,7 +37,7 @@ export function Shell({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return 'light';
     const savedTheme = window.localStorage.getItem('cv-studio-theme');
     if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
   });
   const [banner, setBanner] = useState('');
   const syncTimerRef = useRef<number | null>(null);
@@ -145,16 +145,16 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [authenticated, remoteFingerprint, remoteSnapshot, workspaceFingerprint, workspaceSnapshot]);
 
   return (
-    <div className="min-h-screen bg-mist pb-20 text-ink transition-colors dark:bg-slate-950 dark:text-slate-100 md:pb-0">
-      <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+    <div className="app-shell min-h-screen bg-mist pb-20 text-ink transition-colors dark:bg-slate-950 dark:text-slate-100 md:pb-0">
+      <header className="app-topbar sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <div className="mx-auto flex h-16 max-w-[1500px] items-center gap-4 px-4">
           <NavLink to="/" className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-white">
-              <FileText size={19} />
+            <span className="app-logo-mark flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-white">
+              <img src="/favicon/apple-touch-icon.png" alt="" />
             </span>
             <span>
-              <span className="block text-sm font-semibold leading-4">CV Studio Pro</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">quiet power for job search</span>
+              <span className="app-logo-text block text-sm font-semibold leading-4">CV Studio</span>
+              <span className="app-logo-subtitle block text-xs text-slate-500 dark:text-slate-400">quiet power for job search</span>
             </span>
           </NavLink>
 
