@@ -96,3 +96,4 @@ Esta auditoría sirve como mapa de referencia entre la implementación React/Vit
 - El legacy de referencia será `public/editor.html` + `public/app.js`, porque `index.html` ya pertenece a Vite.
 - `/tracker` queda fuera de una refactorización profunda salvo ajustes de consistencia.
 
+

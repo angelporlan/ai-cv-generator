@@ -98,6 +98,8 @@ export function EditorPage() {
     enabled: authenticated
   });
   const visibleArtifacts = remoteArtifacts.data?.items.map(fromArtifactDto) || aiArtifacts;
+  const savedCvItems = savedCvs.data?.items || [];
+  const savedCvCount = savedCvItems.length;
   const openDesignSuggestions = () => {
     setSuggestionsOpen(true);
     setRightPanel('design');
@@ -244,10 +246,16 @@ export function EditorPage() {
       return;
     }
 
+    if (!savedCvCount) {
+      setReferenceOpen(true);
+      setNotice('Todavia no tienes CVs guardados para comparar. Guarda uno o abre la biblioteca.');
+      return;
+    }
+
     const nextOpen = !referenceOpen;
     setReferenceOpen(nextOpen);
     if (nextOpen && !referenceMarkdown) {
-      const firstId = savedCvs.data?.items[0]?.id;
+      const firstId = savedCvItems[0]?.id;
       if (firstId) loadReference.mutate(firstId);
     }
   };
@@ -486,10 +494,11 @@ export function EditorPage() {
               <Palette size={14} />
               Personalizar
             </button>
-            <button className="studio-button ghost" type="button" onClick={toggleReference}>
-              <PanelRightOpen size={14} />
-              Comparar
-            </button>
+          <button className="studio-button ghost" type="button" onClick={toggleReference}>
+            <PanelRightOpen size={14} />
+            Comparar
+            {savedCvCount ? <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">{savedCvCount}</span> : null}
+          </button>
             <div className="relative">
               <button className="studio-button primary" type="button" onClick={() => setDownloadOpen((open) => !open)} disabled={downloadPdf.isPending}>
                 {downloadPdf.isPending ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
@@ -592,7 +601,7 @@ export function EditorPage() {
 
           {referenceOpen ? (
             <ReferencePane
-              cvs={savedCvs.data?.items || []}
+              cvs={savedCvItems}
               selectedId={referenceCvId}
               markdown={referenceMarkdown}
               mode={referenceMode}
@@ -600,6 +609,7 @@ export function EditorPage() {
               onModeChange={setReferenceMode}
               onSelect={(id) => loadReference.mutate(Number(id))}
               onClose={() => setReferenceOpen(false)}
+              onOpenLibrary={() => navigate('/library')}
             />
           ) : null}
 
@@ -808,7 +818,7 @@ function AiArtifactsPanel({ artifacts, onApply, onClear }: {
   );
 }
 
-function ReferencePane({ cvs, selectedId, markdown, mode, loading, onModeChange, onSelect, onClose }: {
+function ReferencePane({ cvs, selectedId, markdown, mode, loading, onModeChange, onSelect, onClose, onOpenLibrary }: {
   cvs: CvSummary[];
   selectedId: string;
   markdown: string;
@@ -817,31 +827,53 @@ function ReferencePane({ cvs, selectedId, markdown, mode, loading, onModeChange,
   onModeChange: (mode: 'markdown' | 'visual') => void;
   onSelect: (id: string) => void;
   onClose: () => void;
+  onOpenLibrary: () => void;
 }) {
   return (
     <aside className="reference-column">
       <div className="reference-head">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase text-slate-500">Referencia</p>
-          <select className="dark-field mt-1" value={selectedId} onChange={(event) => onSelect(event.target.value)} aria-label="CV de referencia">
-            <option value="">Selecciona CV</option>
+          <select className="dark-field mt-1" value={selectedId} onChange={(event) => onSelect(event.target.value)} aria-label="CV de referencia" disabled={!cvs.length}>
+            <option value="">{cvs.length ? 'Selecciona CV' : 'No hay CVs guardados'}</option>
             {cvs.map((cv) => <option value={cv.id} key={cv.id}>{cv.name}</option>)}
           </select>
         </div>
         <button className="tool-icon" type="button" onClick={onClose} aria-label="Cerrar comparacion"><X size={14} /></button>
       </div>
-      <div className="mode-toggle mx-3 mt-3">
-        <button className={mode === 'markdown' ? 'is-active' : ''} type="button" onClick={() => onModeChange('markdown')}>Markdown</button>
-        <button className={mode === 'visual' ? 'is-active' : ''} type="button" onClick={() => onModeChange('visual')}>Visual</button>
-      </div>
-      {loading ? (
-        <div className="flex items-center gap-2 p-4 text-sm text-slate-500 dark:text-slate-400"><Loader2 className="animate-spin" size={15} /> Cargando referencia</div>
-      ) : mode === 'markdown' ? (
-        <textarea className="reference-textarea" value={markdown} readOnly aria-label="Markdown del CV de referencia" />
-      ) : (
-        <div className="reference-visual">
-          <CvPreview markdown={markdown || '# Sin referencia'} design={{ ...defaultPreviewDesign }} compact />
+      {!cvs.length ? (
+        <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 p-6 text-center">
+          <Library size={22} className="text-slate-400 dark:text-slate-500" />
+          <div className="max-w-xs">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Todavía no hay CVs para comparar</p>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Guarda un CV desde el editor para usarlo como referencia, o entra en Biblioteca para revisar tus versiones.</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button className="button-secondary" type="button" onClick={onOpenLibrary}>
+              <Library size={14} />
+              Abrir biblioteca
+            </button>
+            <button className="button-primary" type="button" onClick={onClose}>
+              Cerrar
+            </button>
+          </div>
         </div>
+      ) : (
+        <>
+          <div className="mode-toggle mx-3 mt-3">
+            <button className={mode === 'markdown' ? 'is-active' : ''} type="button" onClick={() => onModeChange('markdown')}>Markdown</button>
+            <button className={mode === 'visual' ? 'is-active' : ''} type="button" onClick={() => onModeChange('visual')}>Visual</button>
+          </div>
+          {loading ? (
+            <div className="flex items-center gap-2 p-4 text-sm text-slate-500 dark:text-slate-400"><Loader2 className="animate-spin" size={15} /> Cargando referencia</div>
+          ) : mode === 'markdown' ? (
+            <textarea className="reference-textarea" value={markdown} readOnly aria-label="Markdown del CV de referencia" />
+          ) : (
+            <div className="reference-visual">
+              <CvPreview markdown={markdown || '# Sin referencia'} design={{ ...defaultPreviewDesign }} compact />
+            </div>
+          )}
+        </>
       )}
     </aside>
   );
