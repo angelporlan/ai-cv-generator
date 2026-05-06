@@ -615,15 +615,6 @@ export function EditorPage() {
           ) : null}
 
           <aside className="preview-column">
-            <div className="preview-header">
-              <div className="preview-label">Preview</div>
-              {!suggestionsOpen ? (
-                <button className="preview-reopen-button" type="button" onClick={openDesignSuggestions} aria-label="Abrir Design Suggestions">
-                  <Palette size={14} />
-                  Personalizar
-                </button>
-              ) : null}
-            </div>
             <CvPreview markdown={markdown} design={design} showLabel={false} />
           </aside>
         </div>
@@ -1272,7 +1263,6 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
 
   return (
     <div className={`preview-shell ${compact ? 'is-compact' : ''}`}>
-      {showLabel ? <div className="preview-label">Preview</div> : null}
       <div className="preview-page pdf-frame-wrap" style={{ borderTopColor: design.accentColor }}>
         {url ? (
           <iframe
