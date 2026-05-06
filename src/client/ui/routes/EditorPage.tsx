@@ -1278,7 +1278,7 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
           <iframe
             className="pdf-frame"
             title="Vista previa PDF"
-            src={`${url}#page=${Math.min(page, totalPages || page)}&zoom=${Math.round(zoom * 100)}&toolbar=0&navpanes=0`}
+            src={`${url}#page=${Math.min(page, totalPages || page)}&zoom=${Math.round(zoom * 100)}&view=FitH&toolbar=0&navpanes=0`}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-slate-500">
