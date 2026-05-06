@@ -103,4 +103,25 @@ describe('typed API client', () => {
       })
     }));
   });
+
+  it('falls back to the base template when an example file is missing', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: false, error: 'CV content not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      }))
+      .mockResolvedValueOnce(new Response('Base template content', {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      }));
+
+    await expect(api.loadSourceWithFallback('cv-modern-example.md', 'cv-modern.md')).resolves.toEqual({
+      content: 'Base template content',
+      file: 'cv-modern.md',
+      fallbackUsed: true
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/cv?file=cv-modern-example.md', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/cv?file=cv-modern.md', expect.any(Object));
+  });
 });

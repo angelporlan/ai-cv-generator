@@ -97,6 +97,12 @@ export type AiArtifactDto = {
   createdAt: string;
 };
 
+export type LoadedSource = {
+  content: string;
+  file: string;
+  fallbackUsed: boolean;
+};
+
 export type JobApplication = {
   id: string;
   cvId: string | null;
@@ -204,6 +210,26 @@ export const api = {
   }),
   deleteCv: (id: number) => request<{ ok: true }>(`/api/cvs/${id}`, { method: 'DELETE' }),
   loadSource: (file = 'cv.md') => request<string>(`/api/cv?file=${encodeURIComponent(file)}`),
+  loadSourceWithFallback: async (file: string, fallbackFile?: string): Promise<LoadedSource> => {
+    try {
+      return {
+        content: await api.loadSource(file),
+        file,
+        fallbackUsed: false
+      };
+    } catch (error) {
+      const shouldFallback = error instanceof ApiError && error.status === 404 && fallbackFile && fallbackFile !== file;
+      if (!shouldFallback) {
+        throw error;
+      }
+
+      return {
+        content: await api.loadSource(fallbackFile),
+        file: fallbackFile,
+        fallbackUsed: true
+      };
+    }
+  },
   adaptCv: (payload: AiActionPayload) => request<AiActionResponse>('/api/adapt-cv', {
     method: 'POST',
     body: payload

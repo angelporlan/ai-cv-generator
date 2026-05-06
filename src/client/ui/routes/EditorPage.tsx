@@ -173,9 +173,21 @@ export function EditorPage() {
     loadTemplate.mutate(file);
   };
 
-  const handleExampleLoad = () => {
-    const file = contentTemplate.replace('.md', '-example.md');
-    loadTemplate.mutate(file);
+  const handleExampleLoad = async () => {
+    const exampleFile = contentTemplate.replace(/\.md$/i, '-example.md');
+    try {
+      const loaded = await api.loadSourceWithFallback(exampleFile, contentTemplate);
+      setMarkdown(loaded.content);
+      setSelectedCvId(null);
+      setSaveName(getTemplateLabel(loaded.file));
+      setNotice(
+        loaded.fallbackUsed
+          ? `No habia ejemplo para ${getTemplateLabel(contentTemplate)}; se cargo la plantilla base.`
+          : 'Ejemplo cargado'
+      );
+    } catch (error) {
+      setNotice(getErrorMessage(error));
+    }
   };
 
   const handleFileImport = async (file?: File) => {
@@ -1078,6 +1090,7 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
   const [url, setUrl] = useState('');
   const [zoom, setZoom] = useState(1);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -1097,11 +1110,14 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
         .then(async (response) => {
           const blob = await response.blob();
           if (cancelled) return;
+          const pageCount = await getPdfPageCount(blob);
           objectUrl = URL.createObjectURL(blob);
           setUrl((previous) => {
             if (previous) URL.revokeObjectURL(previous);
             return objectUrl;
           });
+          setTotalPages(pageCount);
+          setPage((current) => (pageCount ? Math.min(current, pageCount) : current));
           setError('');
         })
         .catch((previewError) => {
@@ -1128,7 +1144,7 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
           <iframe
             className="pdf-frame"
             title="Vista previa PDF"
-            src={`${url}#page=${page}&zoom=${Math.round(zoom * 100)}&toolbar=0&navpanes=0`}
+            src={`${url}#page=${Math.min(page, totalPages || page)}&zoom=${Math.round(zoom * 100)}&toolbar=0&navpanes=0`}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-slate-500">
@@ -1137,9 +1153,13 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
         )}
       </div>
       <div className="preview-controls" hidden={compact}>
-        <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label="Pagina anterior"><ChevronLeft size={15} /></button>
-        <span>Page {page}</span>
-        <button type="button" onClick={() => setPage((value) => value + 1)} aria-label="Pagina siguiente"><ChevronRight size={15} /></button>
+        <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} aria-label="Pagina anterior" disabled={page <= 1}>
+          <ChevronLeft size={15} />
+        </button>
+        <span>Page {page}{totalPages ? ` / ${totalPages}` : ''}</span>
+        <button type="button" onClick={() => setPage((value) => (totalPages ? Math.min(totalPages, value + 1) : value + 1))} aria-label="Pagina siguiente" disabled={totalPages ? page >= totalPages : false}>
+          <ChevronRight size={15} />
+        </button>
         <span className="ml-auto inline-flex items-center gap-2">
           <button type="button" onClick={() => setZoom((value) => Math.max(0.5, value - 0.1))} aria-label="Reducir zoom"><Minus size={13} /></button>
           {Math.round(zoom * 100)}%
@@ -1148,6 +1168,16 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
       </div>
     </div>
   );
+}
+
+async function getPdfPageCount(blob: Blob) {
+  try {
+    const text = new TextDecoder('latin1').decode(await blob.arrayBuffer());
+    const matches = text.match(/\/Type\s*\/Page\b/g);
+    return matches?.length || null;
+  } catch {
+    return null;
+  }
 }
 
 function SuggestionThumbnails({ design, onChange }: { design: DesignSettings; onChange: (design: Partial<DesignSettings>) => void }) {
