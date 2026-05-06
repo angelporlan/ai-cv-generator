@@ -261,7 +261,7 @@ export function EditorPage() {
   };
 
   const startEditorResize = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (referenceOpen || window.innerWidth < 1280) return;
+    if (window.innerWidth < 1280) return;
 
     const root = editorCanvasRef.current;
     if (!root) return;
@@ -272,7 +272,8 @@ export function EditorPage() {
 
     const updateWidth = (clientX: number) => {
       const rect = root.getBoundingClientRect();
-      const maxWidth = Math.max(640, rect.width - PREVIEW_MIN_WIDTH - RESIZER_WIDTH);
+      const rightColumnsWidth = referenceOpen ? 300 + 430 : PREVIEW_MIN_WIDTH;
+      const maxWidth = Math.max(640, rect.width - rightColumnsWidth - RESIZER_WIDTH);
       const nextWidth = clamp(clientX - rect.left, 640, maxWidth);
       setEditorPaneWidth(nextWidth);
     };
@@ -299,10 +300,11 @@ export function EditorPage() {
   useEffect(() => {
     const clampEditorWidth = () => {
       const root = editorCanvasRef.current;
-      if (!root || referenceOpen) return;
+      if (!root) return;
 
       const rect = root.getBoundingClientRect();
-      const maxWidth = Math.max(640, rect.width - PREVIEW_MIN_WIDTH - RESIZER_WIDTH);
+      const rightColumnsWidth = referenceOpen ? 300 + 430 : PREVIEW_MIN_WIDTH;
+      const maxWidth = Math.max(640, rect.width - rightColumnsWidth - RESIZER_WIDTH);
       setEditorPaneWidth((current) => clamp(current, 640, maxWidth));
     };
 
@@ -548,7 +550,6 @@ export function EditorPage() {
         >
           <div className="editor-column" ref={editorColumnRef}>
             <div className="document-panel">
-              <SectionHeader icon={<List size={14} />} title="Resumen Profesional" />
               <div className="format-toolbar" aria-label="Herramientas de formato">
                 <div className="format-toolbar-actions">
                   <button className="tool-icon" type="button" onClick={() => applyMarkdownFormat('bold')} disabled={!formattingInMarkdown} title={toolbarHelp} aria-label="Negrita Markdown"><Bold size={14} /></button>
@@ -560,12 +561,6 @@ export function EditorPage() {
                   <span className="format-toolbar-divider" aria-hidden="true" />
                   <button className="tool-icon" type="button" onClick={handleExampleLoad} aria-label="Cargar ejemplo"><MoreHorizontal size={14} /></button>
                   <button className="tool-icon" type="button" onClick={() => fileInputRef.current?.click()} aria-label="Importar Markdown"><FileInput size={14} /></button>
-                </div>
-                <div className="format-toolbar-note">
-                  <span>{toolbarHelp}</span>
-                  {!formattingInMarkdown ? (
-                    <button type="button" onClick={() => setEditorMode('markdown')}>Cambiar a Markdown</button>
-                  ) : null}
                 </div>
               </div>
               <input ref={fileInputRef} hidden type="file" accept=".md,text/markdown,text/plain" onChange={(event) => handleFileImport(event.target.files?.[0])} />
@@ -590,6 +585,14 @@ export function EditorPage() {
             </div>
           </div>
 
+          <div
+            className="workspace-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Ajustar ancho del editor"
+            onPointerDown={startEditorResize}
+          />
+
           {referenceOpen ? (
             <ReferencePane
               cvs={savedCvItems}
@@ -601,16 +604,6 @@ export function EditorPage() {
               onSelect={(id) => loadReference.mutate(Number(id))}
               onClose={() => setReferenceOpen(false)}
               onOpenLibrary={() => navigate('/library')}
-            />
-          ) : null}
-
-          {!referenceOpen ? (
-            <div
-              className="workspace-resizer"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Ajustar ancho del editor y la vista previa"
-              onPointerDown={startEditorResize}
             />
           ) : null}
 

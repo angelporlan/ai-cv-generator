@@ -219,7 +219,7 @@
     }
 
     .editor-canvas.has-reference {
-      grid-template-columns: minmax(0, var(--editor-panel-width, 1fr)) minmax(300px, 360px) 430px;
+      grid-template-columns: minmax(0, var(--editor-panel-width, 1fr)) 12px minmax(300px, 360px) minmax(400px, 1fr);
     }
   }
 
@@ -349,7 +349,7 @@
   }
 
   .preview-shell {
-    @apply sticky top-[8.5rem] mx-auto flex max-w-[390px] flex-col items-center;
+    @apply sticky top-[8.5rem] mx-auto flex flex-col items-center w-full;
   }
 
   .preview-label {
