@@ -1206,10 +1206,12 @@ function AutoResizeTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) 
 
 function CvPreview({ markdown, design, compact = false, showLabel = true }: { markdown: string; design: DesignSettings; compact?: boolean; showLabel?: boolean }) {
   const [url, setUrl] = useState('');
-  const [zoom, setZoom] = useState(1);
-  const [page, setPage] = useState(1);
+  const [zoom, setZoom] = useState(readStoredPreviewZoom);
+  const [page, setPage] = useState(readStoredPreviewPage);
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const framePage = Math.min(page, totalPages || page);
+  const zoomPercent = Math.round(zoom * 100);
 
   useEffect(() => {
     let cancelled = false;
@@ -1254,14 +1256,27 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
     if (url) URL.revokeObjectURL(url);
   }, [url]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(PREVIEW_PAGE_KEY, String(framePage));
+    } catch {}
+  }, [framePage]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PREVIEW_ZOOM_KEY, String(zoom));
+    } catch {}
+  }, [zoom]);
+
   return (
     <div className={`preview-shell ${compact ? 'is-compact' : ''}`}>
       <div className="preview-page pdf-frame-wrap" style={{ borderTopColor: design.accentColor }}>
         {url ? (
           <iframe
+            key={`${url}-${framePage}-${zoomPercent}`}
             className="pdf-frame"
             title="Vista previa PDF"
-            src={`${url}#page=${Math.min(page, totalPages || page)}&zoom=${Math.round(zoom * 100)}&view=FitH&toolbar=0&navpanes=0`}
+            src={`${url}#page=${framePage}&zoom=${zoomPercent}&toolbar=0&navpanes=0`}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-slate-500">
@@ -1278,13 +1293,34 @@ function CvPreview({ markdown, design, compact = false, showLabel = true }: { ma
           <ChevronRight size={15} />
         </button>
         <span className="ml-auto inline-flex items-center gap-2">
-          <button type="button" onClick={() => setZoom((value) => Math.max(0.5, value - 0.1))} aria-label="Reducir zoom"><Minus size={13} /></button>
-          {Math.round(zoom * 100)}%
-          <button type="button" onClick={() => setZoom((value) => Math.min(2, value + 0.1))} aria-label="Aumentar zoom"><ZoomIn size={13} /></button>
+          <button type="button" onClick={() => setZoom((value) => Math.max(0.5, Number((value - 0.1).toFixed(2))))} aria-label="Reducir zoom" disabled={zoom <= 0.5}><Minus size={13} /></button>
+          {zoomPercent}%
+          <button type="button" onClick={() => setZoom((value) => Math.min(2, Number((value + 0.1).toFixed(2))))} aria-label="Aumentar zoom" disabled={zoom >= 2}><ZoomIn size={13} /></button>
         </span>
       </div>
     </div>
   );
+}
+
+const PREVIEW_PAGE_KEY = 'cv_studio_preview_page';
+const PREVIEW_ZOOM_KEY = 'cv_studio_preview_zoom';
+
+function readStoredPreviewPage() {
+  try {
+    const page = Number(localStorage.getItem(PREVIEW_PAGE_KEY));
+    return Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function readStoredPreviewZoom() {
+  try {
+    const zoom = Number(localStorage.getItem(PREVIEW_ZOOM_KEY));
+    return Number.isFinite(zoom) ? Math.min(2, Math.max(0.5, zoom)) : 1;
+  } catch {
+    return 1;
+  }
 }
 
 async function getPdfPageCount(blob: Blob) {
