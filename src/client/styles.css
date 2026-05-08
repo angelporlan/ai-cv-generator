@@ -250,7 +250,7 @@
   }
 
   .document-panel {
-    @apply mx-auto max-w-3xl rounded-md border border-line bg-white shadow-2xl shadow-slate-200/70 dark:border-white/10 dark:bg-[#172436] dark:shadow-black/20;
+    @apply mx-auto flex min-h-0 max-w-3xl flex-col rounded-md border border-line bg-white shadow-2xl shadow-slate-200/70 dark:border-white/10 dark:bg-[#172436] dark:shadow-black/20;
   }
 
   .section-header {
@@ -294,11 +294,11 @@
   }
 
   .studio-textarea {
-    @apply min-h-[640px] w-full resize-y border-0 bg-transparent p-4 font-mono text-xs leading-5 text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500;
+    @apply min-h-[640px] w-full flex-1 resize-y border-0 bg-transparent p-4 font-mono text-xs leading-5 text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500;
   }
 
   .editor-stats {
-    @apply flex flex-wrap items-center gap-3 border-t border-line px-4 py-2 text-[11px] font-medium text-slate-500 dark:border-white/10 dark:text-slate-400;
+    @apply flex shrink-0 flex-wrap items-center gap-3 border-t border-line px-4 py-2 text-[11px] font-medium text-slate-500 dark:border-white/10 dark:text-slate-400;
   }
 
   .editable-section {
@@ -830,6 +830,7 @@
 
   .document-panel {
     min-height: 100%;
+    height: 100%;
     max-width: none;
     border: 0;
     border-radius: 0;
@@ -881,7 +882,7 @@
   }
 
   .studio-textarea {
-    min-height: calc(100vh - 264px);
+    min-height: 0;
     color: var(--legacy-text-primary);
     background: var(--legacy-bg-primary);
     font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;

@@ -67,7 +67,7 @@ export function EditorPage() {
   const [saveName, setSaveName] = useState(parsed.title);
   const [status, setStatus] = useState<CvStatus>('draft');
   const [contentTemplate, setContentTemplate] = useState('cv.md');
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(readStoredNavCollapsed);
   const [activeNavigatorId, setActiveNavigatorId] = useState('profile');
   const [editorPaneWidth, setEditorPaneWidth] = useState(loadEditorPaneWidth);
   const [isResizingEditor, setIsResizingEditor] = useState(false);
@@ -320,6 +320,14 @@ export function EditorPage() {
       // Ignore storage failures and keep the current in-memory split.
     }
   }, [editorPaneWidth]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(EDITOR_NAV_COLLAPSED_STORAGE_KEY, navCollapsed ? '1' : '0');
+    } catch {
+      // Ignore storage failures and keep the current in-memory nav state.
+    }
+  }, [navCollapsed]);
 
   useEffect(() => {
     document.body.classList.toggle('is-resizing-editor', isResizingEditor);
@@ -703,6 +711,7 @@ const contentTemplates = [
 ];
 
 const EDITOR_PANE_WIDTH_STORAGE_KEY = 'cv-studio-spa-editor-pane-width';
+const EDITOR_NAV_COLLAPSED_STORAGE_KEY = 'cv-studio-spa-editor-nav-collapsed';
 const DEFAULT_EDITOR_PANE_WIDTH = 760;
 const MIN_EDITOR_PANE_WIDTH = 640;
 const PREVIEW_MIN_WIDTH = 360;
@@ -754,6 +763,14 @@ function loadEditorPaneWidth() {
   }
 
   return DEFAULT_EDITOR_PANE_WIDTH;
+}
+
+function readStoredNavCollapsed() {
+  try {
+    return localStorage.getItem(EDITOR_NAV_COLLAPSED_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 function clamp(value: number, min: number, max: number) {
