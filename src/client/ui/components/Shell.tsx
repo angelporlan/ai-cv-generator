@@ -145,8 +145,8 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [authenticated, remoteFingerprint, remoteSnapshot, workspaceFingerprint, workspaceSnapshot]);
 
   return (
-    <div className="app-shell min-h-screen bg-mist pb-20 text-ink transition-colors dark:bg-slate-950 dark:text-slate-100 md:pb-0">
-      <header className="app-topbar sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+    <div className="app-shell flex h-screen flex-col overflow-hidden bg-mist pb-20 text-ink transition-colors dark:bg-slate-950 dark:text-slate-100 md:pb-0">
+      <header className="app-topbar sticky top-0 z-30 shrink-0 border-b border-line bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <div className="mx-auto flex h-16 max-w-[1500px] items-center gap-4 px-4">
           <NavLink to="/" className="flex items-center gap-3">
             <span className="app-logo-mark flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-white">
@@ -204,7 +204,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
-      <main className={isWorkspaceRoute ? 'w-full px-0 py-0' : 'mx-auto max-w-[1500px] px-4 py-4'}>{children}</main>
+      <main className={isWorkspaceRoute ? 'min-h-0 flex-1 w-full overflow-hidden px-0 py-0' : 'mx-auto min-h-0 w-full max-w-[1500px] flex-1 overflow-auto px-4 py-4'}>{children}</main>
       <nav className="fixed bottom-3 left-3 right-3 z-30 grid grid-cols-3 rounded-xl border border-line bg-white/95 p-1 shadow-calm backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 md:hidden">
         <MobileLink to="/" icon={<PanelRight size={17} />} label="Editor" />
         <MobileLink to="/library" icon={<Library size={17} />} label="CVs" />
