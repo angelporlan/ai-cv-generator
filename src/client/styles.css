@@ -858,7 +858,7 @@
       #101923;
     display: flex;
     flex-direction: column;
-    overflow: auto;
+    overflow: hidden;
     padding: 38px;
   }
 
@@ -882,14 +882,22 @@
     top: 0;
     width: 100%;
     max-width: 100%;
+    min-height: 0;
+    height: 100%;
   }
 
   .preview-page {
+    flex: 1;
+    min-height: 0;
     width: 100%;
-    max-height: calc(100vh - 278px);
+    max-height: none;
     border-top-width: 0;
     background: #fffaf0;
     box-shadow: 0 28px 75px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.18);
+  }
+
+  .pdf-frame-wrap {
+    height: auto !important;
   }
 
   .preview-controls {
