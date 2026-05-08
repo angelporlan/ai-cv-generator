@@ -104,7 +104,7 @@
   }
 
   .editor-shell {
-    @apply grid min-h-[calc(100vh-4rem)] w-full overflow-x-clip bg-slate-100 text-slate-900 dark:bg-[#0c1522] dark:text-slate-200 lg:grid-cols-[220px_minmax(0,1fr)_320px];
+    @apply grid h-full min-h-0 w-full overflow-hidden bg-slate-100 text-slate-900 dark:bg-[#0c1522] dark:text-slate-200 lg:grid-cols-[220px_minmax(0,1fr)_320px];
   }
 
   .editor-shell.is-nav-collapsed {
@@ -137,7 +137,7 @@
   }
 
   .editor-board {
-    @apply min-w-0 border-r border-line bg-slate-100 dark:border-white/10 dark:bg-[#0f1a28];
+    @apply flex min-h-0 min-w-0 flex-col border-r border-line bg-slate-100 dark:border-white/10 dark:bg-[#0f1a28];
   }
 
   .mobile-section-nav {
@@ -173,7 +173,7 @@
   }
 
   .studio-topbar {
-    @apply sticky top-16 z-20 flex min-h-14 flex-col gap-3 border-b border-line bg-white/95 px-4 py-2 backdrop-blur dark:border-white/10 dark:bg-[#132133]/95 xl:flex-row xl:items-center xl:justify-between;
+    @apply sticky top-16 z-20 flex shrink-0 flex-col gap-3 border-b border-line bg-white/95 px-4 py-2 backdrop-blur dark:border-white/10 dark:bg-[#132133]/95 xl:flex-row xl:items-center xl:justify-between;
   }
 
   .studio-title-input {
@@ -217,7 +217,7 @@
   }
 
   .editor-canvas {
-    @apply grid min-h-[calc(100vh-7.5rem)] min-w-0 gap-0;
+    @apply grid min-h-0 min-w-0 flex-1 gap-0;
   }
 
   @media (min-width: 1280px) {
@@ -327,7 +327,7 @@
   }
 
   .preview-column {
-    @apply hidden min-w-0 border-l border-line bg-slate-50 p-4 dark:border-white/10 dark:bg-[#09111d] xl:block;
+    @apply hidden min-h-0 min-w-0 border-l border-line bg-slate-50 p-4 dark:border-white/10 dark:bg-[#09111d] xl:block;
   }
 
   .editor-canvas.is-resizing .preview-column,
@@ -508,15 +508,66 @@
 
 @media (max-width: 1023px) {
   .editor-shell {
-    @apply block;
+    @apply flex flex-col;
   }
 
   .editor-canvas {
-    @apply block;
+    @apply flex min-h-0 flex-1 flex-col;
   }
 
   .studio-topbar {
     top: 4rem;
+  }
+
+  .editor-board {
+    @apply min-h-0 flex-1;
+  }
+
+  .editor-column {
+    @apply min-h-0 flex-1;
+  }
+}
+
+@media (max-height: 1279px) {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    min-height: 100%;
+  }
+
+  body {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-shell {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+  }
+
+  .app-shell > main {
+    overflow: visible !important;
+  }
+
+  .editor-shell {
+    height: auto !important;
+    min-height: calc(100vh - 52px) !important;
+    overflow: visible !important;
+  }
+
+  .editor-board,
+  .editor-canvas {
+    height: auto !important;
+    min-height: 0;
+    overflow: visible !important;
+  }
+}
+
+@media (max-height: 1279px) {
+  body {
+    overflow: auto;
   }
 }
 
@@ -634,6 +685,7 @@
   .editor-shell {
     height: 100%;
     min-height: 0;
+    overflow: hidden;
     background: var(--legacy-bg-secondary);
     color: var(--legacy-text-primary);
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
@@ -677,11 +729,11 @@
   .editor-board {
     border-color: var(--legacy-border);
     background: var(--legacy-bg-primary);
+    min-height: 0;
   }
 
   .studio-topbar {
     top: 52px;
-    min-height: 64px;
     border-color: var(--legacy-border-soft);
     background: color-mix(in srgb, var(--legacy-bg-primary) 92%, transparent);
     backdrop-filter: blur(10px);
@@ -766,7 +818,8 @@
 
   .editor-canvas {
     min-height: 0;
-    height: calc(100vh - 116px);
+    height: auto;
+    flex: 1;
     background: var(--legacy-bg-secondary);
   }
 
@@ -858,8 +911,9 @@
       #101923;
     display: flex;
     flex-direction: column;
+    min-height: 0;
     overflow: hidden;
-    padding: 38px;
+    padding: clamp(14px, 2vw, 38px);
   }
 
   .preview-header {
@@ -905,6 +959,7 @@
     background: var(--legacy-bg-primary);
     color: var(--legacy-text-secondary);
     border-radius: 8px;
+    flex-shrink: 0;
   }
 
   .preview-controls button {
@@ -976,13 +1031,29 @@
   }
 
   @media (max-width: 1023px) {
+    .editor-shell {
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     .studio-topbar {
-      top: 52px;
+      position: static;
+      top: auto;
+    }
+
+    .editor-board,
+    .editor-canvas {
+      min-height: 0;
+      height: auto;
+      flex: 1;
     }
 
     .editor-column {
       background: var(--legacy-bg-secondary);
       padding: 12px;
+      min-height: 0;
+      overflow: auto;
     }
 
     .document-panel {
@@ -1002,11 +1073,40 @@
     }
 
     .studio-topbar {
-      position: static;
+      gap: 8px;
+      padding: 10px 12px;
     }
 
     .editor-shell {
+      height: 100%;
+      min-height: 0;
+    }
+  }
+
+  @media (max-height: 1279px) {
+    .app-shell {
+      height: auto;
+      min-height: 100vh;
+      overflow: visible;
+    }
+
+    .app-shell > main {
+      overflow: visible;
+    }
+
+    .editor-shell {
+      height: auto;
       min-height: calc(100vh - 52px);
+      overflow: visible;
+    }
+
+    .editor-board,
+    .editor-canvas {
+      height: auto;
+    }
+
+    .editor-canvas {
+      min-height: calc(100vh - 116px);
     }
   }
 }
